@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { computeSweepGeometry } from "./aeroSweepChart.ts";
+import { computeSweepGeometry } from "./aeroSweepGeometry.ts";
 import type { AeroSweepPoint } from "@/app/page";
 
 function sweep(): AeroSweepPoint[] {

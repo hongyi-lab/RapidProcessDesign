@@ -1,8 +1,8 @@
 <div align="center">
 
-# AeroSpec Agent
+# Rapid Process Design
 
-**自然语言飞行器概念设计工作台**
+**输入任务范围，生成满足约束的飞机概念方案 — 基于 AeroSpec Agent**
 
 用自然语言描述飞行器 — 获得参数化 CAD 模型、气动分析、AI 驱动的设计探索和交互式 3D 预览。
 
@@ -19,9 +19,22 @@
 
 [English](./README.md) | 中文
 
-[报告问题](https://github.com/zweien/aero-spec-agent/issues) · [功能建议](https://github.com/zweien/aero-spec-agent/issues) · [查看演示](#快速开始)
+[Rapid Design](#rapid-design-任务驱动设计) · [AeroSpec 上游](https://github.com/zweien/aero-spec-agent) · [查看演示](#快速开始)
 
 </div>
+
+---
+
+## Rapid Design 任务驱动设计
+
+新增的 `/rapid-design` 工作区把可调任务输入转换成新的飞机概念方案。你可以调整目标航程、有效载荷、巡航速度、巡航高度，以及燃油上限、最大起飞质量和目标升阻比；优化器负责搜索机翼面积、展弦比、梢根比、后掠角、机身尺寸、翼型参数和实际装油量。
+
+- 公开代理模型：使用论文配套、MIT 许可的 [NeuralFoil](https://github.com/peterdsharpe/NeuralFoil) 0.3.3 预测二维翼型 CL/CD/CM 和分析置信度。
+- 透明系统模型：有限翼阻力、ISA 大气、部件质量估算和 Breguet 风格航程公式都保留在可读代码与 YAML 配置中。
+- 可检查结果：逐项报告约束、明确标记不可行搜索、展示收敛过程，并把最优几何直接送入 AeroSpec 3D 预览。
+- 可复现：优化随机种子固定，代理模型版本锁定，任务和结果按 JSON 保存到 `storage/rapid_design/jobs/`。
+
+按下方命令启动前后端，然后访问 `http://localhost:3900/rapid-design`。这条流程不需要 LLM 密钥，也不需要安装 OpenVSP。详情见 [Rapid Design 技术说明](docs/rapid-design.md) 和 [第三方声明](THIRD_PARTY_NOTICES.md)。
 
 ---
 
@@ -135,8 +148,8 @@ OpenVSP 根据规格构建机身、机翼、尾翼、发动机舱、鸭翼、尾
 ### 1. 克隆与安装
 
 ```bash
-git clone https://github.com/zweien/aero-spec-agent.git
-cd aero-spec-agent
+git clone https://github.com/hongyi-lab/RapidProcessDesign.git
+cd RapidProcessDesign
 
 # 后端
 python -m venv .venv && . .venv/bin/activate

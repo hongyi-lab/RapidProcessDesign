@@ -9,8 +9,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "AeroSpec Agent",
-  description: "Aircraft concept design workbench"
+  title: "Rapid Process Design",
+  description: "Mission-driven aircraft concept design and optimization"
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

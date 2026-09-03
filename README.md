@@ -1,8 +1,8 @@
 <div align="center">
 
-# AeroSpec Agent
+# Rapid Process Design
 
-**Natural-language aircraft concept design workbench**
+**Mission inputs in, feasible aircraft concept out — built on AeroSpec Agent**
 
 Describe an aircraft in plain language — get parametric CAD models, aerodynamic analysis, AI-driven design exploration, and an interactive 3D preview.
 
@@ -19,9 +19,22 @@ Describe an aircraft in plain language — get parametric CAD models, aerodynami
 
 English | [中文](./README_CN.md)
 
-[Report Bug](https://github.com/zweien/aero-spec-agent/issues) · [Request Feature](https://github.com/zweien/aero-spec-agent/issues) · [View Demo](#quick-start)
+[Rapid Design](#rapid-design-workflow) · [Upstream AeroSpec](https://github.com/zweien/aero-spec-agent) · [View Demo](#quick-start)
 
 </div>
+
+---
+
+## Rapid Design workflow
+
+The `/rapid-design` workspace turns adjustable mission inputs into a new aircraft concept. The user controls required range, payload, cruise speed and altitude, plus fuel, takeoff-mass, and L/D limits. A deterministic optimizer then chooses ten design variables including wing area, aspect ratio, taper, sweep, fuselage dimensions, airfoil parameters, and fuel load.
+
+- Published surrogate: [NeuralFoil](https://github.com/peterdsharpe/NeuralFoil) 0.3.3 predicts two-dimensional airfoil CL/CD/CM and analysis confidence.
+- Transparent system model: finite-wing drag, ISA atmosphere, configurable component mass build-up, and a Breguet-style range estimate are kept in readable code and YAML.
+- Inspectable output: every constraint is reported independently, infeasible searches are labelled, convergence is shown, and the selected geometry feeds the existing AeroSpec 3D viewer.
+- Reproducible run: fixed optimizer seed, pinned surrogate version, config snapshot, and JSON results under `storage/rapid_design/jobs/`.
+
+Start the API and web app using the commands below, then open `http://localhost:3900/rapid-design`. No LLM key or OpenVSP installation is required for this workflow. See [Rapid Design technical guide](docs/rapid-design.md) and [third-party notices](THIRD_PARTY_NOTICES.md).
 
 ---
 
@@ -135,8 +148,8 @@ Switch between Fake/OpenVSP backends and toggle VSPAERO analysis from the UI —
 ### 1. Clone & Install
 
 ```bash
-git clone https://github.com/zweien/aero-spec-agent.git
-cd aero-spec-agent
+git clone https://github.com/hongyi-lab/RapidProcessDesign.git
+cd RapidProcessDesign
 
 # Backend
 python -m venv .venv && . .venv/bin/activate

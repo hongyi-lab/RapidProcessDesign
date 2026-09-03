@@ -1,0 +1,101 @@
+schema_version: "1.0"
+title: Rapid Aircraft Design
+description: Mission-driven concept sizing with a published aerodynamic surrogate.
+
+inputs:
+  - key: required_range_km
+    label: 目标航程
+    unit: km
+    minimum: 300
+    maximum: 3000
+    step: 50
+    default: 1200
+    kind: requirement
+  - key: payload_mass_kg
+    label: 有效载荷
+    unit: kg
+    minimum: 20
+    maximum: 300
+    step: 5
+    default: 100
+    kind: requirement
+  - key: cruise_speed_kmh
+    label: 巡航速度
+    unit: km/h
+    minimum: 100
+    maximum: 320
+    step: 5
+    default: 210
+    kind: requirement
+  - key: cruise_altitude_m
+    label: 巡航高度
+    unit: m
+    minimum: 500
+    maximum: 9000
+    step: 250
+    default: 4000
+    kind: requirement
+  - key: max_fuel_mass_kg
+    label: 最大燃油质量
+    unit: kg
+    minimum: 50
+    maximum: 900
+    step: 10
+    default: 360
+    kind: constraint
+  - key: max_takeoff_mass_kg
+    label: 最大起飞质量
+    unit: kg
+    minimum: 300
+    maximum: 2500
+    step: 25
+    default: 1100
+    kind: constraint
+  - key: target_lift_to_drag
+    label: 目标升阻比 L/D
+    unit: "-"
+    minimum: 8
+    maximum: 24
+    step: 0.5
+    default: 15
+    kind: constraint
+
+design_variables:
+  - {key: wing_area_m2, label: 机翼面积, unit: m², minimum: 10, maximum: 45}
+  - {key: aspect_ratio, label: 展弦比, unit: "-", minimum: 6, maximum: 16}
+  - {key: taper_ratio, label: 梢根比, unit: "-", minimum: 0.3, maximum: 0.8}
+  - {key: sweep_deg, label: 四分之一弦后掠角, unit: deg, minimum: 0, maximum: 15}
+  - {key: fuselage_length_m, label: 机身长度, unit: m, minimum: 4, maximum: 11}
+  - {key: fuselage_diameter_m, label: 机身直径, unit: m, minimum: 0.45, maximum: 1.5}
+  - {key: airfoil_camber, label: 翼型最大弯度, unit: chord, minimum: 0, maximum: 0.06}
+  - {key: airfoil_camber_position, label: 翼型弯度位置, unit: chord, minimum: 0.2, maximum: 0.6}
+  - {key: airfoil_thickness, label: 翼型厚度, unit: chord, minimum: 0.09, maximum: 0.18}
+  - {key: fuel_mass_kg, label: 实际装油量, unit: kg, minimum: 25, maximum: 900, input_upper_bound: max_fuel_mass_kg}
+
+optimizer:
+  method: differential_evolution
+  seed: 2711
+  max_iterations: 9
+  population_size: 5
+  polish: false
+
+aerodynamics:
+  backend: neuralfoil
+  model_size: medium
+  min_analysis_confidence: 0.55
+  alpha_min_deg: -3
+  alpha_max_deg: 14
+  alpha_samples: 18
+  oswald_efficiency: 0.82
+  reserve_fuel_fraction: 0.15
+  equivalent_tsfc_per_second: 0.00017
+
+mass_model:
+  wing_areal_density_kg_m2: 8.2
+  wing_span_penalty_kg_m: 2.0
+  fuselage_shell_density_kg_m2: 10.5
+  systems_base_mass_kg: 105
+  systems_payload_fraction: 0.18
+  propulsion_base_mass_kg: 82
+  landing_gear_fraction: 0.035
+

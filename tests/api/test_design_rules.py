@@ -321,15 +321,13 @@ def test_report_summary_counts():
 # -- integration with generate_aircraft --
 
 
-def test_design_rules_in_validation_report():
-    from pathlib import Path
-
-    from services.workers.cad_worker.openvsp_generator.backend import CadArtifacts, FakeCadBackend
+def test_design_rules_in_validation_report(tmp_path):
+    from services.workers.cad_worker.openvsp_generator.backend import FakeCadBackend
     from services.workers.cad_worker.openvsp_generator.generate_aircraft import generate_aircraft
 
     spec = _make_spec()
     backend = FakeCadBackend()
-    output_dir = Path("/tmp/test_design_rules_output")
+    output_dir = tmp_path / "test_design_rules_output"
     output_dir.mkdir(exist_ok=True)
 
     result = generate_aircraft(spec, output_dir, backend)

@@ -2,6 +2,18 @@
 
 AeroSpec Agent 自身代码使用 **MIT License**。本项目依赖的第三方库和工具遵循各自的许可证，不因本项目的主许可证而改变。
 
+## Published Surrogate Model: NeuralFoil
+
+Rapid Design 工作流直接调用 **NeuralFoil 0.3.3** 的公开预训练权重，进行二维翼型 CL/CD/CM 与分析置信度预测。
+
+- 项目与源码: <https://github.com/peterdsharpe/NeuralFoil>
+- 论文: Peter Sharpe and R. John Hansman, *NeuralFoil: An Airfoil Aerodynamics Analysis Tool Using Physics-Informed Machine Learning* (2025), <https://arxiv.org/abs/2503.16323>
+- Python 包版本: `neuralfoil==0.3.3`
+- 许可证: **MIT License**
+- 在本项目中的边界: 仅替代二维翼型气动查询；整机诱导阻力、机身阻力、质量和航程仍由项目中明确可读的低阶模型计算
+
+NeuralFoil 通过 **AeroSandbox 4.2.10**（MIT）提供部分翼型几何处理能力。优化器使用 **SciPy** 的 differential evolution；SciPy 遵循 BSD 风格许可证。完整许可证以各安装包所附文本为准。
+
 ## Optional External Dependency: OpenVSP
 
 [OpenVSP](http://openvsp.org/) (Open Vehicle Sketch Pad) 是由 NASA 开发的参数化飞机设计工具，使用 **NASA Open Source Agreement Version 1.3 (NOSA-1.3)** 许可证。

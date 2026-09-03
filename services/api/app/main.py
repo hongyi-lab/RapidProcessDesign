@@ -14,6 +14,7 @@ from services.api.app.routers.deep_design import router as deep_design_router
 from services.api.app.routers.design_controller import router as design_controller_router
 from services.api.app.routers.designs import router as designs_router
 from services.api.app.routers.designs import runner as designs_runner
+from services.api.app.routers.rapid_design import router as rapid_design_router
 from services.api.app.services.conversation_index import ConversationIndex
 
 
@@ -36,6 +37,7 @@ app.include_router(designs_router)
 app.include_router(chat_router)
 app.include_router(design_controller_router)
 app.include_router(deep_design_router)
+app.include_router(rapid_design_router)
 
 set_chat_job_runner(designs_runner)
 
