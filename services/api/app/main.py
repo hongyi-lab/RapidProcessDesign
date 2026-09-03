@@ -1,0 +1,59 @@
+import os
+from pathlib import Path
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import PlainTextResponse
+
+from services.api.app.routers import conversations as conv_router_module
+from services.api.app.routers.chat import chat_service
+from services.api.app.routers.chat import router as chat_router
+from services.api.app.routers.chat import set_job_runner as set_chat_job_runner
+from services.api.app.routers.conversations import router as conversations_router
+from services.api.app.routers.deep_design import router as deep_design_router
+from services.api.app.routers.design_controller import router as design_controller_router
+from services.api.app.routers.designs import router as designs_router
+from services.api.app.routers.designs import runner as designs_runner
+from services.api.app.services.conversation_index import ConversationIndex
+
+
+def _local_web_origins() -> list[str]:
+    web_port = os.getenv("WEB_PORT", "3900")
+    return [
+        f"http://localhost:{web_port}",
+        f"http://127.0.0.1:{web_port}",
+    ]
+
+
+app = FastAPI(title="AeroSpec Agent API")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_local_web_origins(),
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+app.include_router(designs_router)
+app.include_router(chat_router)
+app.include_router(design_controller_router)
+app.include_router(deep_design_router)
+
+set_chat_job_runner(designs_runner)
+
+# Initialize conversations router with index-backed storage
+_conv_index = ConversationIndex(root=Path("storage"))
+_conv_index.bootstrap()
+chat_service.set_conversation_index(_conv_index)
+conv_router_module.init(chat_service, _conv_index)
+app.include_router(conversations_router)
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+
+@app.get("/api/metrics", response_class=PlainTextResponse)
+def metrics():
+    from services.api.app.graph.metrics import get_metrics_collector
+    collector = get_metrics_collector()
+    return collector.snapshot().to_prometheus()

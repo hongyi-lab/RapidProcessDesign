@@ -1,0 +1,18 @@
+"""load_context node — hydrate state from conversation storage."""
+
+from __future__ import annotations
+
+from services.api.app.graph.observe import observe_node
+from services.api.app.graph.state import DesignGraphState
+
+
+@observe_node("load_context")
+def load_context(state: DesignGraphState) -> dict:
+    """Load conversation context into graph state.
+
+    In legacy mode, the context is already provided by ChatService.
+    This node is a passthrough that validates required fields exist.
+    """
+    if not state.get("conversation_id"):
+        return {"error_message": "missing conversation_id"}
+    return {}

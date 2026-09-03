@@ -1,0 +1,30 @@
+{
+  "name": "@aero-spec-agent/web",
+  "version": "0.3.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p ${WEB_PORT:-3900}",
+    "test": "node scripts/run-node-tests.mjs",
+    "build": "next build"
+  },
+  "dependencies": {
+    "@ai-sdk/openai": "^3.0.64",
+    "@ai-sdk/openai-compatible": "^2.0.47",
+    "@ai-sdk/react": "^3.0.184",
+    "ai": "^6.0.182",
+    "next": "^14.2.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
+    "three": "^0.184.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.5.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "@types/three": "^0.184.1",
+    "typescript": "^5.5.0"
+  }
+}

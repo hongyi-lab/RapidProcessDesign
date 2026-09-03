@@ -1,0 +1,23 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+storage/
+node_modules/
+.next/
+dist/
+*.tsbuildinfo
+.gstack/
+.worktrees/
+.bak
+.env
+.env.*
+!.env.example
+*.egg-info/
+docs/screenshots/
+# Playwright CLI session artifacts (test/debug screenshots, snapshots, logs)
+.playwright-cli/
+apps/web/.playwright-cli/
+# ZCode client session data
+.zcode/
+shots/
