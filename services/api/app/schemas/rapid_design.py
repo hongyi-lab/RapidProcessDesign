@@ -101,6 +101,192 @@ class RapidDesignJobResponse(BaseModel):
     updated_at: str
 
 
+MISSION_DEMO_NATIVE_GEOMETRY_KEYS = frozenset(
+    {
+        "fuselage_length_m",
+        "fineness_ratio",
+        "wing_span_m",
+        "wing_area_m2",
+        "wing_sweep_deg",
+        "wing_taper_ratio",
+        "wing_thickness_ratio",
+        "tail_scale",
+    }
+)
+
+
+class MissionDemoVariableDefinition(BaseModel):
+    """One native geometry or demo-only sizing search dimension."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    key: str
+    label: str
+    unit: str
+    minimum: float
+    maximum: float
+    step: float = Field(gt=0)
+    input_upper_bound: str | None = None
+
+    @model_validator(mode="after")
+    def range_is_increasing(self) -> "MissionDemoVariableDefinition":
+        if self.minimum >= self.maximum:
+            raise ValueError(f"search range for {self.key} must be increasing")
+        return self
+
+
+class MissionDemoOptimizerConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    method: Literal["seeded_uniform_search"]
+    seed: int
+    iterations: int = Field(ge=1, le=100)
+    evaluations_per_iteration: int = Field(ge=1, le=1000)
+    constraint_penalty: float = Field(gt=0)
+
+
+class MissionDemoMissionModel(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    alpha_min_deg: float = Field(ge=-10.0, le=15.0)
+    alpha_max_deg: float = Field(ge=-5.0, le=20.0)
+    alpha_samples: int = Field(ge=5, le=81)
+    wing_areal_density_kg_m2: float = Field(gt=0)
+    wetted_area_density_kg_m2: float = Field(gt=0)
+    wing_span_penalty_kg_m: float = Field(ge=0)
+    systems_base_mass_kg: float = Field(ge=0)
+    systems_payload_fraction: float = Field(ge=0)
+    propulsion_mass_per_unit_kg: float = Field(ge=0)
+    landing_gear_fraction: float = Field(ge=0, lt=1)
+    reserve_fuel_fraction: float = Field(ge=0, lt=1)
+    equivalent_tsfc_per_second: float = Field(gt=0)
+
+    @model_validator(mode="after")
+    def alpha_sweep_is_increasing(self) -> "MissionDemoMissionModel":
+        if self.alpha_min_deg >= self.alpha_max_deg:
+            raise ValueError("mission demo alpha sweep must be increasing")
+        return self
+
+
+class MissionDemoMetricCoverageItem(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    key: str
+    label: str
+    unit: str
+    status: Literal["connected", "partial", "not_connected"]
+    source: str
+    reason: str
+    used_in_score: bool
+
+    @model_validator(mode="after")
+    def disconnected_metrics_are_never_scored(self) -> "MissionDemoMetricCoverageItem":
+        if self.status == "not_connected" and self.used_in_score:
+            raise ValueError(f"not-connected metric {self.key} cannot enter the score")
+        return self
+
+
+class MissionDemoMetricCoverage(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    metrics: list[MissionDemoMetricCoverageItem] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def metric_keys_are_unique(self) -> "MissionDemoMetricCoverage":
+        keys = [metric.key for metric in self.metrics]
+        if len(keys) != len(set(keys)):
+            raise ValueError("mission demo metric coverage keys must be unique")
+        return self
+
+
+class MissionDemoProfile(BaseModel):
+    """Versioned and explicitly non-formal mission search profile."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    schema_version: Literal["1.0"]
+    profile_id: Literal["mission_demo_v1"]
+    profile_version: str
+    mode: Literal["demo_only"]
+    formal_status: Literal["pending_teacher_decision"]
+    title: str
+    description: str
+    disclaimer: str
+    supported_family_ids: list[Literal["conventional_v2"]] = Field(min_length=1)
+    candidate_count: int = Field(ge=3, le=10)
+    diversity_threshold: float = Field(gt=0, le=1)
+    inputs: list[RapidInputDefinition] = Field(min_length=1)
+    geometry_variables: list[MissionDemoVariableDefinition] = Field(min_length=1)
+    sizing_variables: list[MissionDemoVariableDefinition] = Field(min_length=1)
+    optimizer: MissionDemoOptimizerConfig
+    mission_model: MissionDemoMissionModel
+    metric_coverage: MissionDemoMetricCoverage
+
+    @model_validator(mode="after")
+    def profile_contract_is_coherent(self) -> "MissionDemoProfile":
+        if self.supported_family_ids != ["conventional_v2"]:
+            raise ValueError("mission_demo_v1 supports only conventional_v2")
+        geometry_keys = [variable.key for variable in self.geometry_variables]
+        if len(geometry_keys) != len(set(geometry_keys)):
+            raise ValueError("mission demo geometry variable keys must be unique")
+        unknown_geometry = set(geometry_keys) - MISSION_DEMO_NATIVE_GEOMETRY_KEYS
+        if unknown_geometry:
+            raise ValueError(
+                "mission demo geometry variables must be native ConventionalV2Design "
+                f"fields: {', '.join(sorted(unknown_geometry))}"
+            )
+        sizing_keys = [variable.key for variable in self.sizing_variables]
+        if sizing_keys != ["fuel_mass_kg"]:
+            raise ValueError("mission_demo_v1 supports only fuel_mass_kg sizing")
+        input_keys = [item.key for item in self.inputs]
+        if len(input_keys) != len(set(input_keys)):
+            raise ValueError("mission demo input keys must be unique")
+        for variable in self.sizing_variables:
+            if variable.input_upper_bound not in input_keys:
+                raise ValueError(
+                    f"unknown input upper bound for {variable.key}: "
+                    f"{variable.input_upper_bound}"
+                )
+        evaluation_budget = (
+            self.optimizer.iterations * self.optimizer.evaluations_per_iteration
+        )
+        if self.candidate_count > evaluation_budget:
+            raise ValueError("candidate_count exceeds the demo evaluation budget")
+        if not any(
+            metric.status == "not_connected"
+            for metric in self.metric_coverage.metrics
+        ):
+            raise ValueError("mission demo coverage must expose unsupported metrics")
+        return self
+
+
+class MissionDemoJobRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    mode: Literal["demo"]
+    family_id: str
+    preset_id: str = Field(min_length=1)
+    inputs: dict[str, float]
+
+
+class MissionDemoJobResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    id: str
+    status: Literal["queued", "running", "succeeded", "failed", "cancelled"]
+    progress: float = Field(ge=0, le=1)
+    stage: str
+    error: str | None = None
+    created_at: str
+    updated_at: str
+    mode: Literal["demo"]
+    family_id: Literal["conventional_v2"]
+    preset_id: str
+    profile_id: Literal["mission_demo_v1"]
+    profile_version: str
+    formal_status: Literal["pending_teacher_decision"]
+
+
 # ``bwb_v1`` is a project-original, conservative conceptual-design domain.  The
 # numerical limits are deliberately kept here next to the request schema so the
 # API validator and the domain report cannot silently drift apart.
