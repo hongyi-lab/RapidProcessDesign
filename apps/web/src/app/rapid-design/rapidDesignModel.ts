@@ -18,6 +18,8 @@ export type FamilyPreset = {
   label: string;
   description: string;
   design: Record<string, number>;
+  archetype_id?: string | null;
+  reference_basis?: Record<string, string | number> | null;
 };
 
 export type FamilyManifest = {

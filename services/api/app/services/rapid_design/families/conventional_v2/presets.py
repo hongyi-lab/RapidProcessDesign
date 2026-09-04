@@ -80,7 +80,7 @@ PRESET_PROPULSION = MappingProxyType(
 
 PRESET_ARCHETYPES = MappingProxyType(
     {
-        "long_endurance_uav": "mae_uav_v_tail",
+        "long_endurance_uav": "male_uav_v_tail",
         "fast_cruise_recon": "fast_tractor_t_tail",
         "payload_utility": "high_wing_twin_utility",
     }

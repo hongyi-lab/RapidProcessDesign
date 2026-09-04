@@ -89,7 +89,7 @@ WING_GRAMMARS: dict[str, WingGrammar] = {
         eta=(0.0, 0.10, 0.30, 0.56, 0.80, 1.0),
         chord_ratios=(1.0, 0.91, 0.73, 0.54, 0.36, 0.25),
         sweep_factors=(0.34, 0.72, 1.00, 1.16, 1.28),
-        airfoils=("naca23012", "naca23011", "naca23010", "naca13009", "naca0009", "naca0008"),
+        airfoils=("naca2312", "naca2311", "naca2310", "naca1309", "naca0009", "naca0008"),
         reference_taper=0.25,
     ),
     "payload_utility": WingGrammar(
@@ -199,6 +199,7 @@ def _wing_sections(
             "thickness_ratio": design.wing_thickness_ratio
             * (1.0 - 0.28 * eta**0.90),
             "airfoil_id": airfoil,
+            "interpolation_to_next": "linear",
         }
         for eta, y_m, leading_edge_x, chord_ratio, airfoil in zip(
             grammar.eta,
@@ -247,6 +248,7 @@ def _surface_sections(
                 "dihedral_deg": dihedral_deg,
                 "thickness_ratio": thickness_root * (1.0 - 0.22 * eta),
                 "airfoil_id": airfoil_id,
+                "interpolation_to_next": "linear",
             }
         )
     return sections
@@ -273,6 +275,7 @@ def _vertical_sections(
             "dihedral_deg": 0.0,
             "thickness_ratio": 0.105 - 0.025 * height / heights[-1],
             "airfoil_id": airfoil_id,
+            "interpolation_to_next": "linear",
         }
         for height, ratio, sweep_factor in zip(heights, chord_ratios, sweep_factors)
     ]
@@ -490,6 +493,107 @@ def _nacelle_component(
     }
 
 
+def _propeller_component(
+    design: ConventionalV2Design,
+    preset_id: str,
+    nacelle: dict[str, object],
+) -> dict[str, object]:
+    layout = PRESET_PROPULSION[preset_id]
+    stations = nacelle["stations"]
+    assert isinstance(stations, list)
+    start_x = float(stations[0]["x_m"])
+    end_x = float(stations[-1]["x_m"])
+    center_z = float(stations[0]["z_offset_m"])
+    if layout == "rear_pusher":
+        center_x = end_x + 0.012 * design.fuselage_length_m
+        radius = 0.073 * design.wing_span_m
+        blade_count = 4
+        rotation = 18.0
+    elif layout == "nose_tractor":
+        center_x = start_x - 0.012 * design.fuselage_length_m
+        radius = 0.112 * design.wing_span_m
+        blade_count = 5
+        rotation = 9.0
+    else:
+        center_x = start_x - 0.015 * design.fuselage_length_m
+        radius = 0.071 * design.wing_span_m
+        blade_count = 4
+        rotation = 24.0
+    return {
+        "id": f"propeller_{layout}",
+        "kind": "propeller",
+        "symmetry": nacelle["symmetry"],
+        "center_x_m": center_x,
+        "centerline_y_m": nacelle["centerline_y_m"],
+        "center_z_m": center_z,
+        "radius_m": radius,
+        "hub_radius_m": 0.13 * radius,
+        "hub_length_m": 0.34 * radius,
+        "blade_count": blade_count,
+        "blade_chord_m": 0.16 * radius,
+        "rotation_deg": rotation,
+    }
+
+
+def _pylon_components(
+    preset_id: str,
+    nacelle: dict[str, object],
+    wing_sections: list[dict[str, float | str]],
+) -> list[dict[str, object]]:
+    if PRESET_PROPULSION[preset_id] != "twin_wing_mounted":
+        return []
+    stations = nacelle["stations"]
+    assert isinstance(stations, list)
+    centerline_y = float(nacelle["centerline_y_m"])
+    nacelle_top = float(stations[0]["z_offset_m"]) + max(
+        float(station["radius_z_m"]) for station in stations
+    )
+    wing_z = _interpolate_wing_value(
+        wing_sections, centerline_y, "leading_edge_z_m"
+    )
+    lower_z = min(nacelle_top - 0.02, wing_z - 0.08)
+    upper_z = max(wing_z + 0.02, lower_z + 0.10)
+    nacelle_length = float(stations[-1]["x_m"]) - float(stations[0]["x_m"])
+    leading_edge_x = float(stations[0]["x_m"]) + 0.32 * nacelle_length
+    chord = 0.43 * nacelle_length
+    components = []
+    for side, center_y in (("port", -centerline_y), ("starboard", centerline_y)):
+        components.append(
+            {
+                "id": f"engine_pylon_{side}",
+                "kind": "lifting_surface",
+                "symmetry": "none",
+                "orientation": "vertical",
+                "centerline_y_m": center_y,
+                "sections": [
+                    {
+                        "y_m": 0.0,
+                        "leading_edge_x_m": leading_edge_x,
+                        "leading_edge_z_m": lower_z,
+                        "chord_m": chord,
+                        "twist_deg": 0.0,
+                        "dihedral_deg": 0.0,
+                        "thickness_ratio": 0.18,
+                        "airfoil_id": "naca0018_pylon",
+                        "interpolation_to_next": "linear",
+                    },
+                    {
+                        "y_m": upper_z - lower_z,
+                        "leading_edge_x_m": leading_edge_x + 0.05 * chord,
+                        "leading_edge_z_m": upper_z,
+                        "chord_m": 0.72 * chord,
+                        "twist_deg": 0.0,
+                        "dihedral_deg": 0.0,
+                        "thickness_ratio": 0.16,
+                        "airfoil_id": "naca0016_pylon",
+                        "interpolation_to_next": "linear",
+                    },
+                ],
+            }
+        )
+    return components
+
+
 def _closed_loft_feature(
     *,
     component_id: str,
@@ -608,6 +712,8 @@ def decode_conventional_geometry(
     nacelle = _nacelle_component(
         design, preset_id, wing_sections, body_stations
     )
+    propeller = _propeller_component(design, preset_id, nacelle)
+    pylons = _pylon_components(preset_id, nacelle, wing_sections)
     features = _integration_features(
         design, preset_id, body_stations, wing_sections
     )
@@ -651,6 +757,8 @@ def decode_conventional_geometry(
         "main_wing",
         *(str(component["id"]) for component in tail_components),
         str(nacelle["id"]),
+        str(propeller["id"]),
+        *(str(component["id"]) for component in pylons),
         *(str(component["id"]) for component in features),
     ]
     tail_aft = min(
@@ -689,6 +797,14 @@ def decode_conventional_geometry(
         and nacelle["symmetry"] == "y"
         and float(nacelle["centerline_y_m"]) > 0.0
     )
+    propeller_aft_or_forward = (
+        layout == "rear_pusher"
+        and float(propeller["center_x_m"]) > float(nacelle_stations[-1]["x_m"])
+    ) or (
+        layout in {"nose_tractor", "twin_wing_mounted"}
+        and float(propeller["center_x_m"]) < float(nacelle_stations[0]["x_m"])
+    )
+    pylon_relationship = layout != "twin_wing_mounted" or len(pylons) == 2
     checks = [
         {
             "name": "body_station_order",
@@ -729,6 +845,16 @@ def decode_conventional_geometry(
             "message": f"{layout} nacelle placement matches its preset installation relationship.",
         },
         {
+            "name": "propeller_layout_relationship",
+            "status": "pass" if propeller_aft_or_forward else "fail",
+            "message": f"Propeller disk is on the correct side of the {layout} nacelle.",
+        },
+        {
+            "name": "pylon_attachment_relationship",
+            "status": "pass" if pylon_relationship else "fail",
+            "message": "Twin wing-mounted nacelles include paired pylon attachment surfaces.",
+        },
+        {
             "name": "junction_fairings_present",
             "status": "pass" if {"wing_root_fairing"}.issubset(component_ids) else "fail",
             "message": "A dedicated wing-root fairing covers the primary junction.",
@@ -744,6 +870,8 @@ def decode_conventional_geometry(
                 main_wing,
                 *tail_components,
                 nacelle,
+                propeller,
+                *pylons,
                 *features,
             ],
             "derived_metrics": metrics,

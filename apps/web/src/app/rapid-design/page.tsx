@@ -10,9 +10,15 @@ import {
 } from "react";
 
 import { CadViewer } from "@/components/cad-viewer/CadViewer";
-import { ParametricAircraftPreview } from "@/components/rapid-design/geometry";
+import {
+  ParametricAircraftPreview,
+  geometryNominalSize,
+  modelScaleForMode,
+  type GeometryScaleMode,
+} from "@/components/rapid-design/geometry";
 
 import { ConvergenceChart, PolarChart } from "./RapidCharts";
+import { GeometryValidationPanel } from "./GeometryValidationPanel";
 import styles from "./rapid-design.module.css";
 import {
   OPTIMIZE_METRICS,
@@ -142,6 +148,7 @@ export default function RapidDesignPage() {
   const [condition, setCondition] = useState<ConditionValues>({});
   const [analysisRecord, setAnalysisRecord] = useState<AnalysisRecord | null>(null);
   const [baselineRecord, setBaselineRecord] = useState<BaselineRecord | null>(null);
+  const [primaryScaleMode, setPrimaryScaleMode] = useState<GeometryScaleMode>("auto");
   const [analyzeLoading, setAnalyzeLoading] = useState(false);
   const [analyzeError, setAnalyzeError] = useState<string | null>(null);
   const analyzeSequenceRef = useRef(0);
@@ -184,6 +191,7 @@ export default function RapidDesignPage() {
     setAnalysisRecord(null);
     setBaselineRecord(null);
     setAnalyzeError(null);
+    setPrimaryScaleMode("auto");
   }
 
   useEffect(() => {
@@ -299,8 +307,22 @@ export default function RapidDesignPage() {
     && baselineRecord.conditionKey === conditionKey
     ? baselineRecord.data
     : null;
+  const displayedBaselineGeometry = baselineRecord?.familyId === selectedFamilyId
+    ? baselineRecord.data.geometry_state
+    : null;
   const metricRows = geometryMetricRows(currentAnalysis?.geometry_metrics ?? {});
   const baselineMetrics = comparableBaseline?.geometry_metrics ?? {};
+  const primaryReferenceSize = useMemo(() => {
+    if (primaryScaleMode === "auto") return undefined;
+    const states = [
+      displayedAnalysis?.geometry_state,
+      displayedBaselineGeometry,
+    ].filter((state): state is NonNullable<typeof state> => Boolean(state));
+    if (states.length === 0) return undefined;
+    return Math.max(...states.map((state) => (
+      geometryNominalSize(state) * modelScaleForMode(state, primaryScaleMode)
+    )));
+  }, [displayedAnalysis, displayedBaselineGeometry, primaryScaleMode]);
 
   function handleFamilyChange(familyId: string) {
     const manifest = families.find((item) => item.family_id === familyId);
@@ -583,12 +605,21 @@ export default function RapidDesignPage() {
               </header>
               <ParametricAircraftPreview
                 geometry={displayedAnalysis?.geometry_state ?? null}
-                baselineGeometry={baselineRecord?.familyId === selectedFamilyId
-                  ? baselineRecord.data.geometry_state
-                  : null}
+                baselineGeometry={displayedBaselineGeometry}
                 className={styles.aircraftPreview}
+                scaleMode={primaryScaleMode}
+                sharedReferenceSize={primaryReferenceSize}
+                onScaleModeChange={setPrimaryScaleMode}
               />
             </section>
+
+            {selectedManifest?.family_id === "conventional_v2" ? (
+              <GeometryValidationPanel
+                apiBaseUrl={API_BASE_URL}
+                manifest={selectedManifest}
+                selectedPresetId={selectedPresetId}
+              />
+            ) : null}
 
             <div className={styles.analysisStatus} aria-live="polite">
               <span className={analyzeError ? styles.statusError : analyzeLoading ? styles.statusWorking : styles.statusReady} />

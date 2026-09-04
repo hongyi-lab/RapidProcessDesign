@@ -6,6 +6,7 @@ export {
   buildLiftingSurface,
   buildLoftBodySurface,
   buildNacelleSurfaces,
+  buildPropellerSurfaces,
 } from "./geometrySurfaces";
 export type { SurfaceBuildOptions, SurfaceMeshData } from "./geometrySurfaces";
 export {
@@ -14,10 +15,19 @@ export {
   surfaceToBufferGeometry,
 } from "./threeGeometry";
 export type { DisposedResourceCounts } from "./threeGeometry";
+export {
+  framingReferenceSize,
+  geometryFuselageLength,
+  geometryNominalSize,
+  modelScaleForMode,
+  orthographicFrustum,
+} from "./cameraFraming";
+export type { OrthographicFrustum } from "./cameraFraming";
 export type {
   GeometryCheck,
   GeometryComponent,
   GeometryState,
+  GeometryScaleMode,
   GeometryVector3,
   GeometryView,
   LiftingSurfaceComponent,
@@ -26,5 +36,5 @@ export type {
   LoftBodyStation,
   NacelleComponent,
   NacelleStation,
+  PropellerComponent,
 } from "./types";
-

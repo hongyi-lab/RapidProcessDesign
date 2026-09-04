@@ -41,6 +41,20 @@
   background: rgb(255 255 255 / 92%);
 }
 
+.scaleControls {
+  position: absolute;
+  z-index: 2;
+  top: 12px;
+  left: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid #c7d2de;
+  border-radius: 4px;
+  background: rgb(255 255 255 / 92%);
+}
+
 .viewButton {
   min-width: 44px;
   padding: 6px 9px;
@@ -54,12 +68,36 @@
   cursor: pointer;
 }
 
+.scaleButton {
+  min-width: 44px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 3px;
+  color: #52677c;
+  background: transparent;
+  font: inherit;
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+}
+
 .viewButton:hover {
   color: #154f7d;
   background: #edf4fa;
 }
 
+.scaleButton:hover {
+  color: #154f7d;
+  background: #edf4fa;
+}
+
 .viewButtonActive {
+  color: #0f548a;
+  background: #e3eff8;
+  font-weight: 650;
+}
+
+.scaleButtonActive {
   color: #0f548a;
   background: #e3eff8;
   font-weight: 650;
@@ -134,15 +172,25 @@
     right: 9px;
   }
 
+  .scaleControls {
+    top: 9px;
+    left: 9px;
+  }
+
   .viewButton {
     min-width: 40px;
     padding-inline: 7px;
   }
-}
 
-@media (prefers-reduced-motion: reduce) {
-  .viewButton {
-    transition: none;
+  .scaleButton {
+    min-width: 40px;
+    padding-inline: 6px;
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .viewButton,
+  .scaleButton {
+    transition: none;
+  }
+}

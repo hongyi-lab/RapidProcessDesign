@@ -7,6 +7,7 @@ import {
   buildLiftingSurface,
   buildLoftBodySurface,
   buildNacelleSurfaces,
+  buildPropellerSurfaces,
   type SurfaceMeshData,
 } from "./geometrySurfaces.ts";
 import {
@@ -18,6 +19,7 @@ import type {
   LiftingSurfaceComponent,
   LoftBodyComponent,
   NacelleComponent,
+  PropellerComponent,
 } from "./types.ts";
 
 const BODY: LoftBodyComponent = {
@@ -85,6 +87,21 @@ const NACELLES: NacelleComponent = {
   ],
 };
 
+const PROPELLERS: PropellerComponent = {
+  id: "wing-propellers",
+  kind: "propeller",
+  symmetry: "y",
+  center_x_m: 3.25,
+  centerline_y_m: 2.75,
+  center_z_m: -0.36,
+  radius_m: 0.92,
+  hub_radius_m: 0.13,
+  hub_length_m: 0.4,
+  blade_count: 3,
+  blade_chord_m: 0.16,
+  rotation_deg: 18,
+};
+
 const AIRCRAFT: GeometryState = {
   family_id: "conventional_v2",
   geometry_version: "0.1.0",
@@ -139,6 +156,29 @@ function rangeForAxis(surface: SurfaceMeshData, axis: 0 | 1 | 2): [number, numbe
   const values: number[] = [];
   for (let index = axis; index < surface.positions.length; index += 3) values.push(surface.positions[index]);
   return [Math.min(...values), Math.max(...values)];
+}
+
+function signedVolume(surface: SurfaceMeshData): number {
+  let volume = 0;
+  const p = (vertex: number): [number, number, number] => {
+    const offset = vertex * 3;
+    return [
+      surface.positions[offset],
+      surface.positions[offset + 1],
+      surface.positions[offset + 2],
+    ];
+  };
+  for (let offset = 0; offset < surface.indices.length; offset += 3) {
+    const a = p(surface.indices[offset]);
+    const b = p(surface.indices[offset + 1]);
+    const c = p(surface.indices[offset + 2]);
+    volume += (
+      a[0] * (b[1] * c[2] - b[2] * c[1])
+      + a[1] * (b[2] * c[0] - b[0] * c[2])
+      + a[2] * (b[0] * c[1] - b[1] * c[0])
+    ) / 6;
+  }
+  return volume;
 }
 
 test("family-neutral GeometryState creates finite indexed surfaces for every component", () => {
@@ -217,6 +257,129 @@ test("component parameters deform their own generated coordinates", () => {
   const engines = buildNacelleSurfaces(NACELLES, { radialSections: 24 });
   const widerEngines = buildNacelleSurfaces({ ...NACELLES, centerline_y_m: 3.4 }, { radialSections: 24 });
   assert.ok(coordinateDifference(engines[0].positions, widerEngines[0].positions) > 10);
+});
+
+test("longitudinal interpolation adds smooth body rings between canonical stations", () => {
+  const surface = buildLoftBodySurface(BODY, {
+    radialSections: 24,
+    longitudinalSections: 5,
+  });
+  assert.ok(surface);
+  const uniqueX = new Set<number>();
+  for (let index = 0; index < surface.positions.length - 6; index += 3) {
+    uniqueX.add(Number(surface.positions[index].toFixed(6)));
+  }
+  assert.equal(uniqueX.size, (BODY.stations.length - 1) * 5 + 1);
+  assert.ok(uniqueX.size > BODY.stations.length);
+});
+
+test("airfoil camber and standalone dihedral fields change lifting-surface mesh", () => {
+  const symmetric = buildLiftingSurface({
+    ...MAIN_WING,
+    sections: MAIN_WING.sections.map((section) => ({
+      ...section,
+      leading_edge_z_m: 0,
+      dihedral_deg: 0,
+      airfoil_id: "naca0012",
+    })),
+  }, { chordSections: 21, spanwiseSections: 2 });
+  const cambered = buildLiftingSurface({
+    ...MAIN_WING,
+    sections: MAIN_WING.sections.map((section) => ({
+      ...section,
+      leading_edge_z_m: 0,
+      dihedral_deg: 0,
+      airfoil_id: "naca4412",
+    })),
+  }, { chordSections: 21, spanwiseSections: 2 });
+  const dihedral = buildLiftingSurface({
+    ...MAIN_WING,
+    sections: MAIN_WING.sections.map((section) => ({
+      ...section,
+      leading_edge_z_m: 0,
+      dihedral_deg: 9,
+      airfoil_id: "naca0012",
+    })),
+  }, { chordSections: 21, spanwiseSections: 2 });
+  assert.ok(symmetric && cambered && dihedral);
+  assert.ok(coordinateDifference(symmetric.positions, cambered.positions) > 1);
+  assert.ok(coordinateDifference(symmetric.positions, dihedral.positions) > 1);
+});
+
+test("canted symmetric V-tail remains mirrored at the centreline", () => {
+  const angle = 38 * Math.PI / 180;
+  const tail = buildLiftingSurface({
+    id: "v-tail",
+    kind: "lifting_surface",
+    symmetry: "y",
+    sections: [0, 0.8, 1.7].map((y, index) => ({
+      y_m: y,
+      leading_edge_x_m: 9 + 0.2 * y,
+      leading_edge_z_m: 0.4 + Math.tan(angle) * y,
+      chord_m: [1.2, 0.8, 0.35][index],
+      twist_deg: 0,
+      dihedral_deg: 38,
+      thickness_ratio: 0.1,
+      airfoil_id: "naca0010",
+    })),
+  }, { chordSections: 17, spanwiseSections: 3 });
+  assert.ok(tail);
+  const rounded = new Set<string>();
+  for (let index = 0; index < tail.positions.length; index += 3) {
+    rounded.add([
+      tail.positions[index].toFixed(4),
+      tail.positions[index + 1].toFixed(4),
+      tail.positions[index + 2].toFixed(4),
+    ].join(":"));
+  }
+  for (let index = 0; index < tail.positions.length; index += 3) {
+    const mirrored = [
+      tail.positions[index].toFixed(4),
+      (-tail.positions[index + 1]).toFixed(4),
+      tail.positions[index + 2].toFixed(4),
+    ].join(":");
+    assert.ok(rounded.has(mirrored), `missing mirrored vertex ${mirrored}`);
+  }
+});
+
+test("propeller hubs and blades are closed, outward and match declared layout", () => {
+  const surfaces = buildPropellerSurfaces(PROPELLERS, {
+    radialSections: 24,
+    longitudinalSections: 2,
+  });
+  assert.equal(surfaces.length, 2 * (1 + PROPELLERS.blade_count));
+  const hubs = surfaces.filter((surface) => surface.instanceId.endsWith("-hub"));
+  const blades = surfaces.filter((surface) => surface.instanceId.includes("-blade-"));
+  assert.equal(hubs.length, 2);
+  assert.equal(blades.length, 6);
+  for (const surface of surfaces) {
+    assert.deepEqual(topology(surface), {
+      boundaryEdges: 0,
+      nonManifoldEdges: 0,
+      zeroAreaTriangles: 0,
+    }, surface.instanceId);
+    assert.ok(signedVolume(surface) > 0, `${surface.instanceId} must face outward`);
+  }
+  for (const hub of hubs) {
+    const [minimumX, maximumX] = rangeForAxis(hub, 0);
+    assert.ok(Math.abs(maximumX - minimumX - PROPELLERS.hub_length_m) < 1e-5);
+  }
+  const left = rangeForAxis(hubs[0], 1);
+  const right = rangeForAxis(hubs[1], 1);
+  assert.ok(Math.abs(left[0] + right[1]) < 1e-5);
+  assert.ok(Math.abs(left[1] + right[0]) < 1e-5);
+});
+
+test("off-centre vertical surfaces honour pylon centreline", () => {
+  const pylon = buildLiftingSurface({
+    ...VERTICAL_TAIL,
+    id: "engine-pylon",
+    centerline_y_m: 2.75,
+  }, { chordSections: 17 });
+  assert.ok(pylon);
+  const [minimumY, maximumY] = rangeForAxis(pylon, 1);
+  assert.ok(minimumY < 2.75 && maximumY > 2.75);
+  assert.ok(Math.abs((minimumY + maximumY) / 2 - 2.75) < 1e-5);
 });
 
 test("Three.js upload computes finite normals for every canonical component", () => {

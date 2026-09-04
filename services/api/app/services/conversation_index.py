@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import threading
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 
@@ -44,12 +44,22 @@ class ConversationIndex:
         )
 
     @staticmethod
-    def _now_iso() -> str:
-        return datetime.now(timezone.utc).isoformat()
+    def _next_update_iso(entries: list[dict]) -> str:
+        """Return a timestamp newer than the index, even on coarse Windows clocks."""
+        now = datetime.now(UTC)
+        parsed = []
+        for entry in entries:
+            try:
+                parsed.append(datetime.fromisoformat(entry.get("updated_at", "")))
+            except (TypeError, ValueError):
+                continue
+        if parsed and max(parsed) >= now:
+            now = max(parsed) + timedelta(microseconds=1)
+        return now.isoformat()
 
     @staticmethod
     def _ts_to_iso(ts: float) -> str:
-        return datetime.fromtimestamp(ts, tz=timezone.utc).isoformat()
+        return datetime.fromtimestamp(ts, tz=UTC).isoformat()
 
     # ------------------------------------------------------------------
     # Public API
@@ -83,9 +93,9 @@ class ConversationIndex:
         ``created_at`` is set only on first insert; ``updated_at`` is always
         refreshed.
         """
-        now = self._now_iso()
         with self._lock:
             entries = self._read()
+            now = self._next_update_iso(entries)
             existing = next(
                 (e for e in entries if e.get("conversation_id") == conversation_id),
                 None,
@@ -130,7 +140,6 @@ class ConversationIndex:
         if not conv_root.is_dir():
             return
 
-        now = self._now_iso()
         new_entries: list[dict] = []
         try:
             for conv_dir in conv_root.iterdir():

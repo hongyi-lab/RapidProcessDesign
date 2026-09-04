@@ -1,4 +1,5 @@
 from copy import deepcopy
+from math import isfinite
 
 import pytest
 from fastapi.testclient import TestClient
@@ -157,7 +158,9 @@ def test_conventional_presets_generate_complete_valid_geometry(
     tail_surfaces = [
         component
         for component in state["components"]
-        if component["kind"] == "lifting_surface" and component["id"] != "main_wing"
+        if component["kind"] == "lifting_surface"
+        and component["id"] != "main_wing"
+        and not component["id"].startswith("engine_pylon_")
     ]
     assert tail_surfaces
     assert all(len(component["sections"]) >= 4 for component in tail_surfaces)
@@ -173,6 +176,157 @@ def test_conventional_presets_generate_complete_valid_geometry(
     assert result["geometry_metrics"]["reference_area_m2"] > 0
     assert result["summary"]["max_ld"] > 0
     assert "Conceptual trend estimate" in " ".join(result["warnings"])
+
+
+def _numeric_geometry_values(value):
+    if isinstance(value, dict):
+        for nested in value.values():
+            yield from _numeric_geometry_values(nested)
+    elif isinstance(value, list):
+        for nested in value:
+            yield from _numeric_geometry_values(nested)
+    elif isinstance(value, (int, float)) and not isinstance(value, bool):
+        yield float(value)
+
+
+@pytest.mark.parametrize(
+    ("preset_id", "expected_propeller_count", "expected_side"),
+    [
+        ("long_endurance_uav", 1, "aft"),
+        ("fast_cruise_recon", 1, "forward"),
+        ("payload_utility", 2, "forward"),
+    ],
+)
+def test_conventional_propeller_count_and_longitudinal_installation(
+    client: TestClient,
+    condition: dict[str, float | int],
+    preset_id: str,
+    expected_propeller_count: int,
+    expected_side: str,
+):
+    response = client.post(
+        "/api/rapid-design/analyze",
+        json={
+            "family_id": "conventional_v2",
+            "preset_id": preset_id,
+            "design": {},
+            "condition": condition,
+        },
+    )
+
+    assert response.status_code == 200, response.text
+    components = response.json()["geometry_state"]["components"]
+    nacelles = [component for component in components if component["kind"] == "nacelle"]
+    propellers = [
+        component for component in components if component["kind"] == "propeller"
+    ]
+    assert len(nacelles) == 1
+    assert len(propellers) == 1
+
+    nacelle = nacelles[0]
+    propeller = propellers[0]
+    physical_propeller_count = 2 if propeller["symmetry"] == "y" else 1
+    assert physical_propeller_count == expected_propeller_count
+    assert propeller["symmetry"] == nacelle["symmetry"]
+    assert propeller["centerline_y_m"] == pytest.approx(
+        nacelle["centerline_y_m"]
+    )
+    assert propeller["center_z_m"] == pytest.approx(
+        nacelle["stations"][0]["z_offset_m"]
+    )
+
+    nacelle_start_x = nacelle["stations"][0]["x_m"]
+    nacelle_end_x = nacelle["stations"][-1]["x_m"]
+    if expected_side == "aft":
+        assert propeller["center_x_m"] > nacelle_end_x
+    else:
+        assert propeller["center_x_m"] < nacelle_start_x
+
+
+def test_payload_utility_has_paired_wing_attached_pylons(
+    client: TestClient,
+    condition: dict[str, float | int],
+):
+    response = client.post(
+        "/api/rapid-design/analyze",
+        json={
+            "family_id": "conventional_v2",
+            "preset_id": "payload_utility",
+            "design": {},
+            "condition": condition,
+        },
+    )
+
+    assert response.status_code == 200, response.text
+    components = response.json()["geometry_state"]["components"]
+    nacelle = next(component for component in components if component["kind"] == "nacelle")
+    main_wing = next(component for component in components if component["id"] == "main_wing")
+    pylons = sorted(
+        (component for component in components if component["id"].startswith("engine_pylon_")),
+        key=lambda component: component["centerline_y_m"],
+    )
+
+    assert [pylon["id"] for pylon in pylons] == [
+        "engine_pylon_port",
+        "engine_pylon_starboard",
+    ]
+    assert all(pylon["kind"] == "lifting_surface" for pylon in pylons)
+    assert all(pylon["orientation"] == "vertical" for pylon in pylons)
+    assert all(pylon["symmetry"] == "none" for pylon in pylons)
+
+    engine_y = nacelle["centerline_y_m"]
+    semi_span = main_wing["sections"][-1]["y_m"]
+    assert 0 < engine_y < semi_span
+    assert [pylon["centerline_y_m"] for pylon in pylons] == pytest.approx(
+        [-engine_y, engine_y]
+    )
+
+    nacelle_start_x = nacelle["stations"][0]["x_m"]
+    nacelle_end_x = nacelle["stations"][-1]["x_m"]
+    nacelle_top_z = max(
+        station["z_offset_m"] + station["radius_z_m"]
+        for station in nacelle["stations"]
+    )
+    for pylon in pylons:
+        lower, upper = pylon["sections"]
+        assert lower["leading_edge_z_m"] < upper["leading_edge_z_m"]
+        assert lower["leading_edge_z_m"] <= nacelle_top_z
+        assert nacelle_top_z - lower["leading_edge_z_m"] < 0.1
+        assert upper["leading_edge_z_m"] > nacelle_top_z
+        for section in pylon["sections"]:
+            assert nacelle_start_x < section["leading_edge_x_m"] < nacelle_end_x
+            assert section["leading_edge_x_m"] + section["chord_m"] < nacelle_end_x
+
+
+@pytest.mark.parametrize(
+    "preset_id",
+    ["long_endurance_uav", "fast_cruise_recon", "payload_utility"],
+)
+def test_conventional_geometry_has_unique_ids_finite_coordinates_and_passed_checks(
+    client: TestClient,
+    condition: dict[str, float | int],
+    preset_id: str,
+):
+    response = client.post(
+        "/api/rapid-design/analyze",
+        json={
+            "family_id": "conventional_v2",
+            "preset_id": preset_id,
+            "design": {},
+            "condition": condition,
+        },
+    )
+
+    assert response.status_code == 200, response.text
+    state = response.json()["geometry_state"]
+    component_ids = [component["id"] for component in state["components"]]
+    numeric_values = list(_numeric_geometry_values(state))
+    assert len(component_ids) == len(set(component_ids))
+    assert numeric_values
+    assert all(isfinite(value) for value in numeric_values)
+    assert state["geometry_status"] == "valid"
+    assert state["geometry_checks"]
+    assert all(check["status"] == "pass" for check in state["geometry_checks"])
 
 
 def test_conventional_presets_are_geometrically_distinct(
@@ -331,6 +485,87 @@ def test_every_conventional_control_changes_canonical_geometry(
         result = response.json()
         assert result["design_hash"] != baseline["design_hash"], key
         assert result["geometry_state"] != baseline["geometry_state"], key
+
+
+def _parameter_component_vector(state: dict, parameter_key: str) -> list[float]:
+    body_parameters = {
+        "fuselage_length_m",
+        "fineness_ratio",
+        "nose_length_ratio",
+        "cabin_fullness",
+        "tailcone_length_ratio",
+        "section_ovality",
+    }
+    tail_parameters = {"tail_arm_ratio", "tail_scale"}
+    if parameter_key in body_parameters:
+        selected = [
+            component
+            for component in state["components"]
+            if component["id"] == "fuselage"
+        ]
+    elif parameter_key in tail_parameters:
+        selected = [
+            component
+            for component in state["components"]
+            if component["kind"] == "lifting_surface"
+            and component["id"] != "main_wing"
+            and not component["id"].startswith("engine_pylon_")
+        ]
+    else:
+        selected = [
+            component
+            for component in state["components"]
+            if component["id"] == "main_wing"
+        ]
+    return list(_numeric_geometry_values(selected))
+
+
+def test_every_conventional_parameter_has_distinct_min_default_max_render_inputs(
+    client: TestClient,
+    condition: dict[str, float | int],
+):
+    manifest = client.get("/api/rapid-design/families/conventional_v2").json()
+    preset = next(
+        item
+        for item in manifest["presets"]
+        if item["preset_id"] == "long_endurance_uav"
+    )
+    for definition in manifest["design_parameters"]:
+        key = definition["key"]
+        vectors = []
+        for value in (
+            definition["minimum"],
+            preset["design"][key],
+            definition["maximum"],
+        ):
+            design = deepcopy(preset["design"])
+            design[key] = value
+            response = client.post(
+                "/api/rapid-design/analyze",
+                json={
+                    "family_id": "conventional_v2",
+                    "preset_id": preset["preset_id"],
+                    "design": design,
+                    "condition": condition,
+                },
+            )
+            assert response.status_code == 200, key
+            vectors.append(
+                _parameter_component_vector(
+                    response.json()["geometry_state"], key
+                )
+            )
+
+        assert len({len(vector) for vector in vectors}) == 1, key
+        scale = max(sum(abs(value) for value in vectors[1]), 1.0)
+        minimum_to_default = sum(
+            abs(left - right) for left, right in zip(vectors[0], vectors[1])
+        ) / scale
+        default_to_maximum = sum(
+            abs(left - right) for left, right in zip(vectors[1], vectors[2])
+        ) / scale
+        assert minimum_to_default > 1e-5, key
+        assert default_to_maximum > 1e-5, key
 
 
 def test_preset_overrides_are_merged_and_invalid_requests_are_explicit(

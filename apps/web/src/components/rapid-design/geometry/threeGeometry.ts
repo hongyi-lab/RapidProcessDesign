@@ -7,6 +7,7 @@ const CURRENT_COLORS: Readonly<Record<GeometryComponent["kind"], number>> = {
   loft_body: 0x8da4b5,
   lifting_surface: 0x2f78a8,
   nacelle: 0x5f7484,
+  propeller: 0x263946,
 };
 
 export type DisposedResourceCounts = {
@@ -64,32 +65,50 @@ export function createGeometryGroup(
 ): THREE.Group {
   const group = new THREE.Group();
   group.name = baseline ? "geometry-baseline" : "geometry-current";
-  const surfaces = buildGeometrySurfaces(geometryState);
-  for (const surface of surfaces) {
-    const geometry = surfaceToBufferGeometry(surface);
-    const material = baseline
-      ? new THREE.MeshBasicMaterial({
-          color: 0x8b99a7,
-          depthWrite: false,
-          opacity: 0.72,
-          side: THREE.DoubleSide,
-          transparent: true,
-          wireframe: true,
-        })
-      : new THREE.MeshStandardMaterial({
-          color: CURRENT_COLORS[surface.componentKind],
-          emissive: 0x071d2b,
-          emissiveIntensity: 0.025,
-          metalness: 0.04,
-          roughness: 0.64,
-          side: THREE.DoubleSide,
-        });
-    const mesh = new THREE.Mesh(geometry, material);
-    mesh.name = `${baseline ? "baseline" : "current"}-${surface.instanceId}`;
-    mesh.userData.componentId = surface.componentId;
-    mesh.userData.componentKind = surface.componentKind;
-    mesh.renderOrder = baseline ? 4 : 1;
-    group.add(mesh);
+  try {
+    const surfaces = buildGeometrySurfaces(geometryState);
+    for (const surface of surfaces) {
+      let geometry: THREE.BufferGeometry | null = null;
+      let material: THREE.Material | null = null;
+      try {
+        geometry = surfaceToBufferGeometry(surface);
+        material = baseline
+          ? new THREE.MeshBasicMaterial({
+            color: 0x8b99a7,
+            depthWrite: false,
+            opacity: 0.72,
+            polygonOffset: true,
+            polygonOffsetFactor: -1,
+            polygonOffsetUnits: -1,
+            side: THREE.DoubleSide,
+            transparent: true,
+            wireframe: true,
+            })
+          : new THREE.MeshStandardMaterial({
+            color: CURRENT_COLORS[surface.componentKind],
+            emissive: 0x071d2b,
+            emissiveIntensity: 0.025,
+            metalness: surface.componentKind === "propeller" ? 0.18 : 0.04,
+            roughness: surface.componentKind === "propeller" ? 0.48 : 0.64,
+            side: THREE.DoubleSide,
+            });
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.name = `${baseline ? "baseline" : "current"}-${surface.instanceId}`;
+        mesh.userData.componentId = surface.componentId;
+        mesh.userData.componentKind = surface.componentKind;
+        mesh.renderOrder = baseline ? 4 : 1;
+        group.add(mesh);
+        geometry = null;
+        material = null;
+      } catch (reason) {
+        geometry?.dispose();
+        material?.dispose();
+        throw reason;
+      }
+    }
+    return group;
+  } catch (reason) {
+    disposeObjectResources(group);
+    throw reason;
   }
-  return group;
 }

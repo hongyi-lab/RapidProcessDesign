@@ -356,6 +356,9 @@ class LiftingSurfaceSection(BaseModel):
     dihedral_deg: float = Field(ge=-75, le=75)
     thickness_ratio: float = Field(gt=0.03, le=0.25)
     airfoil_id: str
+    camber_ratio: float | None = Field(default=None, ge=0.0, le=0.12)
+    camber_position_ratio: float | None = Field(default=None, gt=0.05, lt=0.95)
+    interpolation_to_next: Literal["smooth", "linear"] = "smooth"
 
 
 class LiftingSurfaceComponent(BaseModel):
@@ -365,6 +368,7 @@ class LiftingSurfaceComponent(BaseModel):
     kind: Literal["lifting_surface"]
     symmetry: Literal["none", "y"]
     orientation: Literal["horizontal", "vertical"] = "horizontal"
+    centerline_y_m: float = 0.0
     sections: list[LiftingSurfaceSection] = Field(min_length=2)
 
     @model_validator(mode="after")
@@ -401,8 +405,33 @@ class NacelleComponent(BaseModel):
         return self
 
 
+class PropellerComponent(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    id: str
+    kind: Literal["propeller"]
+    symmetry: Literal["none", "y"] = "none"
+    center_x_m: float
+    centerline_y_m: float = Field(ge=0)
+    center_z_m: float
+    radius_m: float = Field(gt=0)
+    hub_radius_m: float = Field(gt=0)
+    hub_length_m: float = Field(gt=0)
+    blade_count: int = Field(ge=2, le=8)
+    blade_chord_m: float = Field(gt=0)
+    rotation_deg: float = 0.0
+
+    @model_validator(mode="after")
+    def hub_and_blade_fit_inside_disk(self) -> "PropellerComponent":
+        if self.hub_radius_m >= self.radius_m:
+            raise ValueError("propeller hub radius must be smaller than disk radius")
+        if self.blade_chord_m >= self.radius_m:
+            raise ValueError("propeller blade chord must be smaller than disk radius")
+        return self
+
+
 GeometryComponent = Annotated[
-    LoftBodyComponent | LiftingSurfaceComponent | NacelleComponent,
+    LoftBodyComponent | LiftingSurfaceComponent | NacelleComponent | PropellerComponent,
     Field(discriminator="kind"),
 ]
 

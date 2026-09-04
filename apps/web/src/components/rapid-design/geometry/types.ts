@@ -32,6 +32,11 @@ export type LiftingSurfaceSection = {
   dihedral_deg: number;
   thickness_ratio: number;
   airfoil_id: string;
+  /** Optional explicit mean-line camber; otherwise derived from a supported airfoil_id. */
+  camber_ratio?: number | null;
+  camber_position_ratio?: number | null;
+  /** Preserve deliberate planform breaks while allowing smooth spanwise lofts elsewhere. */
+  interpolation_to_next?: "smooth" | "linear";
 };
 
 export type LiftingSurfaceComponent = {
@@ -40,6 +45,8 @@ export type LiftingSurfaceComponent = {
   symmetry: "none" | "y";
   /** Omitted values are horizontal for backwards-compatible envelopes. */
   orientation?: "horizontal" | "vertical";
+  /** Span-axis offset; used by fins and pylons away from the aircraft centreline. */
+  centerline_y_m?: number;
   sections: readonly LiftingSurfaceSection[];
 };
 
@@ -59,10 +66,26 @@ export type NacelleComponent = {
   stations: readonly NacelleStation[];
 };
 
+export type PropellerComponent = {
+  id: string;
+  kind: "propeller";
+  symmetry: "none" | "y";
+  center_x_m: number;
+  centerline_y_m: number;
+  center_z_m: number;
+  radius_m: number;
+  hub_radius_m: number;
+  hub_length_m: number;
+  blade_count: number;
+  blade_chord_m: number;
+  rotation_deg: number;
+};
+
 export type GeometryComponent =
   | LoftBodyComponent
   | LiftingSurfaceComponent
-  | NacelleComponent;
+  | NacelleComponent
+  | PropellerComponent;
 
 export type GeometryCheck = {
   id?: string;
@@ -89,3 +112,4 @@ export type GeometryState = {
 };
 
 export type GeometryView = "3d" | "top" | "side" | "front";
+export type GeometryScaleMode = "auto" | "world" | "normalized";
