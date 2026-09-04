@@ -352,7 +352,8 @@ class LiftingSurfaceSection(BaseModel):
     leading_edge_z_m: float
     chord_m: float = Field(gt=0)
     twist_deg: float = Field(ge=-15, le=15)
-    dihedral_deg: float = Field(ge=-20, le=20)
+    # Large cant angles support V-tail and canted-fin surfaces as well as wings.
+    dihedral_deg: float = Field(ge=-75, le=75)
     thickness_ratio: float = Field(gt=0.03, le=0.25)
     airfoil_id: str
 
@@ -412,6 +413,8 @@ class GeometryProvenance(BaseModel):
     decoder_id: str
     decoder_version: str
     methodology: str
+    archetype_id: str | None = None
+    reference_basis: list[str] = Field(default_factory=list)
 
 
 class GeometryState(BaseModel):
@@ -472,7 +475,7 @@ class RapidAnalyzeResponse(BaseModel):
 
     # Temporary aliases keep the released BWB client and regression suite
     # functional during the Round-4 frontend migration.
-    geometry: BwbGeometryMetrics
+    geometry: dict[str, float]
     polar: BwbAircraftPolar
     summary: BwbAnalysisSummary
 
@@ -503,6 +506,8 @@ class RapidFamilyPreset(BaseModel):
     label: str
     description: str
     design: dict[str, float]
+    archetype_id: str | None = None
+    reference_basis: dict[str, str | float] | None = None
 
 
 class RapidFamilyCapabilities(BaseModel):

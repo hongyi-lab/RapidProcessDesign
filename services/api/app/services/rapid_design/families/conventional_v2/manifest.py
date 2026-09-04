@@ -1,6 +1,8 @@
 from services.api.app.schemas.rapid_design import RapidFamilyManifest
 from services.api.app.services.rapid_design.families.conventional_v2.presets import (
     CONVENTIONAL_V2_PRESETS,
+    PRESET_ARCHETYPES,
+    PRESET_REFERENCE_BASIS,
 )
 
 CONVENTIONAL_V2_BOUNDS: dict[str, tuple[float, float, float, str, str]] = {
@@ -34,15 +36,15 @@ _CONDITION_BOUNDS = {
 _PRESET_METADATA = {
     "long_endurance_uav": (
         "Long-endurance UAV",
-        "Slender fuselage, high aspect ratio, low sweep, long tail arm, rear pusher.",
+        "High-aspect-ratio MALE UAV with a slender rising tail cone, V-tail and rear pusher.",
     ),
     "fast_cruise_recon": (
         "Fast-cruise reconnaissance",
-        "Pointed nose, swept thin wing, compact tail and nose tractor.",
+        "Pointed tractor concept with a thin cranked-swept wing and high-mounted tailplane.",
     ),
     "payload_utility": (
         "Payload utility",
-        "Full payload body, high wing, larger tail and twin wing-mounted nacelles.",
+        "Deep rectangular payload cabin, nearly straight high wing and twin engine pods.",
     ),
 }
 
@@ -54,7 +56,7 @@ def conventional_v2_manifest() -> RapidFamilyManifest:
             "family_id": "conventional_v2",
             "display_name": "Conventional V2",
             "description": "Multi-section conventional aircraft concept geometry.",
-            "version": "0.1.0",
+            "version": "0.2.0",
             "default_preset_id": "long_endurance_uav",
             "presets": [
                 {
@@ -62,6 +64,8 @@ def conventional_v2_manifest() -> RapidFamilyManifest:
                     "label": _PRESET_METADATA[preset_id][0],
                     "description": _PRESET_METADATA[preset_id][1],
                     "design": dict(design),
+                    "archetype_id": PRESET_ARCHETYPES[preset_id],
+                    "reference_basis": dict(PRESET_REFERENCE_BASIS[preset_id]),
                 }
                 for preset_id, design in CONVENTIONAL_V2_PRESETS.items()
             ],
@@ -100,4 +104,3 @@ def conventional_v2_manifest() -> RapidFamilyManifest:
             "optimization_status": "pending_teacher_decision",
         }
     )
-
