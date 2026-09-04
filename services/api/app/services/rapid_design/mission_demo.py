@@ -476,23 +476,22 @@ def _evaluate_candidate(
     }
 
 
-def _normalized_vector(
+def _normalized_geometry_vector(
     candidate: dict[str, object],
     profile: MissionDemoProfile,
     inputs: dict[str, float],
 ) -> list[float]:
     design = candidate["design"]
-    sizing = candidate["sizing"]
     assert isinstance(design, dict)
-    assert isinstance(sizing, dict)
     values = []
-    for variable in [*profile.geometry_variables, *profile.sizing_variables]:
+    for variable in profile.geometry_variables:
         minimum, maximum = _effective_bounds(variable, inputs)
-        source = sizing if variable.key in sizing else design
         if maximum == minimum:
             values.append(0.0)
         else:
-            values.append((float(source[variable.key]) - minimum) / (maximum - minimum))
+            values.append(
+                (float(design[variable.key]) - minimum) / (maximum - minimum)
+            )
     return values
 
 
@@ -632,7 +631,7 @@ def search_mission_demo(
     selected: list[dict[str, object]] = []
     selected_vectors: list[list[float]] = []
     for candidate in ranked:
-        vector = _normalized_vector(candidate, profile, validated_inputs)
+        vector = _normalized_geometry_vector(candidate, profile, validated_inputs)
         if all(
             _normalized_distance(vector, selected_vector)
             >= profile.diversity_threshold
@@ -675,11 +674,7 @@ def search_mission_demo(
                 "method": "normalized_euclidean",
                 "threshold": profile.diversity_threshold,
                 "variables": [
-                    variable.key
-                    for variable in [
-                        *profile.geometry_variables,
-                        *profile.sizing_variables,
-                    ]
+                    variable.key for variable in profile.geometry_variables
                 ],
             },
         },

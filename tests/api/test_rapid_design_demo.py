@@ -61,24 +61,12 @@ def _numeric_values(value):
 def _candidate_vector(
     candidate: dict,
     profile: MissionDemoProfile,
-    inputs: dict[str, float],
 ) -> list[float]:
-    vector = []
-    for variable in profile.geometry_variables:
-        vector.append(
+    return [
             (candidate["design"][variable.key] - variable.minimum)
             / (variable.maximum - variable.minimum)
-        )
-    for variable in profile.sizing_variables:
-        maximum = min(variable.maximum, inputs[variable.input_upper_bound])
-        if maximum == variable.minimum:
-            vector.append(0.0)
-        else:
-            vector.append(
-                (candidate["sizing"][variable.key] - variable.minimum)
-                / (maximum - variable.minimum)
-            )
-    return vector
+        for variable in profile.geometry_variables
+    ]
 
 
 def _distance(left: list[float], right: list[float]) -> float:
@@ -156,9 +144,10 @@ def test_demo_search_returns_three_diverse_schema_valid_candidates(preset_id: st
     assert len(result["candidates"]) == profile.candidate_count
     assert [candidate["rank"] for candidate in result["candidates"]] == [1, 2, 3]
     assert len({candidate["candidate_id"] for candidate in result["candidates"]}) == 3
+    assert len({candidate["design_hash"] for candidate in result["candidates"]}) == 3
 
     vectors = [
-        _candidate_vector(candidate, profile, inputs)
+        _candidate_vector(candidate, profile)
         for candidate in result["candidates"]
     ]
     for left, right in combinations(vectors, 2):
