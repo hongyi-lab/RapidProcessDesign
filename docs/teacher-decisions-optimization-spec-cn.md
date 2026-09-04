@@ -1,7 +1,7 @@
 # Rapid Process Design：老师待确认的优化规范
 
 > 状态：`PENDING TEACHER DECISION`  
-> 本文只收集待确认决策。在老师确认前，代码不得把空白项、临时值或示例范围当成正式优化规范。
+> 本文只收集待确认决策。在老师确认前，代码不得把空白项、临时值或示例范围当成正式优化规范。明确标注、配置独立、可追溯且不冒充正式结论的 Demo Mission 可以运行；Demo 结果不改变任何待确认项的状态。
 
 ## 1. 项目术语与第一版范围
 
@@ -231,5 +231,7 @@ OpenVSP/VSPAERO 的角色：不使用 / 几何导出 / 候选复核 / DOE 与 su
 3. 不把任何 family 自动声明为最优；
 4. 可以重构接口、GeometryState、renderer、registry 和测试；
 5. legacy demo 必须清楚标注；
-6. 新 Mission Design 只显示 `optimization_spec_pending`；
-7. 老师确认后再实施正式优化规范。
+6. 新 Mission Design 必须把 `Demo Search` 与 `Formal Optimization` 明确分区：Formal 继续显示 `optimization_spec_pending`，Demo 仅可使用独立、版本化、标注 `demo_only` 的配置运行；
+7. Demo 只能按已接入指标排序，未接入指标必须显式标记且不得进入分数；
+8. Demo 结果不得称为正式最优、老师认可方案或工程验证结论；
+9. 老师确认后再实施正式优化规范。
