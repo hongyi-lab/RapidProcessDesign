@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "node scripts/run-dev.mjs",
+    "start": "next start",
     "test": "node scripts/run-node-tests.mjs",
     "build": "next build"
   },

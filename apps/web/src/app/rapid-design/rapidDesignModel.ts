@@ -1,6 +1,53 @@
-import type { BwbDesignVariables } from "@/components/rapid-design/BwbThreePreview";
+import type { GeometryState } from "@/components/rapid-design/geometry";
 
-export type WorkspaceTab = "analyze" | "optimize";
+export type WorkspaceTab = "analyze" | "mission" | "legacy";
+
+export type FamilyParameterDefinition = {
+  key: string;
+  label: string;
+  unit: string;
+  minimum: number;
+  maximum: number;
+  step: number;
+  default: number;
+  group: string;
+};
+
+export type FamilyPreset = {
+  preset_id: string;
+  label: string;
+  description: string;
+  design: Record<string, number>;
+};
+
+export type FamilyManifest = {
+  family_id: string;
+  display_name: string;
+  description: string;
+  version: string;
+  default_preset_id: string | null;
+  presets: FamilyPreset[];
+  design_parameters: FamilyParameterDefinition[];
+  condition_parameters: FamilyParameterDefinition[];
+  capabilities: {
+    geometry: boolean;
+    analyze: boolean;
+    optimize: boolean;
+  };
+  analysis: {
+    model_id: string;
+    fidelity: string;
+    description: string;
+  };
+  optimization_status: string;
+};
+
+export type FamiliesResponse = {
+  families: FamilyManifest[];
+};
+
+export type DesignValues = Record<string, number>;
+export type ConditionValues = Record<string, number>;
 
 export type InputDefinition = {
   key: string;
@@ -74,14 +121,6 @@ export type RapidResult = {
   warnings: string[];
 };
 
-export type AnalyzeCondition = {
-  altitudeM: number;
-  speedKmh: number;
-  alphaMinDeg: number;
-  alphaMaxDeg: number;
-  alphaSamples: number;
-};
-
 export type DomainCheck = {
   name: string;
   value: number;
@@ -91,103 +130,53 @@ export type DomainCheck = {
   status: string;
 };
 
-export type AnalyzeResponse = {
+export type AnalyzePolar = {
+  alpha_deg: number[];
+  cl: number[];
+  cd: number[];
+  ld: number[];
+};
+
+export type AnalyzeSummary = Record<string, number> & {
+  max_ld?: number;
+  alpha_at_max_ld_deg?: number;
+};
+
+export type AnalyzeEnvelope = {
   family_id: string;
+  preset_id?: string | null;
   design_hash: string;
+  geometry_state: GeometryState;
+  geometry_metrics: Record<string, number>;
+  analysis: {
+    polar: AnalyzePolar;
+    summary: AnalyzeSummary;
+  };
   domain_status: { status: string; checks: DomainCheck[] };
-  geometry: {
-    reference_area_m2: number;
-    span_m: number;
-    semi_span_m: number;
-    aspect_ratio: number;
-    mean_aerodynamic_chord_m: number;
-    wetted_area_m2: number;
-    taper_ratio: number;
-    volume_proxy_m3: number;
-  };
-  polar: {
-    alpha_deg: number[];
-    cl: number[];
-    cd: number[];
-    ld: number[];
-  };
-  summary: {
-    reynolds_number: number;
-    mach: number;
-    cl_alpha_per_rad: number;
-    cl_at_zero_alpha: number;
-    cd0: number;
-    induced_drag_factor: number;
-    max_ld: number;
-    alpha_at_max_ld_deg: number;
-  };
   warnings: string[];
   provenance: {
     model_id: string;
-    model_version: string;
-    geometry_decoder_id: string;
-    geometry_decoder_version: string;
-    methodology: string;
-    scope: string;
-    uses_external_weights: boolean;
-    uses_mit_assets: boolean;
+    model_version?: string;
+    geometry_decoder_id?: string;
+    geometry_decoder_version?: string;
+    methodology?: string;
+    scope?: string;
+    uses_external_weights?: boolean;
+    uses_mit_assets?: boolean;
   };
   fidelity: string;
+  geometry?: Record<string, number>;
+  polar?: AnalyzePolar;
+  summary?: AnalyzeSummary;
 };
 
-export type NumericDefinition<Key extends string> = {
-  key: Key;
+export type GeometryMetricRow = {
+  key: string;
   label: string;
   unit: string;
-  minimum: number;
-  maximum: number;
-  step: number;
   digits: number;
+  value: number;
 };
-
-export const DEFAULT_CONDITION: AnalyzeCondition = {
-  altitudeM: 2000,
-  speedKmh: 220,
-  alphaMinDeg: -4,
-  alphaMaxDeg: 12,
-  alphaSamples: 33,
-};
-
-export const PLANFORM_FIELDS: ReadonlyArray<NumericDefinition<keyof BwbDesignVariables>> = [
-  { key: "c1M", label: "中心弦长 c1", unit: "m", minimum: 2, maximum: 12, step: 0.1, digits: 1 },
-  { key: "c2Ratio", label: "弦长比 c2/c1", unit: "ratio", minimum: 0.55, maximum: 0.95, step: 0.01, digits: 2 },
-  { key: "c3Ratio", label: "弦长比 c3/c1", unit: "ratio", minimum: 0.25, maximum: 0.7, step: 0.01, digits: 2 },
-  { key: "c4Ratio", label: "弦长比 c4/c1", unit: "ratio", minimum: 0.08, maximum: 0.35, step: 0.01, digits: 2 },
-  { key: "b1Ratio", label: "内段展长 b1/c1", unit: "ratio", minimum: 0.15, maximum: 0.6, step: 0.01, digits: 2 },
-  { key: "b2Ratio", label: "中段展长 b2/c1", unit: "ratio", minimum: 0.2, maximum: 0.8, step: 0.01, digits: 2 },
-  { key: "b3Ratio", label: "外段展长 b3/c1", unit: "ratio", minimum: 0.3, maximum: 1.2, step: 0.01, digits: 2 },
-  { key: "x3Ratio", label: "外段后移 x3/c1", unit: "ratio", minimum: 0, maximum: 0.8, step: 0.01, digits: 2 },
-  { key: "sweepInnerDeg", label: "内翼后掠角", unit: "deg", minimum: 20, maximum: 55, step: 1, digits: 0 },
-  { key: "sweepOuterDeg", label: "外翼后掠角", unit: "deg", minimum: 15, maximum: 45, step: 1, digits: 0 },
-];
-
-export const SECTION_FIELDS: ReadonlyArray<NumericDefinition<keyof BwbDesignVariables>> = [
-  { key: "thicknessRatio", label: "相对厚度 t/c", unit: "ratio", minimum: 0.08, maximum: 0.18, step: 0.005, digits: 3 },
-  { key: "twistTipDeg", label: "翼尖扭转角", unit: "deg", minimum: -6, maximum: 2, step: 0.25, digits: 2 },
-];
-
-export const CONDITION_FIELDS: ReadonlyArray<NumericDefinition<keyof AnalyzeCondition>> = [
-  { key: "altitudeM", label: "飞行高度", unit: "m", minimum: 0, maximum: 11000, step: 100, digits: 0 },
-  { key: "speedKmh", label: "真空速", unit: "km/h", minimum: 80, maximum: 500, step: 5, digits: 0 },
-  { key: "alphaMinDeg", label: "最小迎角", unit: "deg", minimum: -10, maximum: 15, step: 0.5, digits: 1 },
-  { key: "alphaMaxDeg", label: "最大迎角", unit: "deg", minimum: -5, maximum: 20, step: 0.5, digits: 1 },
-  { key: "alphaSamples", label: "迎角采样数", unit: "pts", minimum: 5, maximum: 81, step: 2, digits: 0 },
-];
-
-export const GEOMETRY_METRICS = [
-  ["reference_area_m2", "参考面积", "m²", 2],
-  ["span_m", "全翼展", "m", 2],
-  ["aspect_ratio", "展弦比", "", 2],
-  ["mean_aerodynamic_chord_m", "平均气动弦", "m", 2],
-  ["wetted_area_m2", "湿表面积", "m²", 2],
-  ["taper_ratio", "梢根比", "", 3],
-  ["volume_proxy_m3", "容积代理量", "m³", 2],
-] as const;
 
 export const OPTIMIZE_METRICS = [
   ["takeoff_mass_kg", "起飞质量", "kg"],
@@ -206,8 +195,58 @@ export const STAGE_LABELS: Record<string, string> = {
   failed: "计算失败",
 };
 
+const METRIC_PRESENTATION: Record<string, Omit<GeometryMetricRow, "key" | "value">> = {
+  reference_area_m2: { label: "参考面积", unit: "m²", digits: 2 },
+  wing_area_m2: { label: "机翼面积", unit: "m²", digits: 2 },
+  span_m: { label: "全翼展", unit: "m", digits: 2 },
+  semi_span_m: { label: "半翼展", unit: "m", digits: 2 },
+  aspect_ratio: { label: "展弦比", unit: "", digits: 2 },
+  mean_aerodynamic_chord_m: { label: "平均气动弦", unit: "m", digits: 2 },
+  wetted_area_m2: { label: "湿表面积", unit: "m²", digits: 2 },
+  taper_ratio: { label: "梢根比", unit: "", digits: 3 },
+  volume_proxy_m3: { label: "容积代理量", unit: "m³", digits: 2 },
+  fuselage_length_m: { label: "机身长度", unit: "m", digits: 2 },
+  fuselage_max_width_m: { label: "机身最大宽度", unit: "m", digits: 2 },
+  fuselage_max_height_m: { label: "机身最大高度", unit: "m", digits: 2 },
+};
+
+const METRIC_ORDER = [
+  "reference_area_m2",
+  "wing_area_m2",
+  "span_m",
+  "aspect_ratio",
+  "mean_aerodynamic_chord_m",
+  "fuselage_length_m",
+  "wetted_area_m2",
+  "volume_proxy_m3",
+  "taper_ratio",
+  "fuselage_max_width_m",
+  "fuselage_max_height_m",
+  "semi_span_m",
+];
+
+function humanizeKey(key: string): string {
+  return key
+    .replace(/_(m2|m3|m|deg|kg)$/i, "")
+    .split("_")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
 export function clamp(value: number, minimum: number, maximum: number): number {
   return Math.min(maximum, Math.max(minimum, value));
+}
+
+export function digitsForStep(step: number): number {
+  if (!Number.isFinite(step) || step <= 0) return 2;
+  const text = step.toString().toLowerCase();
+  if (text.includes("e-")) return Math.min(6, Number(text.split("e-")[1]));
+  return Math.min(6, text.includes(".") ? text.split(".")[1].length : 0);
+}
+
+export function isIntegerParameter(definition: FamilyParameterDefinition): boolean {
+  return /(?:^|_)(?:samples|count|number)(?:_|$)/i.test(definition.key);
 }
 
 export function formatNumber(value: number | undefined, digits = 1): string {
@@ -230,61 +269,123 @@ export async function errorFromResponse(response: Response, fallback: string): P
   return new Error(fallback);
 }
 
-export function designFieldBounds(
-  field: NumericDefinition<keyof BwbDesignVariables>,
-  design: BwbDesignVariables,
-): { minimum: number; maximum: number } {
-  if (field.key === "c2Ratio") {
-    return { minimum: Math.max(field.minimum, design.c3Ratio + 0.01), maximum: field.maximum };
-  }
-  if (field.key === "c3Ratio") {
-    return {
-      minimum: Math.max(field.minimum, design.c4Ratio + 0.01),
-      maximum: Math.min(field.maximum, design.c2Ratio - 0.01),
-    };
-  }
-  if (field.key === "c4Ratio") {
-    return { minimum: field.minimum, maximum: Math.min(field.maximum, design.c3Ratio - 0.01) };
-  }
-  return { minimum: field.minimum, maximum: field.maximum };
+export function familyPreset(
+  manifest: FamilyManifest,
+  presetId?: string | null,
+): FamilyPreset | null {
+  const requested = presetId ?? manifest.default_preset_id;
+  return manifest.presets.find((preset) => preset.preset_id === requested)
+    ?? manifest.presets[0]
+    ?? null;
 }
 
-export function conditionFieldBounds(
-  field: NumericDefinition<keyof AnalyzeCondition>,
-  condition: AnalyzeCondition,
-): { minimum: number; maximum: number } {
-  if (field.key === "alphaMinDeg") {
-    return { minimum: field.minimum, maximum: Math.min(field.maximum, condition.alphaMaxDeg - 0.5) };
-  }
-  if (field.key === "alphaMaxDeg") {
-    return { minimum: Math.max(field.minimum, condition.alphaMinDeg + 0.5), maximum: field.maximum };
-  }
-  return { minimum: field.minimum, maximum: field.maximum };
+export function preferredInitialFamily(families: FamilyManifest[]): FamilyManifest | null {
+  return families.find((manifest) => manifest.family_id === "conventional_v2")
+    ?? families[0]
+    ?? null;
 }
 
-export function toAnalyzePayload(design: BwbDesignVariables, condition: AnalyzeCondition) {
-  return {
-    family_id: "bwb_v1",
-    design: {
-      c1_m: design.c1M,
-      c2_ratio: design.c2Ratio,
-      c3_ratio: design.c3Ratio,
-      c4_ratio: design.c4Ratio,
-      b1_ratio: design.b1Ratio,
-      b2_ratio: design.b2Ratio,
-      b3_ratio: design.b3Ratio,
-      x3_ratio: design.x3Ratio,
-      sweep_inner_deg: design.sweepInnerDeg,
-      sweep_outer_deg: design.sweepOuterDeg,
-      thickness_ratio: design.thicknessRatio,
-      twist_tip_deg: design.twistTipDeg,
-    },
-    condition: {
-      altitude_m: condition.altitudeM,
-      speed_kmh: condition.speedKmh,
-      alpha_min_deg: condition.alphaMinDeg,
-      alpha_max_deg: condition.alphaMaxDeg,
-      alpha_samples: condition.alphaSamples,
-    },
+export function initialDesignValues(
+  manifest: FamilyManifest,
+  presetId?: string | null,
+): DesignValues {
+  const values = Object.fromEntries(
+    manifest.design_parameters.map((definition) => [definition.key, definition.default]),
+  );
+  const preset = familyPreset(manifest, presetId);
+  for (const [key, value] of Object.entries(preset?.design ?? {})) {
+    if (Number.isFinite(value) && manifest.design_parameters.some((definition) => definition.key === key)) {
+      values[key] = value;
+    }
+  }
+  return values;
+}
+
+export function initialConditionValues(manifest: FamilyManifest): ConditionValues {
+  return Object.fromEntries(
+    manifest.condition_parameters.map((definition) => [definition.key, definition.default]),
+  );
+}
+
+export function parameterGroups(
+  definitions: FamilyParameterDefinition[],
+): Array<{ group: string; definitions: FamilyParameterDefinition[] }> {
+  const groups = new Map<string, FamilyParameterDefinition[]>();
+  for (const definition of definitions) {
+    const key = definition.group || "parameters";
+    groups.set(key, [...(groups.get(key) ?? []), definition]);
+  }
+  return Array.from(groups, ([group, groupedDefinitions]) => ({
+    group,
+    definitions: groupedDefinitions,
+  }));
+}
+
+export function groupLabel(group: string): string {
+  const labels: Record<string, string> = {
+    geometry: "几何参数",
+    flight_condition: "分析工况",
+    planform: "平面形参数",
+    fuselage: "机身参数",
+    wing: "主翼参数",
+    tail: "尾翼参数",
+    propulsion: "推进布局",
   };
+  return labels[group] ?? humanizeKey(group);
+}
+
+export function toAnalyzePayload(
+  familyId: string,
+  presetId: string | null,
+  design: DesignValues,
+  condition: ConditionValues,
+) {
+  return {
+    family_id: familyId,
+    ...(presetId ? { preset_id: presetId } : {}),
+    design,
+    condition,
+  };
+}
+
+export function geometryMetricRows(metrics: Record<string, number>): GeometryMetricRow[] {
+  const keys = Object.keys(metrics).filter((key) => Number.isFinite(metrics[key]));
+  keys.sort((left, right) => {
+    const leftIndex = METRIC_ORDER.indexOf(left);
+    const rightIndex = METRIC_ORDER.indexOf(right);
+    if (leftIndex === -1 && rightIndex === -1) return left.localeCompare(right);
+    if (leftIndex === -1) return 1;
+    if (rightIndex === -1) return -1;
+    return leftIndex - rightIndex;
+  });
+  return keys.map((key) => ({
+    key,
+    value: metrics[key],
+    label: METRIC_PRESENTATION[key]?.label ?? humanizeKey(key),
+    unit: METRIC_PRESENTATION[key]?.unit ?? "",
+    digits: METRIC_PRESENTATION[key]?.digits ?? 2,
+  }));
+}
+
+export function parseFamiliesResponse(payload: unknown): FamilyManifest[] {
+  if (!payload || typeof payload !== "object" || !("families" in payload)) {
+    throw new Error("Family manifest 响应格式无效");
+  }
+  const families = (payload as Partial<FamiliesResponse>).families;
+  if (!Array.isArray(families) || families.length === 0) {
+    throw new Error("没有可用的 aircraft family");
+  }
+  for (const manifest of families) {
+    if (
+      !manifest
+      || typeof manifest.family_id !== "string"
+      || typeof manifest.display_name !== "string"
+      || !Array.isArray(manifest.design_parameters)
+      || !Array.isArray(manifest.condition_parameters)
+      || !Array.isArray(manifest.presets)
+    ) {
+      throw new Error("Family manifest 缺少必要字段");
+    }
+  }
+  return families;
 }

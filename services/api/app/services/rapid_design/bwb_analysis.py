@@ -18,6 +18,7 @@ from services.api.app.schemas.rapid_design import (
     BWB_V1_CONDITION_BOUNDS,
     BWB_V1_DESIGN_BOUNDS,
     BwbAnalysisCondition,
+    BwbAnalyzeRequest,
     BwbV1Design,
     RapidAnalyzeRequest,
     RapidAnalyzeResponse,
@@ -190,6 +191,11 @@ def _canonical_number(value: float) -> float:
 def design_hash(request: RapidAnalyzeRequest) -> str:
     """Hash the complete, unit-attached design state in a stable JSON encoding."""
 
+    design_values = (
+        request.design.model_dump()
+        if isinstance(request.design, BwbV1Design)
+        else request.design
+    )
     payload = {
         "condition": {
             key: (
@@ -201,9 +207,10 @@ def design_hash(request: RapidAnalyzeRequest) -> str:
         },
         "design": {
             key: _canonical_number(float(value))
-            for key, value in request.design.model_dump().items()
+            for key, value in design_values.items()
         },
         "family_id": request.family_id,
+        "preset_id": request.preset_id,
         "geometry_decoder": {
             "id": GEOMETRY_DECODER_ID,
             "version": GEOMETRY_DECODER_VERSION,
@@ -395,7 +402,7 @@ def _range_checks(
 
 
 def _domain_status(
-    request: RapidAnalyzeRequest,
+    request: BwbAnalyzeRequest,
     geometry: _Geometry,
     summary: dict[str, float],
 ) -> dict[str, object]:
@@ -582,47 +589,57 @@ def _polar(
     return polar, summary, warnings
 
 
-def analyze_bwb(request: RapidAnalyzeRequest) -> RapidAnalyzeResponse:
+def analyze_bwb(request: BwbAnalyzeRequest) -> RapidAnalyzeResponse:
     """Analyze one validated BWB design with reproducible low-order equations."""
 
     geometry = _decode_geometry(request.design)
     polar, summary, warnings = _polar(request.design, request.condition, geometry)
+    geometry_metrics = {
+        "reference_area_m2": _rounded(geometry.reference_area_m2, 6),
+        "span_m": _rounded(geometry.span_m, 6),
+        "semi_span_m": _rounded(geometry.semi_span_m, 6),
+        "aspect_ratio": _rounded(geometry.aspect_ratio, 8),
+        "mean_aerodynamic_chord_m": _rounded(
+            geometry.mean_aerodynamic_chord_m, 6
+        ),
+        "wetted_area_m2": _rounded(geometry.wetted_area_m2, 6),
+        "taper_ratio": _rounded(geometry.taper_ratio, 8),
+        "volume_proxy_m3": _rounded(geometry.volume_proxy_m3, 6),
+    }
+    from services.api.app.services.rapid_design.families.bwb_v1.geometry import (
+        decode_bwb_geometry_state,
+    )
+
+    geometry_state = decode_bwb_geometry_state(request.design, geometry_metrics)
+    provenance = {
+        "model_id": MODEL_ID,
+        "model_version": MODEL_VERSION,
+        "geometry_decoder_id": GEOMETRY_DECODER_ID,
+        "geometry_decoder_version": GEOMETRY_DECODER_VERSION,
+        "methodology": (
+            "Project-original clean-room shape-preserving cubic BWB loft integration "
+            "with ISA atmosphere, finite-wing lift-curve slope, turbulent "
+            "skin-friction drag, parabolic induced drag, and empirical high-angle "
+            "saturation. No external model weights or BWB datasets are loaded."
+        ),
+        "scope": "whole_aircraft_longitudinal_polar",
+        "uses_external_weights": False,
+        "uses_mit_assets": False,
+    }
     return RapidAnalyzeResponse.model_validate(
         {
             "family_id": request.family_id,
+            "preset_id": request.preset_id,
             "design_hash": design_hash(request),
             "domain_status": _domain_status(request, geometry, summary),
-            "geometry": {
-                "reference_area_m2": _rounded(geometry.reference_area_m2, 6),
-                "span_m": _rounded(geometry.span_m, 6),
-                "semi_span_m": _rounded(geometry.semi_span_m, 6),
-                "aspect_ratio": _rounded(geometry.aspect_ratio, 8),
-                "mean_aerodynamic_chord_m": _rounded(
-                    geometry.mean_aerodynamic_chord_m, 6
-                ),
-                "wetted_area_m2": _rounded(geometry.wetted_area_m2, 6),
-                "taper_ratio": _rounded(geometry.taper_ratio, 8),
-                "volume_proxy_m3": _rounded(geometry.volume_proxy_m3, 6),
-            },
+            "geometry_state": geometry_state,
+            "geometry_metrics": geometry_metrics,
+            "analysis": {"polar": polar, "summary": summary},
+            "geometry": geometry_metrics,
             "polar": polar,
             "summary": summary,
             "warnings": warnings,
-            "provenance": {
-                "model_id": MODEL_ID,
-                "model_version": MODEL_VERSION,
-                "geometry_decoder_id": GEOMETRY_DECODER_ID,
-                "geometry_decoder_version": GEOMETRY_DECODER_VERSION,
-                "methodology": (
-                    "Project-original clean-room shape-preserving cubic BWB loft integration "
-                    "with ISA atmosphere, "
-                    "finite-wing lift-curve slope, turbulent skin-friction drag, parabolic "
-                    "induced drag, and empirical high-angle saturation. No external model "
-                    "weights or BWB datasets are loaded."
-                ),
-                "scope": "whole_aircraft_longitudinal_polar",
-                "uses_external_weights": False,
-                "uses_mit_assets": False,
-            },
+            "provenance": provenance,
             "fidelity": FIDELITY,
         }
     )

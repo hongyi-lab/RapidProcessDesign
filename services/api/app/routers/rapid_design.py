@@ -4,15 +4,21 @@ from collections.abc import AsyncIterator
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
+from pydantic import ValidationError
 
 from services.api.app.schemas.rapid_design import (
     RapidAnalyzeRequest,
     RapidAnalyzeResponse,
     RapidDesignJobResponse,
     RapidDesignRequest,
+    RapidFamiliesResponse,
+    RapidFamilyManifest,
 )
-from services.api.app.services.rapid_design.bwb_analysis import analyze_bwb
 from services.api.app.services.rapid_design.config_loader import load_rapid_design_config
+from services.api.app.services.rapid_design.families.registry import (
+    UnknownFamilyError,
+    registry,
+)
 from services.api.app.services.rapid_design.job_runner import (
     TERMINAL_STATUSES,
     RapidDesignJobRunner,
@@ -31,9 +37,25 @@ def get_config():
     return load_rapid_design_config().model_dump(mode="json")
 
 
+@router.get("/families", response_model=RapidFamiliesResponse)
+def get_families() -> RapidFamiliesResponse:
+    return RapidFamiliesResponse(families=registry.manifests())
+
+
+@router.get("/families/{family_id}", response_model=RapidFamilyManifest)
+def get_family(family_id: str) -> RapidFamilyManifest:
+    try:
+        return registry.manifest(family_id)
+    except UnknownFamilyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
 @router.post("/analyze", response_model=RapidAnalyzeResponse)
 def analyze(request: RapidAnalyzeRequest) -> RapidAnalyzeResponse:
-    return analyze_bwb(request)
+    try:
+        return registry.analyze(request)
+    except (ValidationError, ValueError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 @router.post("/jobs", status_code=202)

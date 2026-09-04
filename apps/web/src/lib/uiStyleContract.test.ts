@@ -6,14 +6,14 @@ function source(path: string): string {
   return readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 }
 
-test("root layout exposes Inter and globals use DESIGN tokens", () => {
+test("root layout uses an offline-safe Inter system stack and DESIGN tokens", () => {
   const layout = source("app/layout.tsx");
   const css = source("app/globals.css");
   const baseFieldRule = css.match(/input:not\(\[type\]\),[\s\S]*?select \{[\s\S]*?\n}/)?.[0];
 
-  assert.match(layout, /import \{ Inter \} from "next\/font\/google"/);
-  assert.match(layout, /variable: "--font-inter"/);
-  assert.match(layout, /className=\{inter\.variable\}/);
+  assert.doesNotMatch(layout, /next\/font\/google/);
+  assert.match(css, /--font-inter:\s*"Inter"/);
+  assert.match(layout, /<html lang="zh-CN">/);
 
   assert.match(css, /--bg-base:\s*#08090a;/);
   assert.match(css, /--accent:\s*#7170ff;/);

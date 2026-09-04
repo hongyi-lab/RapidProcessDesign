@@ -2,14 +2,32 @@
 
 ## 目标与边界
 
-Rapid Design 是 AeroSpec 之上的独立概念设计入口，当前明确分成两个模式：
+Rapid Design 是 AeroSpec 之上的 family-neutral 整机概念设计入口，当前分成三个明确隔离的模式：
 
-- **Analyze / `bwb_v1`**：直接调整 12 个翼身融合（BWB）几何参数及飞行工况，约 200 ms 防抖后更新连续三维外形、派生几何量和整机纵向极曲线。
-- **Optimize / conventional**：保留原有常规固定翼任务优化，根据航程、载荷、速度和质量约束搜索可行方案。它尚未迁移到 BWB 参数族。
+- **Analyze**：同一页面切换 `conventional_v2` 与 `bwb_v1`。family manifest 提供 preset、参数范围和能力；约 220 ms 防抖后返回统一 `GeometryState`、派生几何量和概念级纵向极曲线。
+- **Mission Design**：只显示 `optimization_spec_pending`，等待老师确认目标、变量、约束、surrogate 与算法。
+- **Legacy Conventional Demo**：保留原有任务优化与回归能力，但它不读取或优化 Analyze 当前选中的飞机。
 
 当前版本用于概念探索与方案比较，不是认证级、适航级或制造级分析。它不替代 CFD、结构有限元、稳定性/操稳、推进系统匹配或试验验证。
 
-## BWB Analyze 输入与输出
+## Family Registry 与统一 GeometryState
+
+`GET /api/rapid-design/families` 返回两个 family 的 manifest。高层设计参数由各 family decoder 展开成 Canonical `GeometryState`；通用 renderer 只消费 `loft_body`、`lifting_surface` 和 `nacelle`，不认识 `BwbV1Design` 或 `ConventionalV2Design`。
+
+```text
+family + preset + design parameters
+              ↓
+       family geometry decoder
+              ↓
+        Canonical GeometryState
+        ├── generic Three.js renderer
+        ├── family analysis adapter
+        └── future exporter / optimizer
+```
+
+`AircraftSpec` 和旧 `geometry_mapper.py` 继续服务于 legacy pipeline，不再是新高质量预览的几何真相。
+
+## BWB V1 输入与输出
 
 `bwb_v1` 的输入向量包括中心弦长，三段弦长比与展向长度比，外段后移量，内/外翼后掠角，相对厚度和翼尖扭转。飞行工况包括高度、真空速和迎角扫描区间。API 对输入范围以及 `c2 > c3 > c4` 的最小间隔进行严格校验。
 
@@ -19,7 +37,13 @@ Analyze 返回：设计身份、模型适用域检查、几何量、`CL/CD/L/D` 
 
 派生适用域目前检查 `2 ≤ AR ≤ 12`、`0.05 ≤ Mach ≤ 0.55`、`5×10⁴ ≤ Re ≤ 10⁸`。超域时仍返回结果供探索，但状态为 `out_of_domain`，并附警告；结果只能用于概念级趋势比较。
 
-## Conventional Optimize 输入与输出
+## Conventional V2 输入与输出
+
+`conventional_v2` 提供三个合法的几何起点：`long_endurance_uav`、`fast_cruise_recon` 与 `payload_utility`。它们分别采用修长高展弦比/后推、尖细后掠/机头牵引、饱满高翼/双翼下短舱语法，不代表优化结论。
+
+高层滑块由 decoder 展开成 9 个机身截面、4 个主翼半展向 section、三段平尾、三段垂尾及 preset-defined nacelle。分析 adapter 使用透明的概念级有限翼和阻力关系，只用于交互趋势比较，不声称经过 CFD、VSPAERO 或试验验证。
+
+## Legacy Conventional Demo 输入与输出
 
 用户输入定义“要什么”和“不能超过什么”：
 
@@ -53,7 +77,7 @@ ISA 大气 + 有限翼升力斜率 + 摩阻/诱导阻力/经验分离修正
 模型域检查 + provenance + 可复现 design_hash
 ```
 
-### Conventional Optimize
+### Legacy Conventional Demo
 
 ```text
 可调任务输入
@@ -99,7 +123,9 @@ R = V / c × (L/D) × ln(m_takeoff / m_final)
 
 | 方法 | 路径 | 用途 |
 |---|---|---|
-| POST | `/api/rapid-design/analyze` | 即时分析一个 `bwb_v1` 几何与工况 |
+| GET | `/api/rapid-design/families` | 发现所有 family、preset、参数和能力 |
+| GET | `/api/rapid-design/families/{family_id}` | 读取一个完整 family manifest |
+| POST | `/api/rapid-design/analyze` | 按 `family_id` 分发并返回统一分析 envelope |
 | GET | `/api/rapid-design/config` | 读取输入和变量范围 |
 | POST | `/api/rapid-design/jobs` | 创建异步优化任务 |
 | GET | `/api/rapid-design/jobs/{id}` | 查询状态 |
@@ -110,6 +136,16 @@ R = V / c × (L/D) × ln(m_takeoff / m_final)
 每个任务写入 `storage/rapid_design/jobs/{job_id}/request.json`、`config.json`、`status.json` 和成功后的 `result.json`。`storage/` 已被 Git 忽略，不会污染源码提交。
 
 ## 本地启动
+
+### Windows 一键启动（推荐）
+
+在仓库根目录双击 `Start-RapidDesign.cmd`。启动器会自动检查本地构建：代码没有变化时直接启动；首次运行或前端源码更新后自动重新构建。页面准备完成后会在默认浏览器打开：
+
+<http://localhost:3900/rapid-design>
+
+使用结束后双击 `Stop-RapidDesign.cmd`。运行日志保存在被 Git 忽略的 `.rapid-local/` 中。这个方式仍然是在本机运行，但不需要手动打开两个终端或记忆启动命令。
+
+### 手动启动（开发者）
 
 PowerShell：
 
@@ -130,7 +166,7 @@ npm run dev
 
 访问 <http://localhost:3900/rapid-design>。
 
-进入页面后默认打开 Analyze。修改滑块或数值框会自动分析；“设为 Baseline”可冻结当前方案，用灰色轮廓和灰色曲线对照后续参数变化。Optimize 标签页仍是常规固定翼旧流程，两类结果不会混用。
+进入页面后默认打开 Analyze 和 `conventional_v2`。可直接切换三个 conventional preset 或 `bwb_v1`；修改滑块会自动分析，“设为 Baseline”可冻结当前方案并叠加比较。正式优化尚未接入，原流程只位于 Legacy Conventional Demo。
 
 ## 测试
 

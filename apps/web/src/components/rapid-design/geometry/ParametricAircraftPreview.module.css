@@ -1,0 +1,148 @@
+.root {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  min-height: 300px;
+  height: clamp(320px, 43vw, 560px);
+  overflow: hidden;
+  border: 1px solid #dbe3ec;
+  border-radius: 4px;
+  background: #f6f8fb;
+}
+
+.canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: grab;
+  outline: none;
+}
+
+.canvas:active {
+  cursor: grabbing;
+}
+
+.canvas:focus-visible {
+  box-shadow: inset 0 0 0 2px #1f6fae;
+}
+
+.viewControls {
+  position: absolute;
+  z-index: 2;
+  top: 12px;
+  right: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid #c7d2de;
+  border-radius: 4px;
+  background: rgb(255 255 255 / 92%);
+}
+
+.viewButton {
+  min-width: 44px;
+  padding: 6px 9px;
+  border: 0;
+  border-radius: 3px;
+  color: #52677c;
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.viewButton:hover {
+  color: #154f7d;
+  background: #edf4fa;
+}
+
+.viewButtonActive {
+  color: #0f548a;
+  background: #e3eff8;
+  font-weight: 650;
+}
+
+.legend {
+  position: absolute;
+  z-index: 2;
+  left: 12px;
+  bottom: 12px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 5px 8px;
+  border: 1px solid #d3dce5;
+  border-radius: 3px;
+  color: #52677c;
+  background: rgb(255 255 255 / 90%);
+  font-size: 11px;
+}
+
+.legendItem {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.legendSwatch,
+.legendWire {
+  display: inline-block;
+  width: 14px;
+  height: 2px;
+  background: #2f78a8;
+}
+
+.legendWire {
+  height: 0;
+  border-top: 1px dashed #8b99a7;
+  background: transparent;
+}
+
+.fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: 6px;
+  padding: 24px;
+  color: #52677c;
+  text-align: center;
+  background: #f6f8fb;
+}
+
+.fallback strong {
+  color: #243b53;
+  font-size: 14px;
+}
+
+.fallback span {
+  font-size: 12px;
+}
+
+@media (max-width: 680px) {
+  .root {
+    min-height: 280px;
+    height: 58vw;
+    max-height: 390px;
+  }
+
+  .viewControls {
+    top: 9px;
+    right: 9px;
+  }
+
+  .viewButton {
+    min-width: 40px;
+    padding-inline: 7px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .viewButton {
+    transition: none;
+  }
+}
+

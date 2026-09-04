@@ -9,32 +9,33 @@ import {
   useState,
 } from "react";
 
-import {
-  BwbThreePreview,
-  DEFAULT_BWB_DESIGN,
-  type BwbDesignVariables,
-} from "@/components/rapid-design/BwbThreePreview";
 import { CadViewer } from "@/components/cad-viewer/CadViewer";
+import { ParametricAircraftPreview } from "@/components/rapid-design/geometry";
 
 import { ConvergenceChart, PolarChart } from "./RapidCharts";
 import styles from "./rapid-design.module.css";
 import {
-  CONDITION_FIELDS,
-  DEFAULT_CONDITION,
-  GEOMETRY_METRICS,
   OPTIMIZE_METRICS,
-  PLANFORM_FIELDS,
-  SECTION_FIELDS,
   STAGE_LABELS,
   clamp,
-  conditionFieldBounds,
-  designFieldBounds,
+  digitsForStep,
   errorFromResponse,
+  familyPreset,
   formatNumber,
+  geometryMetricRows,
+  groupLabel,
+  initialConditionValues,
+  initialDesignValues,
+  isIntegerParameter,
+  parameterGroups,
+  parseFamiliesResponse,
+  preferredInitialFamily,
   toAnalyzePayload,
-  type AnalyzeCondition,
-  type AnalyzeResponse,
-  type NumericDefinition,
+  type AnalyzeEnvelope,
+  type ConditionValues,
+  type DesignValues,
+  type FamilyManifest,
+  type FamilyParameterDefinition,
   type RapidConfig,
   type RapidJob,
   type RapidResult,
@@ -44,41 +45,65 @@ import {
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8900";
 
-function NumericControl<Key extends string>({
+const TEACHER_DECISIONS_URL =
+  "https://github.com/hongyi-lab/RapidProcessDesign/blob/main/docs/teacher-decisions-optimization-spec-cn.md";
+
+const WORKSPACE_TABS: ReadonlyArray<{
+  id: WorkspaceTab;
+  label: string;
+  description: string;
+}> = [
+  { id: "analyze", label: "Analyze", description: "整机几何与低阶分析" },
+  { id: "mission", label: "Mission Design", description: "优化规范待确认" },
+  { id: "legacy", label: "Legacy Conventional Demo", description: "原有任务优化演示" },
+];
+
+type AnalysisRecord = {
+  data: AnalyzeEnvelope;
+  key: string;
+};
+
+type BaselineRecord = {
+  data: AnalyzeEnvelope;
+  familyId: string;
+  conditionKey: string;
+};
+
+function NumericControl({
   definition,
   value,
-  minimum = definition.minimum,
-  maximum = definition.maximum,
   scope,
   disabled = false,
   onChange,
 }: {
-  definition: NumericDefinition<Key>;
+  definition: FamilyParameterDefinition;
   value: number;
-  minimum?: number;
-  maximum?: number;
   scope: string;
   disabled?: boolean;
   onChange: (value: number) => void;
 }) {
   const id = `${scope}-${definition.key}`;
+  const digits = digitsForStep(definition.step);
   const update = (rawValue: string) => {
     const parsed = Number(rawValue);
-    const normalized = definition.key === "alphaSamples" ? Math.round(parsed) : parsed;
-    if (Number.isFinite(normalized)) onChange(clamp(normalized, minimum, maximum));
+    const normalized = isIntegerParameter(definition) ? Math.round(parsed) : parsed;
+    if (Number.isFinite(normalized)) {
+      onChange(clamp(normalized, definition.minimum, definition.maximum));
+    }
   };
+
   return (
     <div className={styles.numericControl}>
       <div className={styles.controlLabelRow}>
         <label id={`${id}-label`} htmlFor={`${id}-number`}>{definition.label}</label>
-        <span>{definition.unit}</span>
+        <span>{definition.unit || "—"}</span>
       </div>
       <div className={styles.controlInputs}>
         <input
           id={`${id}-range`}
           type="range"
-          min={minimum}
-          max={maximum}
+          min={definition.minimum}
+          max={definition.maximum}
           step={definition.step}
           value={value}
           disabled={disabled}
@@ -89,8 +114,8 @@ function NumericControl<Key extends string>({
         <input
           id={`${id}-number`}
           type="number"
-          min={minimum}
-          max={maximum}
+          min={definition.minimum}
+          max={definition.maximum}
           step={definition.step}
           value={value}
           disabled={disabled}
@@ -99,8 +124,8 @@ function NumericControl<Key extends string>({
         />
       </div>
       <div id={`${id}-bounds`} className={styles.controlBounds}>
-        <span>{formatNumber(minimum, definition.digits)}</span>
-        <span>{formatNumber(maximum, definition.digits)}</span>
+        <span>{formatNumber(definition.minimum, digits)}</span>
+        <span>{formatNumber(definition.maximum, digits)}</span>
       </div>
     </div>
   );
@@ -108,12 +133,16 @@ function NumericControl<Key extends string>({
 
 export default function RapidDesignPage() {
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("analyze");
-  const [design, setDesign] = useState<BwbDesignVariables>(() => ({ ...DEFAULT_BWB_DESIGN }));
-  const [baselineDesign, setBaselineDesign] = useState<BwbDesignVariables>(() => ({ ...DEFAULT_BWB_DESIGN }));
-  const [condition, setCondition] = useState<AnalyzeCondition>(DEFAULT_CONDITION);
-  const [analysisRecord, setAnalysisRecord] = useState<{ data: AnalyzeResponse; key: string } | null>(null);
-  const [baselineAnalysis, setBaselineAnalysis] = useState<{ data: AnalyzeResponse; conditionKey: string } | null>(null);
-  const [analyzeLoading, setAnalyzeLoading] = useState(true);
+  const [families, setFamilies] = useState<FamilyManifest[]>([]);
+  const [familiesLoading, setFamiliesLoading] = useState(true);
+  const [familyError, setFamilyError] = useState<string | null>(null);
+  const [selectedFamilyId, setSelectedFamilyId] = useState("");
+  const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
+  const [design, setDesign] = useState<DesignValues>({});
+  const [condition, setCondition] = useState<ConditionValues>({});
+  const [analysisRecord, setAnalysisRecord] = useState<AnalysisRecord | null>(null);
+  const [baselineRecord, setBaselineRecord] = useState<BaselineRecord | null>(null);
+  const [analyzeLoading, setAnalyzeLoading] = useState(false);
   const [analyzeError, setAnalyzeError] = useState<string | null>(null);
   const analyzeSequenceRef = useRef(0);
 
@@ -121,20 +150,69 @@ export default function RapidDesignPage() {
   const [inputs, setInputs] = useState<Record<string, number>>({});
   const [job, setJob] = useState<RapidJob | null>(null);
   const [result, setResult] = useState<RapidResult | null>(null);
-  const [optimizeError, setOptimizeError] = useState<string | null>(null);
+  const [legacyError, setLegacyError] = useState<string | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
 
+  const selectedManifest = useMemo(
+    () => families.find((manifest) => manifest.family_id === selectedFamilyId) ?? null,
+    [families, selectedFamilyId],
+  );
+  const selectedPreset = useMemo(
+    () => selectedManifest ? familyPreset(selectedManifest, selectedPresetId) : null,
+    [selectedManifest, selectedPresetId],
+  );
+  const designGroups = useMemo(
+    () => parameterGroups(selectedManifest?.design_parameters ?? []),
+    [selectedManifest],
+  );
+  const conditionGroups = useMemo(
+    () => parameterGroups(selectedManifest?.condition_parameters ?? []),
+    [selectedManifest],
+  );
   const analyzeRequestKey = useMemo(
-    () => JSON.stringify({ design, condition }),
-    [condition, design],
+    () => JSON.stringify({ selectedFamilyId, selectedPresetId, design, condition }),
+    [condition, design, selectedFamilyId, selectedPresetId],
   );
   const conditionKey = useMemo(() => JSON.stringify(condition), [condition]);
+
+  function selectFamily(manifest: FamilyManifest) {
+    const preset = familyPreset(manifest);
+    setSelectedFamilyId(manifest.family_id);
+    setSelectedPresetId(preset?.preset_id ?? null);
+    setDesign(initialDesignValues(manifest, preset?.preset_id));
+    setCondition(initialConditionValues(manifest));
+    setAnalysisRecord(null);
+    setBaselineRecord(null);
+    setAnalyzeError(null);
+  }
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setFamiliesLoading(true);
+    fetch(`${API_BASE_URL}/api/rapid-design/families`, { signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) throw await errorFromResponse(response, "无法读取 aircraft family");
+        return parseFamiliesResponse(await response.json());
+      })
+      .then((payload) => {
+        const initialFamily = preferredInitialFamily(payload);
+        setFamilies(payload);
+        if (initialFamily) selectFamily(initialFamily);
+        setFamiliesLoading(false);
+      })
+      .catch((reason: unknown) => {
+        if ((reason as { name?: string }).name === "AbortError") return;
+        setFamiliesLoading(false);
+        setFamilyError(reason instanceof Error ? reason.message : "Family manifest 读取失败");
+      });
+    return () => controller.abort();
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
     fetch(`${API_BASE_URL}/api/rapid-design/config`, { signal: controller.signal })
       .then(async (response) => {
-        if (!response.ok) throw await errorFromResponse(response, "无法读取 Rapid Design 配置");
+        if (!response.ok) throw await errorFromResponse(response, "无法读取 Legacy Demo 配置");
         return (await response.json()) as RapidConfig;
       })
       .then((payload) => {
@@ -143,18 +221,29 @@ export default function RapidDesignPage() {
       })
       .catch((reason: unknown) => {
         if ((reason as { name?: string }).name !== "AbortError") {
-          setOptimizeError(reason instanceof Error ? reason.message : "配置读取失败");
+          setLegacyError(reason instanceof Error ? reason.message : "Legacy Demo 配置读取失败");
         }
       });
     return () => controller.abort();
   }, []);
 
   useEffect(() => {
+    if (!selectedManifest || !selectedManifest.capabilities.analyze) {
+      setAnalyzeLoading(false);
+      return;
+    }
+
     const controller = new AbortController();
     const sequence = ++analyzeSequenceRef.current;
-    const payload = toAnalyzePayload(design, condition);
     const requestKey = analyzeRequestKey;
     const requestConditionKey = conditionKey;
+    const requestFamilyId = selectedManifest.family_id;
+    const payload = toAnalyzePayload(
+      selectedManifest.family_id,
+      selectedPresetId,
+      design,
+      condition,
+    );
     setAnalyzeLoading(true);
     setAnalyzeError(null);
     const timer = window.setTimeout(() => {
@@ -166,28 +255,31 @@ export default function RapidDesignPage() {
       })
         .then(async (response) => {
           if (!response.ok) throw await errorFromResponse(response, "分析请求失败");
-          return (await response.json()) as AnalyzeResponse;
+          return (await response.json()) as AnalyzeEnvelope;
         })
         .then((data) => {
           if (sequence !== analyzeSequenceRef.current) return;
+          if (data.family_id !== requestFamilyId) throw new Error("分析结果与当前 family 不一致");
           setAnalysisRecord({ data, key: requestKey });
           setAnalyzeLoading(false);
-          if (JSON.stringify(design) === JSON.stringify(DEFAULT_BWB_DESIGN)) {
-            setBaselineAnalysis((current) => current ?? { data, conditionKey: requestConditionKey });
-          }
+          setBaselineRecord((current) => current ?? {
+            data,
+            familyId: requestFamilyId,
+            conditionKey: requestConditionKey,
+          });
         })
         .catch((reason: unknown) => {
           if ((reason as { name?: string }).name === "AbortError" || sequence !== analyzeSequenceRef.current) return;
           setAnalyzeLoading(false);
           setAnalyzeError(reason instanceof Error ? reason.message : "分析请求失败");
         });
-    }, 200);
+    }, 220);
 
     return () => {
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [analyzeRequestKey, condition, conditionKey, design]);
+  }, [analyzeRequestKey, condition, conditionKey, design, selectedManifest, selectedPresetId]);
 
   useEffect(() => () => eventSourceRef.current?.close(), []);
 
@@ -199,45 +291,68 @@ export default function RapidDesignPage() {
       constraint: config.inputs.filter((item) => item.kind === "constraint"),
     };
   }, [config]);
-
   const currentAnalysis = analysisRecord?.key === analyzeRequestKey
     ? analysisRecord.data
     : null;
-  const comparableBaseline = baselineAnalysis?.conditionKey === conditionKey
-    ? baselineAnalysis.data
+  const displayedAnalysis = currentAnalysis ?? (analyzeLoading ? analysisRecord?.data ?? null : null);
+  const comparableBaseline = baselineRecord?.familyId === selectedFamilyId
+    && baselineRecord.conditionKey === conditionKey
+    ? baselineRecord.data
     : null;
+  const metricRows = geometryMetricRows(currentAnalysis?.geometry_metrics ?? {});
+  const baselineMetrics = comparableBaseline?.geometry_metrics ?? {};
 
-  function updateDesign(key: keyof BwbDesignVariables, value: number) {
-    const definition = [...PLANFORM_FIELDS, ...SECTION_FIELDS].find((field) => field.key === key);
-    if (!definition) return;
-    setDesign((current) => {
-      const bounds = designFieldBounds(definition, current);
-      return { ...current, [key]: clamp(value, bounds.minimum, bounds.maximum) };
-    });
+  function handleFamilyChange(familyId: string) {
+    const manifest = families.find((item) => item.family_id === familyId);
+    if (manifest) selectFamily(manifest);
   }
 
-  function updateCondition(key: keyof AnalyzeCondition, value: number) {
-    const definition = CONDITION_FIELDS.find((field) => field.key === key);
-    if (!definition) return;
-    setCondition((current) => {
-      const bounds = conditionFieldBounds(definition, current);
-      return { ...current, [key]: clamp(value, bounds.minimum, bounds.maximum) };
-    });
+  function handlePresetChange(presetId: string) {
+    if (!selectedManifest) return;
+    const preset = familyPreset(selectedManifest, presetId);
+    setSelectedPresetId(preset?.preset_id ?? null);
+    setDesign(initialDesignValues(selectedManifest, preset?.preset_id));
+    setAnalyzeError(null);
+  }
+
+  function resetCurrentPreset() {
+    if (!selectedManifest) return;
+    setDesign(initialDesignValues(selectedManifest, selectedPresetId));
+    setCondition(initialConditionValues(selectedManifest));
+    setAnalyzeError(null);
+  }
+
+  function updateValue(
+    setter: (update: (current: Record<string, number>) => Record<string, number>) => void,
+    definition: FamilyParameterDefinition,
+    value: number,
+  ) {
+    setter((current) => ({
+      ...current,
+      [definition.key]: clamp(value, definition.minimum, definition.maximum),
+    }));
   }
 
   function setCurrentAsBaseline() {
-    setBaselineDesign({ ...design });
-    if (analysisRecord?.key === analyzeRequestKey) {
-      setBaselineAnalysis({ data: analysisRecord.data, conditionKey });
-    } else {
-      setBaselineAnalysis(null);
-    }
+    if (!currentAnalysis) return;
+    setBaselineRecord({
+      data: currentAnalysis,
+      familyId: currentAnalysis.family_id,
+      conditionKey,
+    });
   }
 
   function handleTabKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
     if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
     event.preventDefault();
-    const nextTab = event.key === "ArrowLeft" || event.key === "Home" ? "analyze" : "optimize";
+    const currentIndex = WORKSPACE_TABS.findIndex((tab) => tab.id === activeTab);
+    const nextIndex = event.key === "Home"
+      ? 0
+      : event.key === "End"
+        ? WORKSPACE_TABS.length - 1
+        : (currentIndex + (event.key === "ArrowLeft" ? -1 : 1) + WORKSPACE_TABS.length)
+          % WORKSPACE_TABS.length;
+    const nextTab = WORKSPACE_TABS[nextIndex].id;
     setActiveTab(nextTab);
     window.requestAnimationFrame(() => document.getElementById(`rapid-tab-${nextTab}`)?.focus());
   }
@@ -262,45 +377,44 @@ export default function RapidDesignPage() {
       update(event);
       source.close();
       void loadResult(created.id).catch((reason: unknown) => {
-        setOptimizeError(reason instanceof Error ? reason.message : "结果读取失败");
+        setLegacyError(reason instanceof Error ? reason.message : "结果读取失败");
       });
     }) as EventListener);
     source.addEventListener("failed", ((event: MessageEvent<string>) => {
       update(event);
       source.close();
       const payload = JSON.parse(event.data) as RapidJob;
-      setOptimizeError(payload.error ?? "设计生成失败");
+      setLegacyError(payload.error ?? "设计生成失败");
     }) as EventListener);
     source.addEventListener("cancelled", ((event: MessageEvent<string>) => {
       update(event);
       source.close();
     }) as EventListener);
     source.onerror = () => {
-      if (source.readyState === EventSource.CLOSED) return;
-      setOptimizeError("与计算服务的连接中断");
+      if (source.readyState !== EventSource.CLOSED) setLegacyError("与 Legacy Demo 服务的连接中断");
     };
   }
 
-  async function runDesign() {
-    setOptimizeError(null);
+  async function runLegacyDesign() {
+    setLegacyError(null);
     setResult(null);
     const response = await fetch(`${API_BASE_URL}/api/rapid-design/jobs`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ inputs }),
     });
-    if (!response.ok) throw await errorFromResponse(response, "无法启动设计任务");
+    if (!response.ok) throw await errorFromResponse(response, "无法启动 Legacy Demo 任务");
     const created = (await response.json()) as RapidJob;
     setJob(created);
     observeJob(created);
   }
 
-  async function cancelDesign() {
+  async function cancelLegacyDesign() {
     if (!job) return;
     const response = await fetch(`${API_BASE_URL}/api/rapid-design/jobs/${job.id}/cancel`, {
       method: "POST",
     });
-    if (!response.ok) throw await errorFromResponse(response, "无法停止设计任务");
+    if (!response.ok) throw await errorFromResponse(response, "无法停止 Legacy Demo 任务");
     setJob((await response.json()) as RapidJob);
   }
 
@@ -322,105 +436,135 @@ export default function RapidDesignPage() {
         <div className={styles.brandMark} aria-hidden="true">RP</div>
         <div className={styles.brandCopy}>
           <h1>Rapid Process Design</h1>
-          <p>Blended-wing-body concept workspace</p>
+          <p>Overall Aircraft Design Workbench</p>
         </div>
         <div className={styles.topbarMeta}>
-          <span>bwb_v1</span>
+          <span>{selectedManifest?.display_name ?? "Loading families"}</span>
           <Link href="/">返回 AeroSpec</Link>
         </div>
       </header>
 
       <nav className={styles.tabbar} role="tablist" aria-label="Rapid Design 工作模式">
-        {(["analyze", "optimize"] as const).map((tab) => (
+        {WORKSPACE_TABS.map((tab) => (
           <button
-            key={tab}
-            id={`rapid-tab-${tab}`}
+            key={tab.id}
+            id={`rapid-tab-${tab.id}`}
             type="button"
             role="tab"
-            aria-selected={activeTab === tab}
-            aria-controls={`rapid-panel-${tab}`}
-            tabIndex={activeTab === tab ? 0 : -1}
-            className={activeTab === tab ? styles.activeTab : undefined}
-            onClick={() => setActiveTab(tab)}
+            aria-selected={activeTab === tab.id}
+            aria-controls={`rapid-panel-${tab.id}`}
+            tabIndex={activeTab === tab.id ? 0 : -1}
+            className={activeTab === tab.id ? styles.activeTab : undefined}
+            onClick={() => setActiveTab(tab.id)}
             onKeyDown={handleTabKeyDown}
           >
-            {tab === "analyze" ? "Analyze" : "Optimize"}
-            <small>{tab === "analyze" ? "即时气动分析" : "常规构型任务优化"}</small>
+            {tab.label}
+            <small>{tab.description}</small>
           </button>
         ))}
       </nav>
 
-      {activeTab === "analyze" ? (
+      {activeTab === "analyze" && (
         <section
           id="rapid-panel-analyze"
           role="tabpanel"
           aria-labelledby="rapid-tab-analyze"
           className={styles.analyzeWorkspace}
         >
-          <aside className={styles.analyzeSidebar} aria-label="BWB 分析输入">
+          <aside className={styles.analyzeSidebar} aria-label="Aircraft family 分析输入">
             <div className={styles.sidebarIntro}>
-              <span>INPUT / BWB_V1</span>
-              <h2>几何与工况</h2>
-              <p>修改任一数值后，系统会在 200 ms 内重新计算。数值框可用于精确输入。</p>
+              <span>INPUT / FAMILY MANIFEST</span>
+              <h2>构型与工况</h2>
+              <p>参数范围和默认值由当前 family manifest 提供；修改后自动重新分析。</p>
             </div>
 
-            <fieldset className={styles.controlGroup}>
-              <legend>平面形参数</legend>
-              {PLANFORM_FIELDS.map((field) => {
-                const bounds = designFieldBounds(field, design);
-                return (
-                  <NumericControl
-                    key={field.key}
-                    definition={field}
-                    value={design[field.key]}
-                    minimum={bounds.minimum}
-                    maximum={bounds.maximum}
-                    scope="bwb-planform"
-                    onChange={(value) => updateDesign(field.key, value)}
-                  />
-                );
-              })}
-              <p className={styles.relationshipNote}>弦长顺序锁定为 c2 &gt; c3 &gt; c4。</p>
-            </fieldset>
+            <div className={styles.familySelectors}>
+              <label htmlFor="rapid-family-select">
+                <span>Aircraft family</span>
+                <select
+                  id="rapid-family-select"
+                  value={selectedFamilyId}
+                  disabled={familiesLoading || families.length === 0}
+                  onChange={(event) => handleFamilyChange(event.target.value)}
+                >
+                  {families.map((manifest) => (
+                    <option key={manifest.family_id} value={manifest.family_id}>
+                      {manifest.display_name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label htmlFor="rapid-preset-select">
+                <span>Geometry preset</span>
+                <select
+                  id="rapid-preset-select"
+                  value={selectedPresetId ?? ""}
+                  disabled={!selectedManifest || selectedManifest.presets.length === 0}
+                  onChange={(event) => handlePresetChange(event.target.value)}
+                >
+                  {selectedManifest?.presets.map((preset) => (
+                    <option key={preset.preset_id} value={preset.preset_id}>{preset.label}</option>
+                  ))}
+                </select>
+              </label>
+              <p>{selectedPreset?.description ?? selectedManifest?.description ?? "正在读取 family manifest…"}</p>
+              {selectedManifest && (
+                <div className={styles.capabilityList} aria-label="Family capabilities">
+                  <span data-enabled={selectedManifest.capabilities.geometry}>Geometry</span>
+                  <span data-enabled={selectedManifest.capabilities.analyze}>Analyze</span>
+                  <span data-enabled={selectedManifest.capabilities.optimize}>Optimize</span>
+                </div>
+              )}
+              <button
+                type="button"
+                className={styles.resetButton}
+                disabled={!selectedManifest || analyzeLoading}
+                onClick={resetCurrentPreset}
+              >
+                重置当前 preset
+              </button>
+            </div>
 
-            <fieldset className={styles.controlGroup}>
-              <legend>剖面与扭转</legend>
-              {SECTION_FIELDS.map((field) => (
-                <NumericControl
-                  key={field.key}
-                  definition={field}
-                  value={design[field.key]}
-                  scope="bwb-section"
-                  onChange={(value) => updateDesign(field.key, value)}
-                />
-              ))}
-            </fieldset>
+            {familiesLoading && <div className={styles.sidebarLoading}>正在读取 aircraft families…</div>}
+            {familyError && <div className={styles.sidebarError} role="alert">{familyError}</div>}
 
-            <fieldset className={styles.controlGroup}>
-              <legend>分析工况</legend>
-              {CONDITION_FIELDS.map((field) => {
-                const bounds = conditionFieldBounds(field, condition);
-                return (
+            {designGroups.map(({ group, definitions }) => (
+              <fieldset className={styles.controlGroup} key={group}>
+                <legend>{groupLabel(group)}</legend>
+                {definitions.map((definition) => (
                   <NumericControl
-                    key={field.key}
-                    definition={field}
-                    value={condition[field.key]}
-                    minimum={bounds.minimum}
-                    maximum={bounds.maximum}
-                    scope="bwb-condition"
-                    onChange={(value) => updateCondition(field.key, value)}
+                    key={definition.key}
+                    definition={definition}
+                    value={design[definition.key] ?? definition.default}
+                    scope={`${selectedFamilyId}-design`}
+                    onChange={(value) => updateValue(setDesign, definition, value)}
                   />
-                );
-              })}
-            </fieldset>
+                ))}
+              </fieldset>
+            ))}
+
+            {conditionGroups.map(({ group, definitions }) => (
+              <fieldset className={styles.controlGroup} key={group}>
+                <legend>{groupLabel(group)}</legend>
+                {definitions.map((definition) => (
+                  <NumericControl
+                    key={definition.key}
+                    definition={definition}
+                    value={condition[definition.key] ?? definition.default}
+                    scope={`${selectedFamilyId}-condition`}
+                    onChange={(value) => updateValue(setCondition, definition, value)}
+                  />
+                ))}
+              </fieldset>
+            ))}
           </aside>
 
           <div className={styles.analysisMain}>
             <section className={styles.previewPanel}>
               <header className={styles.panelHeader}>
                 <div>
-                  <span>GEOMETRY</span>
-                  <h2>BWB 参数化构型</h2>
+                  <span>CANONICAL GEOMETRY STATE</span>
+                  <h2>{selectedManifest?.display_name ?? "参数化整机构型"}</h2>
                 </div>
                 <div className={styles.previewActions}>
                   <div className={styles.legend} aria-label="构型图例">
@@ -430,27 +574,31 @@ export default function RapidDesignPage() {
                   <button
                     type="button"
                     className={styles.baselineButton}
-                    disabled={analyzeLoading || analysisRecord?.key !== analyzeRequestKey}
+                    disabled={analyzeLoading || !currentAnalysis}
                     onClick={setCurrentAsBaseline}
                   >
                     设为 Baseline
                   </button>
                 </div>
               </header>
-              <BwbThreePreview
-                design={design}
-                baselineDesign={baselineDesign}
-                className={styles.bwbPreview}
+              <ParametricAircraftPreview
+                geometry={displayedAnalysis?.geometry_state ?? null}
+                baselineGeometry={baselineRecord?.familyId === selectedFamilyId
+                  ? baselineRecord.data.geometry_state
+                  : null}
+                className={styles.aircraftPreview}
               />
             </section>
 
             <div className={styles.analysisStatus} aria-live="polite">
-              <span className={analyzeLoading ? styles.statusWorking : styles.statusReady} />
-              {analyzeLoading
-                ? "正在更新分析…"
-                : analyzeError
-                  ? "分析未完成"
-                  : `分析已更新 · ${currentAnalysis?.design_hash.slice(0, 8) ?? "—"}`}
+              <span className={analyzeError ? styles.statusError : analyzeLoading ? styles.statusWorking : styles.statusReady} />
+              {familiesLoading
+                ? "正在载入 family manifest…"
+                : analyzeLoading
+                  ? "正在更新几何与分析…"
+                  : analyzeError
+                    ? "分析未完成"
+                    : `分析已更新 · ${currentAnalysis?.design_hash.slice(0, 8) ?? "—"}`}
             </div>
             {analyzeError && <div className={styles.errorBanner} role="alert">{analyzeError}</div>}
 
@@ -462,25 +610,30 @@ export default function RapidDesignPage() {
                 </div>
                 <small>Current / Baseline</small>
               </header>
-              <div className={styles.geometryMetrics}>
-                {GEOMETRY_METRICS.map(([key, label, unit, digits]) => (
-                  <article key={key}>
-                    <span>{label}</span>
-                    <strong>{formatNumber(currentAnalysis?.geometry[key], digits)}</strong>
-                    <small>
-                      {unit || "—"}
-                      {comparableBaseline && ` · 基准 ${formatNumber(comparableBaseline.geometry[key], digits)}`}
-                    </small>
-                  </article>
-                ))}
-              </div>
+              {metricRows.length > 0 ? (
+                <div className={styles.geometryMetrics}>
+                  {metricRows.map((metric) => (
+                    <article key={metric.key}>
+                      <span>{metric.label}</span>
+                      <strong>{formatNumber(metric.value, metric.digits)}</strong>
+                      <small>
+                        {metric.unit || "—"}
+                        {Number.isFinite(baselineMetrics[metric.key])
+                          && ` · 基准 ${formatNumber(baselineMetrics[metric.key], metric.digits)}`}
+                      </small>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <p className={styles.emptyCopy}>等待当前 family 的几何指标。</p>
+              )}
             </section>
 
             <section className={styles.polarPanel} aria-labelledby="polar-title">
               <header className={styles.sectionHeader}>
                 <div>
                   <span>AERODYNAMICS</span>
-                  <h2 id="polar-title">低阶气动极曲线</h2>
+                  <h2 id="polar-title">概念级气动极曲线</h2>
                 </div>
                 <div className={styles.legend} aria-label="曲线图例">
                   <span><i className={styles.currentSwatch} />Current</span>
@@ -491,40 +644,45 @@ export default function RapidDesignPage() {
                 <PolarChart
                   title="Lift coefficient, CL"
                   unit="CL"
-                  alpha={currentAnalysis?.polar.alpha_deg ?? []}
-                  values={currentAnalysis?.polar.cl ?? []}
-                  baselineAlpha={comparableBaseline?.polar.alpha_deg}
-                  baselineValues={comparableBaseline?.polar.cl}
+                  alpha={currentAnalysis?.analysis.polar.alpha_deg ?? []}
+                  values={currentAnalysis?.analysis.polar.cl ?? []}
+                  baselineAlpha={comparableBaseline?.analysis.polar.alpha_deg}
+                  baselineValues={comparableBaseline?.analysis.polar.cl}
                 />
                 <PolarChart
                   title="Drag coefficient, CD"
                   unit="CD"
-                  alpha={currentAnalysis?.polar.alpha_deg ?? []}
-                  values={currentAnalysis?.polar.cd ?? []}
-                  baselineAlpha={comparableBaseline?.polar.alpha_deg}
-                  baselineValues={comparableBaseline?.polar.cd}
+                  alpha={currentAnalysis?.analysis.polar.alpha_deg ?? []}
+                  values={currentAnalysis?.analysis.polar.cd ?? []}
+                  baselineAlpha={comparableBaseline?.analysis.polar.alpha_deg}
+                  baselineValues={comparableBaseline?.analysis.polar.cd}
                 />
                 <PolarChart
                   title="Lift-to-drag ratio, L/D"
                   unit="L/D"
-                  alpha={currentAnalysis?.polar.alpha_deg ?? []}
-                  values={currentAnalysis?.polar.ld ?? []}
-                  baselineAlpha={comparableBaseline?.polar.alpha_deg}
-                  baselineValues={comparableBaseline?.polar.ld}
+                  alpha={currentAnalysis?.analysis.polar.alpha_deg ?? []}
+                  values={currentAnalysis?.analysis.polar.ld ?? []}
+                  baselineAlpha={comparableBaseline?.analysis.polar.alpha_deg}
+                  baselineValues={comparableBaseline?.analysis.polar.ld}
                 />
               </div>
             </section>
 
             <section className={styles.modelStrip} aria-label="模型与适用域信息">
               <div>
+                <span>Family</span>
+                <strong>{selectedManifest?.family_id ?? "—"}</strong>
+                <small>v{selectedManifest?.version ?? "—"}</small>
+              </div>
+              <div>
                 <span>Model</span>
-                <strong>{currentAnalysis?.provenance.model_id ?? "clean-room low-order model"}</strong>
-                <small>{currentAnalysis?.provenance.model_version ?? "—"}</small>
+                <strong>{currentAnalysis?.provenance.model_id ?? selectedManifest?.analysis.model_id ?? "—"}</strong>
+                <small>{currentAnalysis?.provenance.model_version ?? selectedManifest?.analysis.description ?? "—"}</small>
               </div>
               <div>
                 <span>Fidelity</span>
-                <strong>{currentAnalysis?.fidelity ?? "conceptual_low_order"}</strong>
-                <small>{currentAnalysis?.provenance.scope ?? "概念级方案比较"}</small>
+                <strong>{currentAnalysis?.fidelity ?? selectedManifest?.analysis.fidelity ?? "—"}</strong>
+                <small>仅用于概念级方案比较</small>
               </div>
               <div data-domain={currentAnalysis?.domain_status.status ?? "checking"}>
                 <span>Domain</span>
@@ -535,11 +693,6 @@ export default function RapidDesignPage() {
                     : "等待分析"}
                 </small>
               </div>
-              <div>
-                <span>Max sampled L/D</span>
-                <strong>{formatNumber(currentAnalysis?.summary.max_ld, 2)}</strong>
-                <small>@ {formatNumber(currentAnalysis?.summary.alpha_at_max_ld_deg, 1)} deg</small>
-              </div>
             </section>
 
             {(currentAnalysis?.warnings.length ?? 0) > 0 && (
@@ -549,29 +702,57 @@ export default function RapidDesignPage() {
             )}
           </div>
         </section>
-      ) : (
+      )}
+
+      {activeTab === "mission" && (
         <section
-          id="rapid-panel-optimize"
+          id="rapid-panel-mission"
           role="tabpanel"
-          aria-labelledby="rapid-tab-optimize"
+          aria-labelledby="rapid-tab-mission"
+          className={styles.missionWorkspace}
+        >
+          <article className={styles.missionPanel}>
+            <span className={styles.pendingCode}>optimization_spec_pending</span>
+            <h2>Mission Design 优化规范待老师确认</h2>
+            <p>
+              新 family-neutral 优化入口已预留，但本轮不会自行决定目标函数、设计变量、约束权重、
+              population、iterations 或不确定性方法。
+            </p>
+            <dl>
+              <div><dt>当前 family</dt><dd>{selectedManifest?.display_name ?? "尚未选择"}</dd></div>
+              <div><dt>Family 状态</dt><dd>{selectedManifest?.optimization_status ?? "pending_teacher_decision"}</dd></div>
+              <div><dt>接口行为</dt><dd>不发起优化任务，不使用临时数值代替工程决策</dd></div>
+            </dl>
+            <a href={TEACHER_DECISIONS_URL} target="_blank" rel="noreferrer">
+              查看老师决策清单 ↗
+            </a>
+          </article>
+        </section>
+      )}
+
+      {activeTab === "legacy" && (
+        <section
+          id="rapid-panel-legacy"
+          role="tabpanel"
+          aria-labelledby="rapid-tab-legacy"
           className={styles.optimizeWorkspace}
         >
-          <aside className={styles.optimizeSidebar} aria-label="优化任务输入">
+          <aside className={styles.optimizeSidebar} aria-label="Legacy Conventional Demo 输入">
             <div className={styles.sidebarIntro}>
-              <span>INPUT / CONVENTIONAL</span>
-              <h2>常规构型任务与约束</h2>
-              <p>保留现有固定翼任务优化流程；BWB 优化将在后续版本迁移接入。</p>
+              <span>LEGACY / CONVENTIONAL_V1</span>
+              <h2>原有任务与约束</h2>
+              <p>这是独立保留的旧常规构型演示，不会优化 Analyze 中当前选择的 family 或 preset。</p>
             </div>
-            {!config && !optimizeError && <div className={styles.sidebarLoading}>正在读取参数…</div>}
+            {!config && !legacyError && <div className={styles.sidebarLoading}>正在读取 Legacy Demo 配置…</div>}
             {(["requirement", "constraint"] as const).map((group) => (
               <fieldset className={styles.controlGroup} key={group}>
                 <legend>{group === "requirement" ? "任务需求" : "设计约束"}</legend>
                 {groupedInputs[group].map((item) => (
                   <NumericControl
                     key={item.key}
-                    definition={{ ...item, digits: item.step < 1 ? 1 : 0 }}
+                    definition={{ ...item, group }}
                     value={inputs[item.key] ?? item.default}
-                    scope={`optimize-${group}`}
+                    scope={`legacy-${group}`}
                     disabled={running}
                     onChange={(value) => setInputs((current) => ({ ...current, [item.key]: value }))}
                   />
@@ -583,18 +764,18 @@ export default function RapidDesignPage() {
                 type="button"
                 className={styles.primaryButton}
                 disabled={!config || running}
-                onClick={() => void runDesign().catch((reason: unknown) => {
-                  setOptimizeError(reason instanceof Error ? reason.message : "启动失败");
+                onClick={() => void runLegacyDesign().catch((reason: unknown) => {
+                  setLegacyError(reason instanceof Error ? reason.message : "启动失败");
                 })}
               >
-                {running ? "正在优化…" : "开始优化"}
+                {running ? "Legacy Demo 运行中…" : "运行 Legacy Demo"}
               </button>
               {running && (
                 <button
                   type="button"
                   className={styles.cancelButton}
-                  onClick={() => void cancelDesign().catch((reason: unknown) => {
-                    setOptimizeError(reason instanceof Error ? reason.message : "停止失败");
+                  onClick={() => void cancelLegacyDesign().catch((reason: unknown) => {
+                    setLegacyError(reason instanceof Error ? reason.message : "停止失败");
                   })}
                 >
                   停止任务
@@ -606,8 +787,8 @@ export default function RapidDesignPage() {
           <div className={styles.optimizeMain}>
             <header className={styles.optimizeHeading}>
               <div>
-                <span>CONVENTIONAL DESIGN RESULT</span>
-                <h2>{result ? "当前最优可行构型" : "现有常规固定翼概念方案"}</h2>
+                <span>LEGACY CONVENTIONAL RESULT</span>
+                <h2>{result ? "旧流程最优可行构型" : "原有常规固定翼演示"}</h2>
               </div>
               <div className={`${styles.statusBadge} ${result?.feasible ? styles.statusPass : ""}`} aria-live="polite">
                 <i />
@@ -618,9 +799,19 @@ export default function RapidDesignPage() {
               </div>
             </header>
 
-            {optimizeError && <div className={styles.errorBanner} role="alert">{optimizeError}</div>}
+            <div className={styles.legacyNotice}>
+              此结果来自既有 conventional demo pipeline，与当前 Analyze family 无数据关联。
+            </div>
+            {legacyError && <div className={styles.errorBanner} role="alert">{legacyError}</div>}
             {running && (
-              <div className={styles.progressTrack} aria-label="优化进度" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round((job?.progress ?? 0) * 100)} role="progressbar">
+              <div
+                className={styles.progressTrack}
+                aria-label="Legacy Demo 进度"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={Math.round((job?.progress ?? 0) * 100)}
+                role="progressbar"
+              >
                 <span style={{ width: `${Math.round((job?.progress ?? 0) * 100)}%` }} />
               </div>
             )}
@@ -653,7 +844,7 @@ export default function RapidDesignPage() {
                       <em>{formatNumber(constraint.value, 2)} {constraint.unit}</em>
                       <small>{constraint.relation} {formatNumber(constraint.limit, 2)}</small>
                     </div>
-                  )) ?? <p className={styles.emptyCopy}>优化完成后逐项显示约束余量。</p>}
+                  )) ?? <p className={styles.emptyCopy}>运行后逐项显示旧流程约束余量。</p>}
                 </div>
               </section>
               <section className={styles.dataPanel}>
@@ -666,11 +857,11 @@ export default function RapidDesignPage() {
             </div>
           </div>
 
-          <aside className={styles.resultSidebar} aria-label="优化设计变量">
+          <aside className={styles.resultSidebar} aria-label="Legacy Demo 设计变量">
             <div className={styles.resultHeading}>
-              <span>OUTPUT</span>
-              <h2>设计变量</h2>
-              <p>下列数值由现有常规构型优化器决定，并非 BWB 几何参数。</p>
+              <span>LEGACY OUTPUT</span>
+              <h2>旧设计变量</h2>
+              <p>下列数值属于原有常规构型优化器，不代表当前 family 的设计空间。</p>
             </div>
             <div className={styles.variableList}>
               {config?.design_variables.map((variable) => (
@@ -679,19 +870,19 @@ export default function RapidDesignPage() {
                   <strong>{formatNumber(result?.design[variable.key], 3)}</strong>
                   <small>{variable.unit}</small>
                 </div>
-              )) ?? <p className={styles.emptyCopy}>等待配置。</p>}
+              )) ?? <p className={styles.emptyCopy}>等待 Legacy Demo 配置。</p>}
             </div>
             <section className={styles.provenancePanel}>
-              <span>气动模型</span>
+              <span>Legacy 气动模型</span>
               <h3>{result?.model_provenance.name ?? "NeuralFoil"}</h3>
-              <p>{result ? `v${result.model_provenance.version} · ${result.model_provenance.license}` : "公开代理模型"}</p>
+              <p>{result ? `v${result.model_provenance.version} · ${result.model_provenance.license}` : "原有公开代理模型"}</p>
               {result?.model_provenance.paper_url && (
                 <a href={result.model_provenance.paper_url} target="_blank" rel="noreferrer">查看论文 ↗</a>
               )}
             </section>
             <div className={styles.scopeNote}>
-              <strong>概念级结果</strong>
-              <p>用于需求探索与方案比较，不替代 CFD、结构校核、稳定性分析或适航验证。</p>
+              <strong>Legacy 概念级结果</strong>
+              <p>仅用于回归与演示，不替代 CFD、结构校核、稳定性分析或适航验证。</p>
             </div>
           </aside>
         </section>

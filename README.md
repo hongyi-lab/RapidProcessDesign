@@ -27,14 +27,14 @@ English | [中文](./README_CN.md)
 
 ## Rapid Design workflow
 
-The `/rapid-design` workspace turns adjustable mission inputs into a new aircraft concept. The user controls required range, payload, cruise speed and altitude, plus fuel, takeoff-mass, and L/D limits. A deterministic optimizer then chooses ten design variables including wing area, aspect ratio, taper, sweep, fuselage dimensions, airfoil parameters, and fuel load.
+The `/rapid-design` workspace is a family-neutral whole-aircraft concept workbench. Its Analyze path currently registers `conventional_v2` and `bwb_v1`; each family publishes presets and parameter definitions, decodes them into one canonical `GeometryState`, and uses the same loft-based 3D renderer and analysis envelope.
 
-- Published surrogate: [NeuralFoil](https://github.com/peterdsharpe/NeuralFoil) 0.3.3 predicts two-dimensional airfoil CL/CD/CM and analysis confidence.
-- Transparent system model: finite-wing drag, ISA atmosphere, configurable component mass build-up, and a Breguet-style range estimate are kept in readable code and YAML.
-- Inspectable output: every constraint is reported independently, infeasible searches are labelled, convergence is shown, and the selected geometry feeds the existing AeroSpec 3D viewer.
-- Reproducible run: fixed optimizer seed, pinned surrogate version, config snapshot, and JSON results under `storage/rapid_design/jobs/`.
+- Distinct aircraft presets: `conventional_v2` includes long-endurance, fast-cruise reconnaissance, and payload-utility geometries; `bwb_v1` remains available in the same page.
+- One geometry contract: multi-section bodies, lifting surfaces, and nacelles feed the browser renderer and the family analysis adapter.
+- Transparent fidelity: current Analyze models are explicitly labelled conceptual low-order models with domain checks and provenance.
+- Safe product separation: Mission Design remains `optimization_spec_pending`; the original NeuralFoil/differential-evolution workflow is preserved under **Legacy Conventional Demo** and does not claim to optimize the currently displayed aircraft.
 
-Start the API and web app using the commands below, then open `http://localhost:3900/rapid-design`. No LLM key or OpenVSP installation is required for this workflow. See [Rapid Design technical guide](docs/rapid-design.md) and [third-party notices](THIRD_PARTY_NOTICES.md).
+On Windows, double-click `Start-RapidDesign.cmd` for a one-click local UI; use `Stop-RapidDesign.cmd` when finished. It opens `http://localhost:3900/rapid-design`. No LLM key or OpenVSP installation is required for this workflow. See the [Rapid Design technical guide](docs/rapid-design.md), [pending teacher decisions](docs/teacher-decisions-optimization-spec-cn.md), and [third-party notices](THIRD_PARTY_NOTICES.md).
 
 ---
 

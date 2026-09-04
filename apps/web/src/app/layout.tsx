@@ -1,12 +1,5 @@
 import "./globals.css";
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-
-const inter = Inter({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-inter"
-});
 
 export const metadata: Metadata = {
   title: "Rapid Process Design",
@@ -15,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="zh-CN" className={inter.variable}>
+    <html lang="zh-CN">
       <body>{children}</body>
     </html>
   );

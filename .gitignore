@@ -21,3 +21,4 @@ apps/web/.playwright-cli/
 # ZCode client session data
 .zcode/
 shots/
+.rapid-local/

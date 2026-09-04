@@ -27,14 +27,14 @@
 
 ## Rapid Design 任务驱动设计
 
-新增的 `/rapid-design` 工作区把可调任务输入转换成新的飞机概念方案。你可以调整目标航程、有效载荷、巡航速度、巡航高度，以及燃油上限、最大起飞质量和目标升阻比；优化器负责搜索机翼面积、展弦比、梢根比、后掠角、机身尺寸、翼型参数和实际装油量。
+`/rapid-design` 现在是 family-neutral 的整机概念设计工作台。Analyze 当前注册 `conventional_v2` 与 `bwb_v1`；每个 family 提供 preset 和参数定义，统一解码为 Canonical `GeometryState`，并共用同一套截面 loft 三维渲染器与分析响应。
 
-- 公开代理模型：使用论文配套、MIT 许可的 [NeuralFoil](https://github.com/peterdsharpe/NeuralFoil) 0.3.3 预测二维翼型 CL/CD/CM 和分析置信度。
-- 透明系统模型：有限翼阻力、ISA 大气、部件质量估算和 Breguet 风格航程公式都保留在可读代码与 YAML 配置中。
-- 可检查结果：逐项报告约束、明确标记不可行搜索、展示收敛过程，并把最优几何直接送入 AeroSpec 3D 预览。
-- 可复现：优化随机种子固定，代理模型版本锁定，任务和结果按 JSON 保存到 `storage/rapid_design/jobs/`。
+- 明显不同的初始外形：`conventional_v2` 提供长航时、快速侦察和载荷运输三种 preset；同页仍可切换 BWB。
+- 统一几何契约：多截面机身、翼面和短舱同时服务于浏览器预览和 family analysis adapter。
+- 明确保真度：当前 Analyze 均标注为概念级低阶模型，并展示适用域和来源。
+- 路线隔离：Mission Design 暂时显示 `optimization_spec_pending`；原 NeuralFoil/差分进化流程保留在 **Legacy Conventional Demo**，不会声称它优化了屏幕上当前飞机。
 
-按下方命令启动前后端，然后访问 `http://localhost:3900/rapid-design`。这条流程不需要 LLM 密钥，也不需要安装 OpenVSP。详情见 [Rapid Design 技术说明](docs/rapid-design.md) 和 [第三方声明](THIRD_PARTY_NOTICES.md)。
+Windows 用户可直接双击仓库根目录的 `Start-RapidDesign.cmd`，页面会打开 `http://localhost:3900/rapid-design`；使用结束后双击 `Stop-RapidDesign.cmd`。这条流程不需要 LLM 密钥，也不需要安装 OpenVSP。详情见 [Rapid Design 技术说明](docs/rapid-design.md)、[老师待确认的优化规范](docs/teacher-decisions-optimization-spec-cn.md) 和 [第三方声明](THIRD_PARTY_NOTICES.md)。
 
 ---
 
