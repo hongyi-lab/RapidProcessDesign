@@ -5,7 +5,13 @@ from collections.abc import AsyncIterator
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 
-from services.api.app.schemas.rapid_design import RapidDesignJobResponse, RapidDesignRequest
+from services.api.app.schemas.rapid_design import (
+    RapidAnalyzeRequest,
+    RapidAnalyzeResponse,
+    RapidDesignJobResponse,
+    RapidDesignRequest,
+)
+from services.api.app.services.rapid_design.bwb_analysis import analyze_bwb
 from services.api.app.services.rapid_design.config_loader import load_rapid_design_config
 from services.api.app.services.rapid_design.job_runner import (
     TERMINAL_STATUSES,
@@ -23,6 +29,11 @@ def _public_job(job: dict[str, object]) -> dict[str, object]:
 @router.get("/config")
 def get_config():
     return load_rapid_design_config().model_dump(mode="json")
+
+
+@router.post("/analyze", response_model=RapidAnalyzeResponse)
+def analyze(request: RapidAnalyzeRequest) -> RapidAnalyzeResponse:
+    return analyze_bwb(request)
 
 
 @router.post("/jobs", status_code=202)
