@@ -19,6 +19,7 @@ import {
 
 import { ConvergenceChart, PolarChart } from "./RapidCharts";
 import { GeometryValidationPanel } from "./GeometryValidationPanel";
+import { MissionDemoPanel } from "./MissionDemoPanel";
 import styles from "./rapid-design.module.css";
 import {
   OPTIMIZE_METRICS,
@@ -39,6 +40,7 @@ import {
   toAnalyzePayload,
   type AnalyzeEnvelope,
   type ConditionValues,
+  type DemoAnalyzeHandoff,
   type DesignValues,
   type FamilyManifest,
   type FamilyParameterDefinition,
@@ -52,7 +54,7 @@ const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8900";
 
 const TEACHER_DECISIONS_URL =
-  "https://github.com/hongyi-lab/RapidProcessDesign/blob/main/docs/teacher-decisions-optimization-spec-cn.md";
+  "https://github.com/hongyi-lab/RapidProcessDesign/blob/codex/round6-mission-demo/docs/teacher-decisions-optimization-spec-cn.md";
 
 const WORKSPACE_TABS: ReadonlyArray<{
   id: WorkspaceTab;
@@ -60,7 +62,7 @@ const WORKSPACE_TABS: ReadonlyArray<{
   description: string;
 }> = [
   { id: "analyze", label: "Analyze", description: "整机几何与低阶分析" },
-  { id: "mission", label: "Mission Design", description: "优化规范待确认" },
+  { id: "mission", label: "Mission Design", description: "可运行 Demo · Formal 待确认" },
   { id: "legacy", label: "Legacy Conventional Demo", description: "原有任务优化演示" },
 ];
 
@@ -151,6 +153,7 @@ export default function RapidDesignPage() {
   const [primaryScaleMode, setPrimaryScaleMode] = useState<GeometryScaleMode>("auto");
   const [analyzeLoading, setAnalyzeLoading] = useState(false);
   const [analyzeError, setAnalyzeError] = useState<string | null>(null);
+  const [analyzeRunNonce, setAnalyzeRunNonce] = useState(0);
   const analyzeSequenceRef = useRef(0);
 
   const [config, setConfig] = useState<RapidConfig | null>(null);
@@ -287,7 +290,7 @@ export default function RapidDesignPage() {
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [analyzeRequestKey, condition, conditionKey, design, selectedManifest, selectedPresetId]);
+  }, [analyzeRequestKey, analyzeRunNonce, condition, conditionKey, design, selectedManifest, selectedPresetId]);
 
   useEffect(() => () => eventSourceRef.current?.close(), []);
 
@@ -342,6 +345,26 @@ export default function RapidDesignPage() {
     setDesign(initialDesignValues(selectedManifest, selectedPresetId));
     setCondition(initialConditionValues(selectedManifest));
     setAnalyzeError(null);
+  }
+
+  function inspectDemoCandidate(handoff: DemoAnalyzeHandoff) {
+    const manifest = families.find((item) => item.family_id === handoff.familyId);
+    if (!manifest || !manifest.capabilities.analyze) {
+      throw new Error(`Analyze 未提供 family ${handoff.familyId}`);
+    }
+    if (!manifest.presets.some((preset) => preset.preset_id === handoff.presetId)) {
+      throw new Error(`Analyze 未提供 preset ${handoff.presetId}`);
+    }
+    setSelectedFamilyId(handoff.familyId);
+    setSelectedPresetId(handoff.presetId);
+    setDesign({ ...handoff.design });
+    setCondition({ ...handoff.condition });
+    setAnalysisRecord(null);
+    setBaselineRecord(null);
+    setAnalyzeError(null);
+    setPrimaryScaleMode("auto");
+    setAnalyzeRunNonce((nonce) => nonce + 1);
+    setActiveTab("analyze");
   }
 
   function updateValue(
@@ -735,31 +758,37 @@ export default function RapidDesignPage() {
         </section>
       )}
 
-      {activeTab === "mission" && (
-        <section
-          id="rapid-panel-mission"
-          role="tabpanel"
-          aria-labelledby="rapid-tab-mission"
-          className={styles.missionWorkspace}
-        >
+      <section
+        id="rapid-panel-mission"
+        role="tabpanel"
+        aria-labelledby="rapid-tab-mission"
+        className={styles.missionWorkspace}
+        hidden={activeTab !== "mission"}
+        aria-hidden={activeTab !== "mission"}
+      >
+          <MissionDemoPanel
+            apiBaseUrl={API_BASE_URL}
+            manifest={selectedManifest}
+            selectedPresetId={selectedPresetId}
+            onAnalyzeCandidate={inspectDemoCandidate}
+          />
           <article className={styles.missionPanel}>
             <span className={styles.pendingCode}>optimization_spec_pending</span>
-            <h2>Mission Design 优化规范待老师确认</h2>
+            <h2>Formal Optimization 规范待老师确认</h2>
             <p>
-              新 family-neutral 优化入口已预留，但本轮不会自行决定目标函数、设计变量、约束权重、
-              population、iterations 或不确定性方法。
+              上方 Mission Demo 使用明确标注、可复现的临时 profile。正式优化仍不会自行决定目标函数、
+              设计变量、约束权重、population、iterations 或不确定性方法。
             </p>
             <dl>
               <div><dt>当前 family</dt><dd>{selectedManifest?.display_name ?? "尚未选择"}</dd></div>
               <div><dt>Family 状态</dt><dd>{selectedManifest?.optimization_status ?? "pending_teacher_decision"}</dd></div>
-              <div><dt>接口行为</dt><dd>不发起优化任务，不使用临时数值代替工程决策</dd></div>
+              <div><dt>Formal 接口行为</dt><dd>保持阻断；Demo 结果不冒充正式优化结论</dd></div>
             </dl>
             <a href={TEACHER_DECISIONS_URL} target="_blank" rel="noreferrer">
               查看老师决策清单 ↗
             </a>
           </article>
-        </section>
-      )}
+      </section>
 
       {activeTab === "legacy" && (
         <section
