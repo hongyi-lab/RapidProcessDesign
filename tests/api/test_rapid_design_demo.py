@@ -260,6 +260,22 @@ def test_impossible_demo_requirements_return_ranked_least_violation_candidates()
     )
 
 
+def test_demo_search_accepts_a_fixed_fuel_bound_without_dividing_by_zero():
+    profile = _fast_profile()
+    result = search_mission_demo(
+        job_id="fixed-fuel-bound",
+        family_id="conventional_v2",
+        preset_id="long_endurance_uav",
+        inputs={"max_fuel_mass_kg": 25},
+        profile=profile,
+    )
+
+    assert len(result["candidates"]) == profile.candidate_count
+    assert {
+        candidate["sizing"]["fuel_mass_kg"] for candidate in result["candidates"]
+    } == {25.0}
+
+
 def test_demo_search_checks_cancellation_before_the_first_evaluation():
     profile = _fast_profile()
     progress_calls = []
