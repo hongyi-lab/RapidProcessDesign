@@ -114,6 +114,18 @@ MISSION_DEMO_NATIVE_GEOMETRY_KEYS = frozenset(
     }
 )
 
+MISSION_DEMO_REQUIRED_INPUT_KEYS = frozenset(
+    {
+        "required_range_km",
+        "payload_mass_kg",
+        "cruise_speed_kmh",
+        "cruise_altitude_m",
+        "max_fuel_mass_kg",
+        "max_takeoff_mass_kg",
+        "target_lift_to_drag",
+    }
+)
+
 
 class MissionDemoVariableDefinition(BaseModel):
     """One native geometry or demo-only sizing search dimension."""
@@ -241,6 +253,19 @@ class MissionDemoProfile(BaseModel):
         input_keys = [item.key for item in self.inputs]
         if len(input_keys) != len(set(input_keys)):
             raise ValueError("mission demo input keys must be unique")
+        if set(input_keys) != MISSION_DEMO_REQUIRED_INPUT_KEYS:
+            missing = sorted(MISSION_DEMO_REQUIRED_INPUT_KEYS - set(input_keys))
+            unexpected = sorted(set(input_keys) - MISSION_DEMO_REQUIRED_INPUT_KEYS)
+            details = []
+            if missing:
+                details.append(f"missing: {', '.join(missing)}")
+            if unexpected:
+                details.append(f"unexpected: {', '.join(unexpected)}")
+            raise ValueError(
+                "mission_demo_v1 inputs must match the evaluator contract ("
+                + "; ".join(details)
+                + ")"
+            )
         for variable in self.sizing_variables:
             if variable.input_upper_bound not in input_keys:
                 raise ValueError(

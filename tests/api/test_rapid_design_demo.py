@@ -8,6 +8,7 @@ from threading import Event
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from pydantic import ValidationError
 
 from services.api.app.schemas.rapid_design import (
     ConventionalV2Design,
@@ -121,6 +122,16 @@ def test_mission_demo_profile_is_versioned_native_and_isolated_from_legacy():
         registry.manifest("conventional_v2").optimization_status
         == "pending_teacher_decision"
     )
+
+
+def test_mission_demo_profile_rejects_missing_evaluator_inputs():
+    payload = load_mission_demo_profile().model_dump(mode="python")
+    payload["inputs"] = [
+        item for item in payload["inputs"] if item["key"] != "cruise_altitude_m"
+    ]
+
+    with pytest.raises(ValidationError, match="missing: cruise_altitude_m"):
+        MissionDemoProfile.model_validate(payload)
 
 
 @pytest.mark.parametrize(
