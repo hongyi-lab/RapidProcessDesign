@@ -1,0 +1,27 @@
+{
+  "all_fixed_candidate_geometry_unchanged": true,
+  "case_count": 12,
+  "constraint_inactive_ranking_unchanged_cases": [
+    "vary_target_lift_to_drag"
+  ],
+  "design_hash_changed_without_geometry_change_cases": [
+    "vary_cruise_speed",
+    "vary_cruise_altitude"
+  ],
+  "model_response_ranking_unchanged_cases": [
+    "vary_cruise_altitude"
+  ],
+  "possible_parameter_or_state_bugs": [],
+  "preset_baseline_count": 3,
+  "ranking_unchanged_cases": [
+    "vary_cruise_altitude",
+    "vary_target_lift_to_drag"
+  ],
+  "schema_version": "1.0",
+  "single_input_count": 7,
+  "structured_statuses": {
+    "feasible": 9,
+    "no_feasible_solution_found": 3
+  },
+  "unconnected_existing_inputs": []
+}

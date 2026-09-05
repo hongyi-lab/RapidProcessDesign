@@ -1,0 +1,78 @@
+{
+  "schema_version": "round7_browser_qa_v1",
+  "verified_at": "2026-09-05T16:05:46.1028268+10:00",
+  "branch": "codex/round7-task-response-reliability",
+  "job_id": "97d7a2fddf8044eaa6e2c33c9b347034",
+  "family_id": "conventional_v2",
+  "preset_id": "payload_utility",
+  "profile": {
+    "id": "mission_demo_v1",
+    "version": "1.0.0",
+    "seed": 2711
+  },
+  "run": {
+    "progress_transport_observed": "SSE",
+    "in_progress_snapshot": {
+      "status": "running",
+      "progress_percent": 14,
+      "stage_label": "评估候选方案"
+    },
+    "final_status": "succeeded",
+    "evaluation_count": 24,
+    "returned_candidate_count": 3,
+    "feasible_valid_candidate_count": 1,
+    "invalid_evaluation_count": 0
+  },
+  "selected_candidate": {
+    "candidate_id": "demo-0f8c251c74ce2c421c45",
+    "rank": 1,
+    "feasible": true,
+    "objective": 0.7291679972,
+    "design_hash": "e5295e74dbbd29732f18d8553eb15095d2569219fe34ca78a65679cc67158bd1",
+    "geometry_fingerprint": "de161217736b0453767212c09630b8c4c6b543ab81074ff7cdbc5b5813d38708",
+    "design_values_checked_in_analyze": {
+      "fuselage_length_m": 15.0,
+      "wing_span_m": 15.0,
+      "wing_area_m2": 17.0,
+      "wing_sweep_deg": 15.0,
+      "tail_scale": 1.31
+    },
+    "sizing_checked": {
+      "fuel_mass_kg": 305.0
+    },
+    "condition_checked_in_analyze": {
+      "altitude_m": 2000.0,
+      "speed_kmh": 220.0,
+      "alpha_min_deg": -4.0,
+      "alpha_max_deg": 12.0,
+      "alpha_samples": 25
+    },
+    "cruise_consistency": {
+      "status": "supported",
+      "required_cl": 0.3580924191,
+      "max_ld": 17.71047868,
+      "reference_state_ld": 11.7804445875,
+      "enters_score": false,
+      "enters_range_estimate": false
+    }
+  },
+  "recovery": {
+    "refresh_query_passed": true,
+    "web_and_api_restart_performed": true,
+    "restart_started_at_utc": "2026-09-05T06:03:20.2298580Z",
+    "post_restart_web_pid": 21924,
+    "post_restart_api_pid": 23008,
+    "post_restart_query_passed": true,
+    "search_rerun": false,
+    "status_sha256_before_and_after": "DEDB3D9C4D73357CCE1B67FC2A1DF450F95D43ABDEFDF2ECC6B785F91FCBE00B",
+    "result_sha256_before_and_after": "9CD272C2BFCA0B949E027BA885C5648ED2D47072741D106A1A443267F8950035"
+  },
+  "screenshots": [
+    "01-mission-results.jpg",
+    "02-candidate-analyze.jpg",
+    "03-refresh-recovery.jpg",
+    "04-restart-recovered-result.jpg"
+  ],
+  "failures": [],
+  "not_run": []
+}

@@ -1,0 +1,40 @@
+{
+  "audit": "round7-task-response",
+  "case_ids": [
+    "baseline_long_endurance",
+    "baseline_fast_cruise",
+    "baseline_payload_utility",
+    "vary_required_range",
+    "vary_payload_mass",
+    "vary_cruise_speed",
+    "vary_cruise_altitude",
+    "vary_max_fuel",
+    "vary_max_takeoff_mass",
+    "vary_target_lift_to_drag",
+    "difficult_task",
+    "no_feasible_task"
+  ],
+  "generated_at_utc": "2026-09-05T05:55:04.540707+00:00",
+  "git": {
+    "branch": "codex/round7-task-response-reliability",
+    "head": "c3f43f5fd4091ce294a20be0e30ae87279b041f6",
+    "status_before_run": ""
+  },
+  "profile": {
+    "evaluation_budget": 24,
+    "hash": "e66c3889d771f8c211fa468bc4e3228c72a96124df7d80661da40f60322a046b",
+    "id": "mission_demo_v1",
+    "method": "seeded_uniform_search",
+    "seed": 2711,
+    "version": "1.0.0"
+  },
+  "rules": {
+    "fixed_candidate_layer": "same baseline design and sizing; mission inputs only",
+    "full_search_layer": "same profile, algorithm and seed; mission inputs changed per case",
+    "no_bound_expansion": true,
+    "no_coefficient_changes": true,
+    "no_mission_to_geometry_rules": true,
+    "no_seed_changes": true
+  },
+  "schema_version": "1.0"
+}
