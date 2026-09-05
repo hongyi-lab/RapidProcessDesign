@@ -522,6 +522,11 @@ def main() -> int:
     if output_dir.exists():
         print(f"Refusing to overwrite existing output directory: {output_dir}", file=sys.stderr)
         return 2
+    git_context = {
+        "branch": _git_value("branch", "--show-current"),
+        "head": _git_value("rev-parse", "HEAD"),
+        "status_before_run": _git_value("status", "--short"),
+    }
     cases_dir = output_dir / "cases"
     cases_dir.mkdir(parents=True)
 
@@ -653,11 +658,7 @@ def main() -> int:
         "schema_version": "1.0",
         "audit": "round7-task-response",
         "generated_at_utc": datetime.now(UTC).isoformat(),
-        "git": {
-            "branch": _git_value("branch", "--show-current"),
-            "head": _git_value("rev-parse", "HEAD"),
-            "status": _git_value("status", "--short"),
-        },
+        "git": git_context,
         "profile": {
             "id": profile.profile_id,
             "version": profile.profile_version,
