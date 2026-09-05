@@ -173,7 +173,7 @@ export type DemoProfileConfig = {
 
 export type DemoJob = {
   id: string;
-  status: "queued" | "running" | "succeeded" | "failed" | "cancelled";
+  status: "queued" | "running" | "succeeded" | "failed" | "cancelled" | "interrupted";
   progress: number;
   stage: string;
   error: string | null;
@@ -185,6 +185,14 @@ export type DemoJob = {
   profile_id: string;
   profile_version: string;
   formal_status: string;
+};
+
+export type DemoJobList = {
+  jobs: DemoJob[];
+  recovery: {
+    completed_queryable: boolean;
+    interrupted_resumable: boolean;
+  };
 };
 
 export type DemoScoreTerm = {
@@ -222,6 +230,82 @@ export type DemoConstraint = {
   [key: string]: unknown;
 };
 
+export type DemoCruiseConsistency = {
+  status: "supported" | "unsupported";
+  reason_code: "matched" | "lift_not_supported" | string;
+  reference_state: {
+    mass_basis: string;
+    mass_kg: number;
+    altitude_m: number;
+    speed_kmh: number;
+    density_kg_m3: number;
+    dynamic_pressure_pa: number;
+    reference_area_m2: number;
+  };
+  required_cl: number;
+  polar_support: {
+    min_cl: number;
+    max_cl: number;
+    alpha_min_deg: number;
+    alpha_max_deg: number;
+    sample_count: number;
+  };
+  matched_working_point: {
+    alpha_deg: number;
+    cl: number;
+    cd: number;
+    ld: number;
+    method: string;
+    bracket_indices: number[];
+  } | null;
+  comparison: {
+    max_ld: number;
+    ld_at_reference_state: number | null;
+    range_model_ld: number;
+  };
+  enters_score: false;
+  enters_range_estimate: false;
+  scope: string;
+};
+
+export type DemoQualification = {
+  geometry_valid: boolean;
+  demo_constraints_satisfied: boolean;
+  engineering_validation: "not_performed" | string;
+};
+
+export type DemoCandidateSelection = {
+  selected: boolean;
+  reason_code: string;
+  explanation?: string | null;
+  selected_rank?: number | null;
+  ranked_position: number;
+  minimum_geometry_distance_to_selected: number | null;
+};
+
+export type DemoSelectionDecision = {
+  candidate_id: string;
+  ranked_position: number;
+  selected: boolean;
+  selected_rank?: number | null;
+  reason_code: string;
+  explanation?: string | null;
+  feasible: boolean;
+  objective: number;
+  geometry_fingerprint: string;
+  minimum_geometry_distance_to_selected: number | null;
+};
+
+export type DemoSelectionSummary = {
+  requested_count: number;
+  returned_count: number;
+  valid_candidate_count: number;
+  feasible_valid_count: number;
+  infeasible_valid_count: number;
+  outcome: "complete" | "partial" | "none";
+  decisions: DemoSelectionDecision[];
+};
+
 export type DemoCandidate = {
   rank: number;
   candidate_id: string;
@@ -233,6 +317,7 @@ export type DemoCandidate = {
   sizing: Record<string, number>;
   geometry_state: GeometryState;
   design_hash: string;
+  geometry_fingerprint: string | null;
   condition: ConditionValues;
   metrics: Record<string, number>;
   constraints: DemoConstraint[];
@@ -241,12 +326,15 @@ export type DemoCandidate = {
   domain_status: { status: string; checks: DomainCheck[] };
   warnings: string[];
   provenance: Record<string, unknown>;
+  qualification: DemoQualification;
+  selection: DemoCandidateSelection;
+  cruise_consistency: DemoCruiseConsistency | null;
 };
 
 export type DemoSearchResult = {
   schema_version: string;
   job_id: string;
-  status: "feasible" | "no_feasible_solution_found";
+  status: "feasible" | "no_feasible_solution_found" | "no_valid_candidates";
   mode: "demo";
   formal_status: string;
   profile: { id: string; version: string; hash: string };
@@ -266,9 +354,12 @@ export type DemoSearchResult = {
     seed: number;
     iterations: number;
     evaluations: number;
+    valid: number;
     invalid: number;
+    elapsed_ms: number | null;
     records: unknown[];
   };
+  selection: DemoSelectionSummary;
   candidates: DemoCandidate[];
   warnings: string[];
   provenance: Record<string, unknown>;
@@ -352,8 +443,11 @@ export const STAGE_LABELS: Record<string, string> = {
   optimizing: "搜索可行设计",
   evaluating: "评估候选方案",
   completed: "计算完成",
+  no_feasible_candidates: "未找到满足 Demo 约束的候选",
+  no_valid_candidates: "没有有效候选评价",
   cancelling: "正在停止",
   cancelled: "已停止",
+  interrupted: "服务重启 · 任务已中断",
   failed: "计算失败",
 };
 
@@ -421,12 +515,23 @@ export function formatNumber(value: number | undefined, digits = 1): string {
 
 export async function errorFromResponse(response: Response, fallback: string): Promise<Error> {
   const body = (await response.json().catch(() => null)) as
-    | { detail?: string | Array<{ msg?: string }> }
+    | {
+        detail?: string | Array<{ msg?: string }> | {
+          message?: string;
+          code?: string;
+          resumable?: boolean;
+        };
+      }
     | null;
   if (typeof body?.detail === "string") return new Error(body.detail);
   if (Array.isArray(body?.detail)) {
     const message = body.detail.map((item) => item.msg).filter(Boolean).join("；");
     if (message) return new Error(message);
+  }
+  if (body?.detail && typeof body.detail === "object" && !Array.isArray(body.detail)) {
+    const message = typeof body.detail.message === "string" ? body.detail.message : fallback;
+    const code = typeof body.detail.code === "string" ? `[${body.detail.code}] ` : "";
+    return new Error(`${code}${message}`);
   }
   return new Error(fallback);
 }
@@ -688,7 +793,14 @@ export function parseDemoConfig(payload: unknown): DemoProfileConfig {
   };
 }
 
-const DEMO_JOB_STATUSES = ["queued", "running", "succeeded", "failed", "cancelled"] as const;
+const DEMO_JOB_STATUSES = [
+  "queued",
+  "running",
+  "succeeded",
+  "failed",
+  "cancelled",
+  "interrupted",
+] as const;
 
 export function parseDemoJob(payload: unknown): DemoJob {
   const record = objectValue(payload, "Demo job");
@@ -711,6 +823,124 @@ export function parseDemoJob(payload: unknown): DemoJob {
     profile_id: stringValue(record.profile_id, "Demo job profile_id"),
     profile_version: stringValue(record.profile_version, "Demo job profile_version"),
     formal_status: stringValue(record.formal_status, "Demo job formal_status"),
+  };
+}
+
+export function parseDemoJobList(payload: unknown): DemoJobList {
+  const record = objectValue(payload, "Demo job list");
+  if (!Array.isArray(record.jobs)) throw new Error("Demo job list.jobs 格式无效");
+  const recovery = objectValue(record.recovery, "Demo job list.recovery");
+  return {
+    jobs: record.jobs.map(parseDemoJob),
+    recovery: {
+      completed_queryable: booleanValue(
+        recovery.completed_queryable,
+        "Demo job list.recovery.completed_queryable",
+      ),
+      interrupted_resumable: booleanValue(
+        recovery.interrupted_resumable,
+        "Demo job list.recovery.interrupted_resumable",
+      ),
+    },
+  };
+}
+
+function optionalFiniteNumber(value: unknown, label: string): number | null {
+  if (value === null || value === undefined) return null;
+  return numberValue(value, label);
+}
+
+function parseCruiseConsistency(
+  value: unknown,
+  label: string,
+): DemoCruiseConsistency | null {
+  if (value === null || value === undefined) return null;
+  const record = objectValue(value, label);
+  const status = stringValue(record.status, `${label}.status`);
+  if (status !== "supported" && status !== "unsupported") {
+    throw new Error(`${label}.status 无效`);
+  }
+  const reference = objectValue(record.reference_state, `${label}.reference_state`);
+  const support = objectValue(record.polar_support, `${label}.polar_support`);
+  const comparison = objectValue(record.comparison, `${label}.comparison`);
+  let matched: DemoCruiseConsistency["matched_working_point"] = null;
+  if (record.matched_working_point !== null && record.matched_working_point !== undefined) {
+    const point = objectValue(record.matched_working_point, `${label}.matched_working_point`);
+    if (!Array.isArray(point.bracket_indices)) {
+      throw new Error(`${label}.matched_working_point.bracket_indices 格式无效`);
+    }
+    matched = {
+      alpha_deg: numberValue(point.alpha_deg, `${label}.matched_working_point.alpha_deg`),
+      cl: numberValue(point.cl, `${label}.matched_working_point.cl`),
+      cd: numberValue(point.cd, `${label}.matched_working_point.cd`),
+      ld: numberValue(point.ld, `${label}.matched_working_point.ld`),
+      method: stringValue(point.method, `${label}.matched_working_point.method`),
+      bracket_indices: point.bracket_indices.map((item, index) => (
+        numberValue(item, `${label}.matched_working_point.bracket_indices[${index}]`)
+      )),
+    };
+  }
+  const entersScore = booleanValue(record.enters_score, `${label}.enters_score`);
+  const entersRange = booleanValue(
+    record.enters_range_estimate,
+    `${label}.enters_range_estimate`,
+  );
+  if (entersScore || entersRange) {
+    throw new Error(`${label} 诊断不得静默进入评分或航程估算`);
+  }
+  return {
+    status,
+    reason_code: stringValue(record.reason_code, `${label}.reason_code`),
+    reference_state: {
+      mass_basis: stringValue(reference.mass_basis, `${label}.reference_state.mass_basis`),
+      mass_kg: numberValue(reference.mass_kg, `${label}.reference_state.mass_kg`),
+      altitude_m: numberValue(reference.altitude_m, `${label}.reference_state.altitude_m`),
+      speed_kmh: numberValue(reference.speed_kmh, `${label}.reference_state.speed_kmh`),
+      density_kg_m3: numberValue(
+        reference.density_kg_m3,
+        `${label}.reference_state.density_kg_m3`,
+      ),
+      dynamic_pressure_pa: numberValue(
+        reference.dynamic_pressure_pa,
+        `${label}.reference_state.dynamic_pressure_pa`,
+      ),
+      reference_area_m2: numberValue(
+        reference.reference_area_m2,
+        `${label}.reference_state.reference_area_m2`,
+      ),
+    },
+    required_cl: numberValue(record.required_cl, `${label}.required_cl`),
+    polar_support: {
+      min_cl: numberValue(support.min_cl, `${label}.polar_support.min_cl`),
+      max_cl: numberValue(support.max_cl, `${label}.polar_support.max_cl`),
+      alpha_min_deg: numberValue(
+        support.alpha_min_deg,
+        `${label}.polar_support.alpha_min_deg`,
+      ),
+      alpha_max_deg: numberValue(
+        support.alpha_max_deg,
+        `${label}.polar_support.alpha_max_deg`,
+      ),
+      sample_count: numberValue(
+        support.sample_count,
+        `${label}.polar_support.sample_count`,
+      ),
+    },
+    matched_working_point: matched,
+    comparison: {
+      max_ld: numberValue(comparison.max_ld, `${label}.comparison.max_ld`),
+      ld_at_reference_state: optionalFiniteNumber(
+        comparison.ld_at_reference_state,
+        `${label}.comparison.ld_at_reference_state`,
+      ),
+      range_model_ld: numberValue(
+        comparison.range_model_ld,
+        `${label}.comparison.range_model_ld`,
+      ),
+    },
+    enters_score: false,
+    enters_range_estimate: false,
+    scope: stringValue(record.scope, `${label}.scope`),
   };
 }
 
@@ -739,17 +969,87 @@ function parseDemoCandidate(value: unknown, index: number): DemoCandidate {
   if (!Array.isArray(domain.checks)) {
     throw new Error(`candidates[${index}].domain_status.checks 格式无效`);
   }
+  const rank = numberValue(record.rank, `candidates[${index}].rank`);
+  const feasible = booleanValue(record.feasible, `candidates[${index}].feasible`);
+  const candidateId = stringValue(record.candidate_id, `candidates[${index}].candidate_id`);
+  const qualification = record.qualification === undefined
+    ? {
+        geometry_valid: geometry.geometry_status === "valid",
+        demo_constraints_satisfied: feasible,
+        engineering_validation: "not_performed",
+      }
+    : (() => {
+        const item = objectValue(record.qualification, `candidates[${index}].qualification`);
+        return {
+          geometry_valid: booleanValue(
+            item.geometry_valid,
+            `candidates[${index}].qualification.geometry_valid`,
+          ),
+          demo_constraints_satisfied: booleanValue(
+            item.demo_constraints_satisfied,
+            `candidates[${index}].qualification.demo_constraints_satisfied`,
+          ),
+          engineering_validation: stringValue(
+            item.engineering_validation,
+            `candidates[${index}].qualification.engineering_validation`,
+          ),
+        };
+      })();
+  const selection = record.selection === undefined
+    ? {
+        selected: true,
+        reason_code: "selected_legacy_result",
+        explanation: null,
+        selected_rank: rank,
+        ranked_position: rank,
+        minimum_geometry_distance_to_selected: null,
+      }
+    : (() => {
+        const item = objectValue(record.selection, `candidates[${index}].selection`);
+        return {
+          selected: booleanValue(item.selected, `candidates[${index}].selection.selected`),
+          reason_code: stringValue(
+            item.reason_code,
+            `candidates[${index}].selection.reason_code`,
+          ),
+          explanation: typeof item.explanation === "string" ? item.explanation : null,
+          selected_rank: optionalFiniteNumber(
+            item.selected_rank,
+            `candidates[${index}].selection.selected_rank`,
+          ),
+          ranked_position: numberValue(
+            item.ranked_position,
+            `candidates[${index}].selection.ranked_position`,
+          ),
+          minimum_geometry_distance_to_selected: optionalFiniteNumber(
+            item.minimum_geometry_distance_to_selected,
+            `candidates[${index}].selection.minimum_geometry_distance_to_selected`,
+          ),
+        };
+      })();
+  if (qualification.demo_constraints_satisfied !== feasible) {
+    throw new Error(`candidates[${index}] qualification 与 feasible 不一致`);
+  }
+  if (qualification.geometry_valid !== (geometry.geometry_status === "valid")) {
+    throw new Error(`candidates[${index}] qualification 与 GeometryState 不一致`);
+  }
+  if (!selection.selected) {
+    throw new Error(`candidates[${index}] 返回候选必须标记为 selected`);
+  }
   return {
-    rank: numberValue(record.rank, `candidates[${index}].rank`),
-    candidate_id: stringValue(record.candidate_id, `candidates[${index}].candidate_id`),
+    rank,
+    candidate_id: candidateId,
     family_id: stringValue(record.family_id, `candidates[${index}].family_id`),
     preset_id: stringValue(record.preset_id, `candidates[${index}].preset_id`),
-    feasible: booleanValue(record.feasible, `candidates[${index}].feasible`),
+    feasible,
     objective: numberValue(record.objective, `candidates[${index}].objective`),
     design: numericRecord(record.design, `candidates[${index}].design`),
     sizing: numericRecord(record.sizing, `candidates[${index}].sizing`),
     geometry_state: record.geometry_state as GeometryState,
     design_hash: stringValue(record.design_hash, `candidates[${index}].design_hash`),
+    geometry_fingerprint: typeof record.geometry_fingerprint === "string"
+      ? record.geometry_fingerprint
+      : null,
     condition: numericRecord(record.condition, `candidates[${index}].condition`),
     metrics: numericRecord(record.metrics, `candidates[${index}].metrics`),
     constraints: record.constraints.map((item, constraintIndex) => (
@@ -780,21 +1080,130 @@ function parseDemoCandidate(value: unknown, index: number): DemoCandidate {
     },
     warnings: stringArray(record.warnings ?? [], `candidates[${index}].warnings`),
     provenance: objectValue(record.provenance, `candidates[${index}].provenance`),
+    qualification,
+    selection,
+    cruise_consistency: parseCruiseConsistency(
+      record.cruise_consistency,
+      `candidates[${index}].cruise_consistency`,
+    ),
+  };
+}
+
+function parseSelectionSummary(
+  value: unknown,
+  candidates: readonly DemoCandidate[],
+): DemoSelectionSummary {
+  if (value === null || value === undefined) {
+    const feasibleCount = candidates.filter((candidate) => candidate.feasible).length;
+    return {
+      requested_count: 3,
+      returned_count: candidates.length,
+      valid_candidate_count: candidates.length,
+      feasible_valid_count: feasibleCount,
+      infeasible_valid_count: candidates.length - feasibleCount,
+      outcome: candidates.length === 0 ? "none" : candidates.length < 3 ? "partial" : "complete",
+      decisions: candidates.map((candidate) => ({
+        candidate_id: candidate.candidate_id,
+        ranked_position: candidate.rank,
+        selected: true,
+        selected_rank: candidate.rank,
+        reason_code: candidate.selection.reason_code,
+        explanation: candidate.selection.explanation,
+        feasible: candidate.feasible,
+        objective: candidate.objective,
+        geometry_fingerprint: candidate.geometry_fingerprint ?? "legacy_result_not_available",
+        minimum_geometry_distance_to_selected:
+          candidate.selection.minimum_geometry_distance_to_selected,
+      })),
+    };
+  }
+  const record = objectValue(value, "selection");
+  const outcome = stringValue(record.outcome, "selection.outcome");
+  if (outcome !== "complete" && outcome !== "partial" && outcome !== "none") {
+    throw new Error("selection.outcome 无效");
+  }
+  if (!Array.isArray(record.decisions)) throw new Error("selection.decisions 格式无效");
+  return {
+    requested_count: numberValue(record.requested_count, "selection.requested_count"),
+    returned_count: numberValue(record.returned_count, "selection.returned_count"),
+    valid_candidate_count: numberValue(
+      record.valid_candidate_count,
+      "selection.valid_candidate_count",
+    ),
+    feasible_valid_count: numberValue(
+      record.feasible_valid_count,
+      "selection.feasible_valid_count",
+    ),
+    infeasible_valid_count: numberValue(
+      record.infeasible_valid_count,
+      "selection.infeasible_valid_count",
+    ),
+    outcome,
+    decisions: record.decisions.map((raw, index) => {
+      const decision = objectValue(raw, `selection.decisions[${index}]`);
+      return {
+        candidate_id: stringValue(
+          decision.candidate_id,
+          `selection.decisions[${index}].candidate_id`,
+        ),
+        ranked_position: numberValue(
+          decision.ranked_position,
+          `selection.decisions[${index}].ranked_position`,
+        ),
+        selected: booleanValue(
+          decision.selected,
+          `selection.decisions[${index}].selected`,
+        ),
+        selected_rank: optionalFiniteNumber(
+          decision.selected_rank,
+          `selection.decisions[${index}].selected_rank`,
+        ),
+        reason_code: stringValue(
+          decision.reason_code,
+          `selection.decisions[${index}].reason_code`,
+        ),
+        explanation: typeof decision.explanation === "string" ? decision.explanation : null,
+        feasible: booleanValue(
+          decision.feasible,
+          `selection.decisions[${index}].feasible`,
+        ),
+        objective: numberValue(
+          decision.objective,
+          `selection.decisions[${index}].objective`,
+        ),
+        geometry_fingerprint: stringValue(
+          decision.geometry_fingerprint,
+          `selection.decisions[${index}].geometry_fingerprint`,
+        ),
+        minimum_geometry_distance_to_selected: optionalFiniteNumber(
+          decision.minimum_geometry_distance_to_selected,
+          `selection.decisions[${index}].minimum_geometry_distance_to_selected`,
+        ),
+      };
+    }),
   };
 }
 
 export function parseDemoSearchResult(payload: unknown): DemoSearchResult {
   const record = objectValue(payload, "Demo result");
   if (record.mode !== "demo") throw new Error("Demo result mode 必须为 demo");
-  if (record.status !== "feasible" && record.status !== "no_feasible_solution_found") {
+  if (
+    record.status !== "feasible"
+    && record.status !== "no_feasible_solution_found"
+    && record.status !== "no_valid_candidates"
+  ) {
     throw new Error("Demo result status 无效");
   }
   const profile = objectValue(record.profile, "Demo result profile");
   const ranking = objectValue(record.ranking_rule, "Demo result ranking_rule");
   const diversity = objectValue(ranking.diversity, "Demo result ranking_rule.diversity");
   const search = objectValue(record.search, "Demo result search");
-  if (!Array.isArray(record.candidates) || record.candidates.length === 0) {
+  if (!Array.isArray(record.candidates)) throw new Error("Demo result candidates 格式无效");
+  if (record.candidates.length === 0 && record.status !== "no_valid_candidates") {
     throw new Error("Demo result 没有候选方案");
+  }
+  if (record.candidates.length > 0 && record.status === "no_valid_candidates") {
+    throw new Error("no_valid_candidates 结果不得包含候选方案");
   }
   if (!Array.isArray(search.records)) throw new Error("Demo result search.records 格式无效");
   const candidates = record.candidates.map(parseDemoCandidate);
@@ -829,10 +1238,19 @@ export function parseDemoSearchResult(payload: unknown): DemoSearchResult {
       seed: numberValue(search.seed, "search.seed"),
       iterations: numberValue(search.iterations, "search.iterations"),
       evaluations: numberValue(search.evaluations, "search.evaluations"),
+      valid: typeof search.valid === "number"
+        ? numberValue(search.valid, "search.valid")
+        : Math.max(
+            0,
+            numberValue(search.evaluations, "search.evaluations")
+              - numberValue(search.invalid, "search.invalid"),
+          ),
       invalid: numberValue(search.invalid, "search.invalid"),
+      elapsed_ms: optionalFiniteNumber(search.elapsed_ms, "search.elapsed_ms"),
       records: [...search.records],
     },
     candidates,
+    selection: parseSelectionSummary(record.selection, candidates),
     warnings: stringArray(record.warnings ?? [], "warnings"),
     provenance: objectValue(record.provenance, "provenance"),
   };
@@ -841,8 +1259,21 @@ export function parseDemoSearchResult(payload: unknown): DemoSearchResult {
     candidate.family_id !== result.family_id
     || candidate.preset_id !== result.preset_id
     || candidate.geometry_state.family_id !== result.family_id
+    || demoInputsMismatch(candidate.condition, result.condition)
   ))) {
-    throw new Error("Demo 候选与结果 family/preset 不一致");
+    throw new Error("Demo 候选与结果 family/preset/condition 不一致");
+  }
+  if (result.selection.returned_count !== result.candidates.length) {
+    throw new Error("Demo selection returned_count 与候选数量不一致");
+  }
+  if (
+    (result.status === "feasible" && !result.candidates.some((candidate) => candidate.feasible))
+    || (
+      result.status === "no_feasible_solution_found"
+      && result.candidates.some((candidate) => candidate.feasible)
+    )
+  ) {
+    throw new Error("Demo result status 与逐项候选可行性不一致");
   }
   return result;
 }

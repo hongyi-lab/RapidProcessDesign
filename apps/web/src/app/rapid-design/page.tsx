@@ -54,7 +54,7 @@ const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8900";
 
 const TEACHER_DECISIONS_URL =
-  "https://github.com/hongyi-lab/RapidProcessDesign/blob/codex/round6-mission-demo/docs/teacher-decisions-optimization-spec-cn.md";
+  "https://github.com/hongyi-lab/RapidProcessDesign/blob/codex/round7-task-response-reliability/docs/teacher-decisions-optimization-spec-cn.md";
 
 const WORKSPACE_TABS: ReadonlyArray<{
   id: WorkspaceTab;

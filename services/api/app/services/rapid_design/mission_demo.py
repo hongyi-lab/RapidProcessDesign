@@ -5,6 +5,7 @@ import json
 from collections.abc import Callable
 from math import isfinite, log, sqrt
 from random import Random
+from time import perf_counter
 from typing import Any
 
 from pydantic import ValidationError
@@ -19,11 +20,12 @@ from services.api.app.services.rapid_design.config_loader import (
     mission_demo_profile_hash,
     validated_mission_demo_inputs,
 )
+from services.api.app.services.rapid_design.evaluator import isa_density_and_viscosity
 from services.api.app.services.rapid_design.families.registry import FamilyRegistry, registry
 
 GRAVITY_M_S2 = 9.80665
 DEMO_MODEL_ID = "mission-demo-transparent-mass-breguet"
-DEMO_MODEL_VERSION = "1.0.0"
+DEMO_MODEL_VERSION = "1.1.0"
 
 ProgressCallback = Callable[[int, int, dict[str, object]], None]
 CancelCheck = Callable[[], bool]
@@ -213,6 +215,138 @@ def _propulsion_count(components: list[dict[str, Any]]) -> int:
     return count
 
 
+def _geometry_fingerprint(
+    *,
+    design: dict[str, float],
+    geometry_state: dict[str, object],
+) -> str:
+    """Hash actual geometry-defining data, never condition or provenance metadata."""
+
+    return _stable_hash(
+        {
+            "family_id": geometry_state["family_id"],
+            "design": {
+                key: _rounded(value, 12) for key, value in design.items()
+            },
+            "geometry_state": {
+                "components": geometry_state["components"],
+                "derived_metrics": geometry_state["derived_metrics"],
+            },
+        }
+    )
+
+
+def _cruise_consistency_diagnostic(
+    *,
+    takeoff_mass_kg: float,
+    reference_area_m2: float,
+    condition: BwbAnalysisCondition,
+    polar: dict[str, list[float]],
+    max_ld: float,
+) -> dict[str, object]:
+    """Match the Demo takeoff state to the sampled polar without extrapolation."""
+
+    density_kg_m3, _viscosity_pa_s = isa_density_and_viscosity(
+        condition.altitude_m
+    )
+    speed_m_s = condition.speed_kmh / 3.6
+    dynamic_pressure_pa = 0.5 * density_kg_m3 * speed_m_s**2
+    required_cl = (
+        takeoff_mass_kg
+        * GRAVITY_M_S2
+        / (dynamic_pressure_pa * reference_area_m2)
+    )
+    alphas = [float(value) for value in polar["alpha_deg"]]
+    cls = [float(value) for value in polar["cl"]]
+    cds = [float(value) for value in polar["cd"]]
+    if not cls or not (len(alphas) == len(cls) == len(cds)):
+        raise ValueError("Analyze polar is empty or has inconsistent arrays")
+    if not all(isfinite(value) for value in [*alphas, *cls, *cds]):
+        raise ValueError("Analyze polar contains non-finite values")
+
+    minimum_cl = min(cls)
+    maximum_cl = max(cls)
+    matched: dict[str, object] | None = None
+    tolerance = 1e-12
+    if minimum_cl - tolerance <= required_cl <= maximum_cl + tolerance:
+        for index, sampled_cl in enumerate(cls):
+            if abs(required_cl - sampled_cl) <= tolerance:
+                sampled_cd = cds[index]
+                if sampled_cd <= 0.0:
+                    raise ValueError("Analyze polar contains non-positive drag")
+                matched = {
+                    "alpha_deg": _rounded(alphas[index], 6),
+                    "cl": _rounded(required_cl),
+                    "cd": _rounded(sampled_cd),
+                    "ld": _rounded(required_cl / sampled_cd),
+                    "method": "exact_sample",
+                    "bracket_indices": [index, index],
+                }
+                break
+        if matched is None:
+            for index in range(len(cls) - 1):
+                left_cl = cls[index]
+                right_cl = cls[index + 1]
+                if not (
+                    min(left_cl, right_cl) <= required_cl <= max(left_cl, right_cl)
+                ):
+                    continue
+                delta_cl = right_cl - left_cl
+                if abs(delta_cl) <= tolerance:
+                    continue
+                fraction = (required_cl - left_cl) / delta_cl
+                alpha_deg = alphas[index] + fraction * (
+                    alphas[index + 1] - alphas[index]
+                )
+                cd = cds[index] + fraction * (cds[index + 1] - cds[index])
+                if cd <= 0.0:
+                    raise ValueError("Analyze polar interpolation produced non-positive drag")
+                matched = {
+                    "alpha_deg": _rounded(alpha_deg, 6),
+                    "cl": _rounded(required_cl),
+                    "cd": _rounded(cd),
+                    "ld": _rounded(required_cl / cd),
+                    "method": "linear_interpolation_in_sampled_cl_bracket",
+                    "bracket_indices": [index, index + 1],
+                }
+                break
+
+    matched_ld = None if matched is None else matched["ld"]
+    return {
+        "status": "supported" if matched is not None else "unsupported",
+        "reason_code": "matched" if matched is not None else "lift_not_supported",
+        "reference_state": {
+            "mass_basis": "mission_demo_takeoff_mass",
+            "mass_kg": _rounded(takeoff_mass_kg),
+            "altitude_m": _rounded(condition.altitude_m),
+            "speed_kmh": _rounded(condition.speed_kmh),
+            "density_kg_m3": _rounded(density_kg_m3),
+            "dynamic_pressure_pa": _rounded(dynamic_pressure_pa),
+            "reference_area_m2": _rounded(reference_area_m2),
+        },
+        "required_cl": _rounded(required_cl),
+        "polar_support": {
+            "min_cl": _rounded(minimum_cl),
+            "max_cl": _rounded(maximum_cl),
+            "alpha_min_deg": _rounded(min(alphas), 6),
+            "alpha_max_deg": _rounded(max(alphas), 6),
+            "sample_count": len(cls),
+        },
+        "matched_working_point": matched,
+        "comparison": {
+            "max_ld": _rounded(max_ld),
+            "ld_at_reference_state": matched_ld,
+            "range_model_ld": _rounded(max_ld),
+        },
+        "enters_score": False,
+        "enters_range_estimate": False,
+        "scope": (
+            "Lift-demand consistency at the Demo takeoff-mass reference state only; "
+            "not trim, stability, propulsion matching or mission integration."
+        ),
+    }
+
+
 def _constraint(
     *,
     name: str,
@@ -267,6 +401,7 @@ def _evaluate_candidate(
         raise ValueError("candidate canonical geometry is invalid")
     geometry_metrics = analysis_payload["geometry_metrics"]
     summary = analysis_payload["analysis"]["summary"]
+    polar = analysis_payload["analysis"]["polar"]
     propulsion_count = _propulsion_count(geometry_state["components"])
 
     model = profile.mission_model
@@ -444,20 +579,39 @@ def _evaluate_candidate(
         design=design,
         sizing=sizing,
     )
+    geometry_fingerprint = _geometry_fingerprint(
+        design=design,
+        geometry_state=geometry_state,
+    )
+    cruise_consistency = _cruise_consistency_diagnostic(
+        takeoff_mass_kg=takeoff_mass,
+        reference_area_m2=reference_area,
+        condition=condition,
+        polar=polar,
+        max_ld=lift_to_drag,
+    )
+    feasible = all(bool(constraint["satisfied"]) for constraint in constraints)
     return {
         "candidate_id": candidate_identifier,
         "family_id": family_id,
         "preset_id": preset_id,
-        "feasible": all(bool(constraint["satisfied"]) for constraint in constraints),
+        "feasible": feasible,
         "objective": _rounded(objective),
         "design": {key: _rounded(value, 12) for key, value in design.items()},
         "sizing": {key: _rounded(value, 12) for key, value in sizing.items()},
         "geometry_state": geometry_state,
         "design_hash": analysis_payload["design_hash"],
+        "geometry_fingerprint": geometry_fingerprint,
         "condition": condition.model_dump(mode="json"),
         "analysis_summary": summary,
         "metrics": metrics,
         "constraints": constraints,
+        "qualification": {
+            "geometry_valid": True,
+            "demo_constraints_satisfied": feasible,
+            "engineering_validation": "not_performed",
+        },
+        "cruise_consistency": cruise_consistency,
         "score_breakdown": {
             "objective": _rounded(objective),
             "normalized_takeoff_mass": _rounded(normalized_takeoff_mass),
@@ -474,6 +628,92 @@ def _evaluate_candidate(
             "geometry": geometry_state["provenance"],
         },
     }
+
+
+def evaluate_mission_demo_candidate(
+    *,
+    profile: MissionDemoProfile,
+    family_id: str,
+    preset_id: str,
+    design: dict[str, float],
+    sizing: dict[str, float],
+    inputs: dict[str, float],
+    family_registry: FamilyRegistry = registry,
+) -> dict[str, object]:
+    """Re-evaluate one fixed candidate through the same Demo calculation chain.
+
+    The fixed sizing is checked against the profile's absolute sizing range, not
+    the current mission input's sampling upper bound.  This is intentional: a
+    response audit can lower ``max_fuel_mass_kg`` and observe the resulting fuel
+    constraint violation without silently changing the candidate being tested.
+    """
+
+    validated_inputs = validate_mission_demo_submission(
+        profile=profile,
+        family_id=family_id,
+        preset_id=preset_id,
+        supplied_inputs=inputs,
+        family_registry=family_registry,
+    )
+    _geometry_bounds_are_native(profile, family_registry)
+    resolved_design = _preset_design(
+        family_registry=family_registry,
+        family_id=family_id,
+        preset_id=preset_id,
+    )
+    resolved_design.update(design)
+    for variable in profile.geometry_variables:
+        try:
+            value = float(resolved_design[variable.key])
+        except (KeyError, TypeError, ValueError) as exc:
+            raise MissionDemoRequestError(
+                "invalid_fixed_design",
+                f"invalid fixed design value for {variable.key}",
+                field=f"design.{variable.key}",
+            ) from exc
+        if not isfinite(value) or not variable.minimum <= value <= variable.maximum:
+            raise MissionDemoRequestError(
+                "invalid_fixed_design",
+                f"fixed design value is outside the profile range: {variable.key}",
+                field=f"design.{variable.key}",
+            )
+        resolved_design[variable.key] = value
+
+    expected_sizing_keys = {variable.key for variable in profile.sizing_variables}
+    if set(sizing) != expected_sizing_keys:
+        raise MissionDemoRequestError(
+            "invalid_fixed_sizing",
+            "fixed sizing keys must exactly match the profile sizing variables",
+            field="sizing",
+        )
+    resolved_sizing: dict[str, float] = {}
+    for variable in profile.sizing_variables:
+        try:
+            value = float(sizing[variable.key])
+        except (TypeError, ValueError) as exc:
+            raise MissionDemoRequestError(
+                "invalid_fixed_sizing",
+                f"invalid fixed sizing value for {variable.key}",
+                field=f"sizing.{variable.key}",
+            ) from exc
+        if not isfinite(value) or not variable.minimum <= value <= variable.maximum:
+            raise MissionDemoRequestError(
+                "invalid_fixed_sizing",
+                f"fixed sizing value is outside the profile range: {variable.key}",
+                field=f"sizing.{variable.key}",
+            )
+        resolved_sizing[variable.key] = value
+
+    return _evaluate_candidate(
+        profile=profile,
+        family_id=family_id,
+        preset_id=preset_id,
+        design=resolved_design,
+        sizing=resolved_sizing,
+        inputs=validated_inputs,
+        condition=_condition(profile, validated_inputs),
+        family_registry=family_registry,
+    )
 
 
 def _normalized_geometry_vector(
@@ -510,6 +750,7 @@ def search_mission_demo(
     is_cancelled: CancelCheck | None = None,
     family_registry: FamilyRegistry = registry,
 ) -> dict[str, object]:
+    search_started = perf_counter()
     validated_inputs = validate_mission_demo_submission(
         profile=profile,
         family_id=family_id,
@@ -576,6 +817,7 @@ def search_mission_demo(
             sizing=sizing,
         )
         iteration = index // profile.optimizer.evaluations_per_iteration + 1
+        evaluation_started = perf_counter()
         try:
             candidate = _evaluate_candidate(
                 profile=profile,
@@ -588,15 +830,27 @@ def search_mission_demo(
                 family_registry=family_registry,
             )
         except (ArithmeticError, ValidationError, ValueError) as exc:
+            elapsed_ms = _rounded((perf_counter() - evaluation_started) * 1000.0, 3)
             invalid_evaluations += 1
             record: dict[str, object] = {
                 "evaluation": index + 1,
                 "iteration": iteration,
                 "candidate_id": identifier,
                 "valid": False,
+                "error_code": "invalid_candidate_evaluation",
+                "error_type": type(exc).__name__,
                 "error": str(exc),
+                "elapsed_ms": elapsed_ms,
+                "design": {
+                    key: _rounded(value, 12) for key, value in design.items()
+                },
+                "sizing": {
+                    key: _rounded(value, 12) for key, value in sizing.items()
+                },
             }
         else:
+            elapsed_ms = _rounded((perf_counter() - evaluation_started) * 1000.0, 3)
+            candidate["evaluation_elapsed_ms"] = elapsed_ms
             valid_candidates.append(candidate)
             record = {
                 "evaluation": index + 1,
@@ -608,8 +862,15 @@ def search_mission_demo(
                 "constraint_violation": candidate["score_breakdown"][
                     "constraint_violation"
                 ],
+                "elapsed_ms": elapsed_ms,
+                "design": candidate["design"],
+                "sizing": candidate["sizing"],
                 "design_hash": candidate["design_hash"],
+                "geometry_fingerprint": candidate["geometry_fingerprint"],
                 "metrics": candidate["metrics"],
+                "constraints": candidate["constraints"],
+                "score_breakdown": candidate["score_breakdown"],
+                "cruise_consistency": candidate["cruise_consistency"],
             }
         records.append(record)
         if on_progress:
@@ -617,8 +878,6 @@ def search_mission_demo(
 
     if is_cancelled and is_cancelled():
         raise InterruptedError("mission demo search cancelled")
-    if not valid_candidates:
-        raise RuntimeError("mission demo search produced no valid evaluations")
 
     ranked = sorted(
         valid_candidates,
@@ -630,30 +889,129 @@ def search_mission_demo(
     )
     selected: list[dict[str, object]] = []
     selected_vectors: list[list[float]] = []
-    for candidate in ranked:
+    selection_decisions: list[dict[str, object]] = []
+    feasible_valid_count = sum(
+        1 for candidate in valid_candidates if bool(candidate["feasible"])
+    )
+    for ranked_position, candidate in enumerate(ranked, start=1):
         vector = _normalized_geometry_vector(candidate, profile, validated_inputs)
-        if all(
+        distances = [
             _normalized_distance(vector, selected_vector)
-            >= profile.diversity_threshold
             for selected_vector in selected_vectors
+        ]
+        minimum_distance = min(distances) if distances else None
+        selected_rank: int | None = None
+        if len(selected) >= profile.candidate_count:
+            reason_code = "excluded_top_k_capacity"
+            explanation = (
+                "Not returned because the requested candidate count was already filled."
+            )
+        elif (
+            minimum_distance is not None
+            and minimum_distance < profile.diversity_threshold
         ):
+            reason_code = "excluded_geometry_similarity"
+            explanation = (
+                "Not returned because its normalized geometry distance to an already "
+                "selected candidate is below the configured diversity threshold."
+            )
+        else:
             selected.append(candidate)
             selected_vectors.append(vector)
-        if len(selected) == profile.candidate_count:
-            break
-    if len(selected) < profile.candidate_count:
-        raise RuntimeError(
-            "mission demo search budget did not produce enough diverse valid candidates"
-        )
-    for rank, candidate in enumerate(selected, start=1):
-        candidate["rank"] = rank
+            selected_rank = len(selected)
+            if bool(candidate["feasible"]):
+                reason_code = "selected_feasible_first_objective"
+                explanation = (
+                    "Selected in feasible-first/objective order and passed the geometry "
+                    "diversity threshold."
+                )
+            elif feasible_valid_count == 0:
+                reason_code = "selected_current_score_best_infeasible"
+                explanation = (
+                    "Selected by the current objective among candidates that do not "
+                    "satisfy all connected Demo constraints; this is not a "
+                    "minimum-violation claim."
+                )
+            else:
+                reason_code = "selected_infeasible_after_feasible"
+                explanation = (
+                    "Selected after feasible candidates in feasible-first/objective order "
+                    "and passed the geometry diversity threshold."
+                )
+
+        decision = {
+            "candidate_id": candidate["candidate_id"],
+            "ranked_position": ranked_position,
+            "selected": selected_rank is not None,
+            "selected_rank": selected_rank,
+            "reason_code": reason_code,
+            "explanation": explanation,
+            "feasible": candidate["feasible"],
+            "objective": candidate["objective"],
+            "geometry_fingerprint": candidate["geometry_fingerprint"],
+            "minimum_geometry_distance_to_selected": (
+                None if minimum_distance is None else _rounded(minimum_distance)
+            ),
+        }
+        selection_decisions.append(decision)
+        if selected_rank is not None:
+            candidate["rank"] = selected_rank
+            candidate["selection"] = {
+                key: value
+                for key, value in decision.items()
+                if key
+                in {
+                    "selected",
+                    "selected_rank",
+                    "ranked_position",
+                    "reason_code",
+                    "explanation",
+                    "minimum_geometry_distance_to_selected",
+                }
+            }
 
     any_feasible = any(bool(candidate["feasible"]) for candidate in selected)
     profile_hash = mission_demo_profile_hash(profile)
+    if not valid_candidates:
+        result_status = "no_valid_candidates"
+    elif any_feasible:
+        result_status = "feasible"
+    else:
+        result_status = "no_feasible_solution_found"
+    if not selected:
+        selection_outcome = "none"
+    elif len(selected) < profile.candidate_count:
+        selection_outcome = "partial"
+    else:
+        selection_outcome = "complete"
+
+    warnings = [
+        profile.disclaimer,
+        "Candidates are ranked only within this fixed demo budget and are not formal or global optima.",
+        "Engineering validation has not been performed; geometry validity and connected Demo constraints are reported separately.",
+    ]
+    if selection_outcome == "partial":
+        warnings.append(
+            f"Only {len(selected)} of {profile.candidate_count} requested geometrically "
+            "diverse valid candidates were found; the available candidates are returned."
+        )
+    elif selection_outcome == "none":
+        warnings.append(
+            "No valid candidate evaluation was produced; this is distinct from a valid "
+            "candidate that does not satisfy the connected Demo constraints."
+        )
+    if valid_candidates and not any_feasible:
+        warnings.append(
+            "No valid candidate satisfied every connected Demo constraint. Rank 1 is the "
+            "current-score-best unsatisfied candidate under the unchanged objective, not "
+            "necessarily the candidate with minimum aggregate violation."
+        )
+
+    search_elapsed_ms = _rounded((perf_counter() - search_started) * 1000.0, 3)
     return {
         "schema_version": "1.0",
         "job_id": job_id,
-        "status": "feasible" if any_feasible else "no_feasible_solution_found",
+        "status": result_status,
         "mode": "demo",
         "formal_status": profile.formal_status,
         "profile": {
@@ -670,6 +1028,12 @@ def search_mission_demo(
             "feasible_first": True,
             "primary": "objective_ascending",
             "tie_breaker": "candidate_id_ascending",
+            "objective_definition": (
+                "normalized_takeoff_mass_plus_weighted_squared_constraint_violations"
+            ),
+            "no_feasible_rank_one_semantics": (
+                "current_score_best_unsatisfied_candidate_not_minimum_violation"
+            ),
             "diversity": {
                 "method": "normalized_euclidean",
                 "threshold": profile.diversity_threshold,
@@ -683,19 +1047,34 @@ def search_mission_demo(
             "seed": profile.optimizer.seed,
             "iterations": profile.optimizer.iterations,
             "evaluations": len(records),
+            "valid": len(valid_candidates),
             "invalid": invalid_evaluations,
+            "elapsed_ms": search_elapsed_ms,
             "records": records,
         },
+        "selection": {
+            "requested_count": profile.candidate_count,
+            "returned_count": len(selected),
+            "valid_candidate_count": len(valid_candidates),
+            "feasible_valid_count": feasible_valid_count,
+            "infeasible_valid_count": len(valid_candidates) - feasible_valid_count,
+            "outcome": selection_outcome,
+            "decisions": selection_decisions,
+        },
         "candidates": selected,
-        "warnings": [
-            profile.disclaimer,
-            "Candidates are ranked only within this fixed demo budget and are not formal or global optima.",
-        ],
+        "warnings": warnings,
         "provenance": {
             "model_id": DEMO_MODEL_ID,
             "model_version": DEMO_MODEL_VERSION,
             "analysis_source": "current family registry Analyze response",
             "geometry_source": "exact candidate GeometryState from the same Analyze evaluation",
+            "geometry_fingerprint_scope": (
+                "family, actual design, GeometryState components and derived metrics; "
+                "flight condition and provenance metadata excluded"
+            ),
+            "cruise_consistency_scope": (
+                "diagnostic only; existing max-L/D range estimate and score are unchanged"
+            ),
             "search_profile_hash": profile_hash,
             "uses_formal_optimization_spec": False,
         },

@@ -3,7 +3,7 @@ import json
 from collections.abc import AsyncIterator
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from pydantic import ValidationError
 
@@ -32,7 +32,9 @@ from services.api.app.services.rapid_design.job_runner import (
 )
 from services.api.app.services.rapid_design.mission_demo import MissionDemoRequestError
 from services.api.app.services.rapid_design.mission_demo_job_runner import (
+    DEMO_TERMINAL_STATUSES,
     MissionDemoJobRunner,
+    MissionDemoPersistenceError,
 )
 
 router = APIRouter(prefix="/api/rapid-design", tags=["rapid-design"])
@@ -170,6 +172,23 @@ def create_demo_job(
     return _public_demo_job(job)
 
 
+@router.get("/demo/jobs")
+def list_demo_jobs(
+    active_runner: DemoRunnerDependency,
+    limit: Annotated[int, Query(ge=1, le=50)] = 10,
+) -> dict[str, object]:
+    return {
+        "jobs": [
+            _public_demo_job(job)
+            for job in active_runner.list_recent(limit=limit)
+        ],
+        "recovery": {
+            "completed_queryable": True,
+            "interrupted_resumable": False,
+        },
+    }
+
+
 @router.get("/demo/jobs/{job_id}", response_model=MissionDemoJobResponse)
 def get_demo_job(
     job_id: str,
@@ -196,7 +215,7 @@ async def _stream_demo(
                 f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
             )
         job = active_runner.get(job_id)
-        if job is None or str(job["status"]) in TERMINAL_STATUSES:
+        if job is None or str(job["status"]) in DEMO_TERMINAL_STATUSES:
             return
         if not events:
             yield ": keepalive\n\n"
@@ -225,11 +244,35 @@ def get_demo_result(
     job = active_runner.get(job_id)
     if job is None:
         raise HTTPException(status_code=404, detail="demo job not found")
-    result = active_runner.result(job_id)
+    try:
+        result = active_runner.result(job_id)
+    except MissionDemoPersistenceError as exc:
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "code": "persisted_result_invalid",
+                "message": str(exc),
+            },
+        ) from exc
     if result is None:
         if job["status"] == "failed":
             raise HTTPException(status_code=500, detail=job["error"])
-        raise HTTPException(status_code=409, detail="demo result is not ready")
+        if job["status"] == "interrupted":
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "code": "job_interrupted",
+                    "message": job["error"],
+                    "resumable": False,
+                },
+            )
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "result_not_ready",
+                "message": "demo result is not ready",
+            },
+        )
     return result
 
 

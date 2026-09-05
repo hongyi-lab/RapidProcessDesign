@@ -3,6 +3,21 @@
 > 状态：`PENDING TEACHER DECISION`  
 > 本文只收集待确认决策。在老师确认前，代码不得把空白项、临时值或示例范围当成正式优化规范。明确标注、配置独立、可追溯且不冒充正式结论的 Demo Mission 可以运行；Demo 结果不改变任何待确认项的状态。
 
+## 一页决策摘要（讨论入口）
+
+> 下表只压缩需要老师拍板的正式问题。`mission_demo_v1` 仍可独立运行，用来验证程序是否正确执行当前公开假设；它不是正式优化定义，也不把本页任何 `Pending` 项自动改为已确认。
+
+| 决策主题 | 当前 Demo 用什么 | 为什么需要确认 | 老师决定什么 | 对应配置或接口 |
+|---|---|---|---|---|
+| 优化目标与优先级 | 可行候选优先；其后按“归一化起飞质量 + 已接入约束违约惩罚”的 objective 升序；固定 seed 的有限预算内返回最多 3 个有差异候选 | 这是便于演示的单一标量排序，不等于项目真正要最轻、最省油、最长航程或做多目标权衡 | 正式目标的数学定义、主次顺序、权重或 Pareto/字典序规则，以及无可行解时的选取规则 | `configs/rapid_design/mission_demo_v1.yaml` 的 `optimizer`；Mission Demo 结果中的 `ranking_rule`、`score_breakdown` |
+| 可优化变量、固定参数、设计范围及是否跨构型 | 用户先固定一个 `conventional_v2` preset；搜索 8 个原生几何变量和燃油质量；边界来自独立 Demo profile；不跨 family | 当前范围只证明参数能被传递、评价和复现，不能证明变量集合、固定项或边界有工程依据 | 哪些量连续/离散/固定，各自上下界与来源，发动机/材料/翼型/尾型是否固定，以及是否允许跨 preset/family 搜索 | `mission_demo_v1.yaml` 的 `geometry_variables`、`sizing_variables`；family manifest 与 Analyze request |
+| 工程约束及阈值 | 检查航程、最大 L/D、起飞质量、燃油上限和 Analyze 声明域；几何合法性是候选进入排名前的必要条件 | 配平、稳定性、容积、结构、推进匹配、起降性能等仍未接入；Demo 阈值只是临时输入范围 | 正式 hard/soft 约束、阈值、裕量定义、违约处理，以及“可行”和“工程验证通过”的判据 | `mission_demo_v1.yaml` 的 `inputs`、`metric_coverage`；结果中的 `constraints`、`domain_status` |
+| 气动、质量、推进、航程模型与适用范围 | 当前 family 的低阶整机 polar；透明系数质量式；固定等效 TSFC 的 Breguet-style 航程；推进仅以数量质量项部分接入；另显示参考起飞质量下的巡航 CL/L/D 一致性诊断，但暂不计分 | 现模型没有完整配平、稳定性、推进匹配、任务积分或高保真验证；max L/D 航程假设不能代替指定巡航状态验证 | 每个学科的正式模型、数据/权重来源、有效域、误差标准、巡航参考重量与速度、任务积分方法和推进耦合方式 | `mission_demo_v1.yaml` 的 `mission_model`、`metric_coverage`；family Analyze；结果中的 `cruise_consistency` 与 provenance |
+| 优化算法、预算、停止条件及多候选规则 | 固定 seed `2711` 的 seeded uniform search，3 × 8 次评价；feasible-first；用归一化设计向量距离去重并最多返回 3 个 | 有限随机搜索只用于可重复 Demo，不能证明收敛、全局最优、计算预算合理或候选差异具有正式意义 | 正式算法、初始化/并行策略、评价预算、停止与收敛准则、复现要求、Top-K/Pareto 数量及去重规则 | `mission_demo_v1.yaml` 的 `optimizer`、`candidate_count`、`diversity_threshold`；搜索结果中的 `search`、`selection` |
+| 不确定性处理和验证标准 | 展示模型来源、版本、profile hash、domain status、约束余量和未接入项；不生成虚假的置信区间；Demo 测试验证程序响应与前后端一致性 | 程序可复现不等于模型准确，域内也不等于工程可信；论文或工程使用需要独立基准和误差证据 | 不确定性类型与校准数据、OOD/robust/chance-constraint 用法、验证数据集、允许误差，以及 Demo/研究原型/论文/工程各级验收门槛 | `mission_demo_v1.yaml` 的 `metric_coverage`；Analyze provenance/domain；第 8、9、11 节签署项 |
+
+讨论时请直接在后续对应章节填写结论与来源，并在第 11 节签署；摘要本身不替代正式数学定义。
+
 ## 1. 项目术语与第一版范围
 
 ### 1.1 “O 开头”的术语

@@ -298,7 +298,14 @@ class MissionDemoJobResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     id: str
-    status: Literal["queued", "running", "succeeded", "failed", "cancelled"]
+    status: Literal[
+        "queued",
+        "running",
+        "succeeded",
+        "failed",
+        "cancelled",
+        "interrupted",
+    ]
     progress: float = Field(ge=0, le=1)
     stage: str
     error: str | None = None

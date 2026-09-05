@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
@@ -23,6 +24,19 @@ from services.api.app.services.rapid_design.mission_demo import (
 )
 
 DemoSearch = Callable[..., dict[str, object]]
+DEMO_TERMINAL_STATUSES = {*TERMINAL_STATUSES, "interrupted"}
+
+_JOB_ID_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{0,127}")
+_PERSISTED_FILE_NAMES = {
+    "request.json",
+    "profile.json",
+    "status.json",
+    "result.json",
+}
+
+
+class MissionDemoPersistenceError(RuntimeError):
+    """A persisted Demo artifact is missing, malformed, or belongs elsewhere."""
 
 
 def _now() -> str:
@@ -39,11 +53,21 @@ class MissionDemoResultStore:
         self.root = Path(root)
 
     def job_dir(self, job_id: str) -> Path:
-        if not job_id or any(part in job_id for part in ("/", "\\", "..")):
+        if not _JOB_ID_PATTERN.fullmatch(job_id):
             raise ValueError("invalid demo job id")
-        return self.root / job_id
+        root = self.root.resolve()
+        target = (root / job_id).resolve()
+        if target.parent != root:
+            raise ValueError("invalid demo job id")
+        return target
+
+    @staticmethod
+    def _validate_name(name: str) -> None:
+        if name not in _PERSISTED_FILE_NAMES:
+            raise ValueError("invalid demo artifact name")
 
     def write_json(self, job_id: str, name: str, payload: dict[str, object]) -> Path:
+        self._validate_name(name)
         target_dir = self.job_dir(job_id)
         target_dir.mkdir(parents=True, exist_ok=True)
         target = target_dir / name
@@ -55,11 +79,39 @@ class MissionDemoResultStore:
         os.replace(temporary, target)
         return target
 
-    def read_result(self, job_id: str) -> dict[str, object] | None:
-        path = self.job_dir(job_id) / "result.json"
+    def read_json(self, job_id: str, name: str) -> dict[str, object] | None:
+        self._validate_name(name)
+        path = self.job_dir(job_id) / name
         if not path.exists():
             return None
-        return json.loads(path.read_text(encoding="utf-8"))
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            raise MissionDemoPersistenceError(
+                f"could not read persisted Demo artifact {name}"
+            ) from exc
+        if not isinstance(payload, dict):
+            raise MissionDemoPersistenceError(
+                f"persisted Demo artifact {name} is not an object"
+            )
+        return payload
+
+    def read_result(self, job_id: str) -> dict[str, object] | None:
+        return self.read_json(job_id, "result.json")
+
+    def job_ids(self) -> list[str]:
+        if not self.root.exists():
+            return []
+        job_ids: list[str] = []
+        for entry in self.root.iterdir():
+            if entry.is_symlink() or not entry.is_dir():
+                continue
+            try:
+                self.job_dir(entry.name)
+            except ValueError:
+                continue
+            job_ids.append(entry.name)
+        return sorted(job_ids)
 
 
 class MissionDemoJobRunner:
@@ -80,6 +132,7 @@ class MissionDemoJobRunner:
         self._events: dict[str, list[dict[str, object]]] = {}
         self._cancellations: dict[str, Event] = {}
         self._lock = RLock()
+        self._restore_persisted_jobs()
         self._executor = ThreadPoolExecutor(
             max_workers=max_workers,
             thread_name_prefix="mission-demo",
@@ -149,19 +202,47 @@ class MissionDemoJobRunner:
 
     def get(self, job_id: str) -> dict[str, object] | None:
         with self._lock:
+            if job_id not in self._jobs:
+                try:
+                    self._restore_job_locked(job_id)
+                except (MissionDemoPersistenceError, ValueError):
+                    return None
             job = self._jobs.get(job_id)
             return deepcopy(job) if job else None
 
-    def events_since(self, job_id: str, offset: int) -> list[dict[str, object]]:
+    def list_recent(self, *, limit: int = 10) -> list[dict[str, object]]:
+        if limit < 1:
+            return []
         with self._lock:
-            return deepcopy(self._events.get(job_id, [])[offset:])
+            for job_id in self.store.job_ids():
+                if job_id not in self._jobs:
+                    try:
+                        self._restore_job_locked(job_id)
+                    except (MissionDemoPersistenceError, ValueError):
+                        continue
+            jobs = sorted(
+                self._jobs.values(),
+                key=lambda job: (
+                    str(job.get("updated_at", "")),
+                    str(job.get("created_at", "")),
+                    str(job.get("id", "")),
+                ),
+                reverse=True,
+            )
+            return deepcopy(jobs[:limit])
+
+    def events_since(self, job_id: str, offset: int) -> list[dict[str, object]]:
+        self.get(job_id)
+        with self._lock:
+            return deepcopy(self._events.get(job_id, [])[max(0, offset) :])
 
     def cancel(self, job_id: str) -> dict[str, object] | None:
+        self.get(job_id)
         with self._lock:
             job = self._jobs.get(job_id)
             if job is None:
                 return None
-            if str(job["status"]) not in TERMINAL_STATUSES:
+            if str(job["status"]) not in DEMO_TERMINAL_STATUSES:
                 self._cancellations[job_id].set()
                 job["stage"] = "cancelling"
                 job["updated_at"] = _now()
@@ -170,7 +251,228 @@ class MissionDemoJobRunner:
             return deepcopy(job)
 
     def result(self, job_id: str) -> dict[str, object] | None:
-        return self.store.read_result(job_id)
+        job = self.get(job_id)
+        if job is None:
+            return None
+        result = self.store.read_result(job_id)
+        if result is None:
+            if job["status"] == "succeeded":
+                raise MissionDemoPersistenceError(
+                    "persisted Demo job is marked succeeded but has no result"
+                )
+            return None
+        profile = self.store.read_json(job_id, "profile.json")
+        self._validate_result_ownership(job_id, job, result, profile)
+        return result
+
+    def _restore_persisted_jobs(self) -> None:
+        with self._lock:
+            for job_id in self.store.job_ids():
+                try:
+                    self._restore_job_locked(job_id)
+                except (MissionDemoPersistenceError, ValueError):
+                    # A malformed directory is not exposed as somebody else's job.
+                    continue
+
+    def _restore_job_locked(self, job_id: str) -> None:
+        if job_id in self._jobs:
+            return
+        status = self.store.read_json(job_id, "status.json")
+        if status is None:
+            return
+        request = self.store.read_json(job_id, "request.json")
+        profile = self.store.read_json(job_id, "profile.json")
+        self._validate_persisted_bundle(job_id, status, request, profile)
+
+        job = dict(status)
+        self._jobs[job_id] = job
+        self._events[job_id] = []
+        self._cancellations[job_id] = Event()
+
+        try:
+            result = self.store.read_result(job_id)
+            if result is not None:
+                self._validate_result_ownership(job_id, job, result, profile)
+        except MissionDemoPersistenceError as exc:
+            self._mark_recovery_failure_locked(job_id, str(exc))
+            return
+
+        previous_status = str(job["status"])
+        if result is not None:
+            expected_stage = self._result_stage(result)
+            if (
+                previous_status != "succeeded"
+                or float(job.get("progress", 0.0)) != 1.0
+                or str(job.get("stage")) != expected_stage
+            ):
+                job["status"] = "succeeded"
+                job["progress"] = 1.0
+                job["stage"] = expected_stage
+                job["error"] = None
+                job["updated_at"] = _now()
+                self.store.write_json(job_id, "status.json", dict(job))
+            self._publish_locked(
+                job_id,
+                "recovered",
+                "Completed Demo result recovered from persisted artifacts",
+            )
+            return
+
+        if previous_status in {"queued", "running"} or str(job["stage"]) == "cancelling":
+            job["status"] = "interrupted"
+            job["stage"] = "interrupted"
+            job["error"] = (
+                "Demo search was interrupted by a service restart; automatic resume "
+                "is not supported."
+            )
+            job["updated_at"] = _now()
+            self.store.write_json(job_id, "status.json", dict(job))
+            self._publish_locked(job_id, "interrupted", str(job["error"]))
+            return
+
+        if previous_status == "succeeded":
+            self._mark_recovery_failure_locked(
+                job_id,
+                "persisted Demo job is marked succeeded but has no result",
+            )
+            return
+
+        if previous_status not in DEMO_TERMINAL_STATUSES:
+            self._mark_recovery_failure_locked(
+                job_id,
+                f"persisted Demo job has unknown status: {previous_status}",
+            )
+            return
+
+        self._publish_locked(
+            job_id,
+            "recovered",
+            f"Terminal Demo job recovered with status {previous_status}",
+        )
+
+    @staticmethod
+    def _validate_persisted_bundle(
+        job_id: str,
+        status: dict[str, object],
+        request: dict[str, object] | None,
+        profile: dict[str, object] | None,
+    ) -> None:
+        required = {
+            "id",
+            "status",
+            "progress",
+            "stage",
+            "error",
+            "created_at",
+            "updated_at",
+            "mode",
+            "family_id",
+            "preset_id",
+            "profile_id",
+            "profile_version",
+            "formal_status",
+            "inputs",
+        }
+        if required - status.keys():
+            raise MissionDemoPersistenceError(
+                "persisted Demo status is missing required fields"
+            )
+        if status["id"] != job_id or status["mode"] != "demo":
+            raise MissionDemoPersistenceError(
+                "persisted Demo status does not belong to the requested job"
+            )
+        if request is None or profile is None:
+            raise MissionDemoPersistenceError(
+                "persisted Demo request or profile artifact is missing"
+            )
+        expected_request = {
+            "mode": status["mode"],
+            "family_id": status["family_id"],
+            "preset_id": status["preset_id"],
+            "inputs": status["inputs"],
+        }
+        if any(request.get(key) != value for key, value in expected_request.items()):
+            raise MissionDemoPersistenceError(
+                "persisted Demo request does not match its status"
+            )
+        expected_profile = {
+            "profile_id": status["profile_id"],
+            "profile_version": status["profile_version"],
+            "formal_status": status["formal_status"],
+        }
+        if any(profile.get(key) != value for key, value in expected_profile.items()):
+            raise MissionDemoPersistenceError(
+                "persisted Demo profile does not match its status"
+            )
+
+    @staticmethod
+    def _validate_result_ownership(
+        job_id: str,
+        job: dict[str, object],
+        result: dict[str, object],
+        persisted_profile: dict[str, object] | None,
+    ) -> None:
+        if result.get("job_id") != job_id:
+            raise MissionDemoPersistenceError(
+                "persisted Demo result belongs to a different job"
+            )
+        for key in (
+            "mode",
+            "formal_status",
+            "family_id",
+            "preset_id",
+            "inputs",
+        ):
+            if result.get(key) != job.get(key):
+                raise MissionDemoPersistenceError(
+                    f"persisted Demo result {key} does not match its request"
+                )
+        result_profile = result.get("profile")
+        if not isinstance(result_profile, dict):
+            raise MissionDemoPersistenceError(
+                "persisted Demo result has no profile provenance"
+            )
+        if (
+            result_profile.get("id") != job.get("profile_id")
+            or result_profile.get("version") != job.get("profile_version")
+        ):
+            raise MissionDemoPersistenceError(
+                "persisted Demo result profile does not match its request"
+            )
+        if persisted_profile is None:
+            raise MissionDemoPersistenceError(
+                "persisted Demo result has no matching profile artifact"
+            )
+        persisted_hash = persisted_profile.get("profile_hash")
+        if not isinstance(persisted_hash, str) or not persisted_hash:
+            raise MissionDemoPersistenceError(
+                "persisted Demo profile has no provenance hash"
+            )
+        if result_profile.get("hash") != persisted_hash:
+            raise MissionDemoPersistenceError(
+                "persisted Demo result profile hash does not match its request"
+            )
+
+    @staticmethod
+    def _result_stage(result: dict[str, object]) -> str:
+        outcome = str(result.get("status", ""))
+        if outcome in {"no_valid_candidates", "no_valid_evaluations"}:
+            return "no_valid_candidates"
+        if outcome in {
+            "no_feasible_solution_found",
+            "no_feasible_candidates",
+        }:
+            return "no_feasible_candidates"
+        return "completed"
+
+    def _mark_recovery_failure_locked(self, job_id: str, error: str) -> None:
+        job = self._jobs[job_id]
+        job["status"] = "failed"
+        job["stage"] = "recovery_error"
+        job["error"] = f"Persisted Demo recovery failed: {error}"
+        job["updated_at"] = _now()
+        self.store.write_json(job_id, "status.json", dict(job))
+        self._publish_locked(job_id, "failed", str(job["error"]))
 
     def _publish_locked(self, job_id: str, event_type: str, message: str) -> None:
         job = self._jobs[job_id]
@@ -263,13 +565,23 @@ class MissionDemoJobRunner:
                 family_registry=self.family_registry,
             )
             self.store.write_json(job_id, "result.json", result)
+            stage = self._result_stage(result)
+            if stage == "no_valid_candidates":
+                message = "Demo search completed without a valid candidate"
+            elif stage == "no_feasible_candidates":
+                message = (
+                    "Demo search completed; candidates do not satisfy the connected "
+                    "Demo constraints"
+                )
+            else:
+                message = "Demo candidates generated"
             self._set_state(
                 job_id,
                 status="succeeded",
                 progress=1.0,
-                stage="completed",
+                stage=stage,
                 event_type="completed",
-                message="Demo candidates generated",
+                message=message,
             )
         except InterruptedError:
             self._set_state(
@@ -283,7 +595,7 @@ class MissionDemoJobRunner:
             self._set_state(
                 job_id,
                 status="failed",
-                stage="failed",
+                stage="program_error",
                 error=str(exc),
                 event_type="failed",
                 message="Demo search failed",

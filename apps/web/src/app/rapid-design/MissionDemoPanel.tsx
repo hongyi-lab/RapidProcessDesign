@@ -27,12 +27,14 @@ import {
   formatNumber,
   parseDemoConfig,
   parseDemoJob,
+  parseDemoJobList,
   parseDemoSearchResult,
   topDemoCandidates,
   type DemoAnalyzeHandoff,
   type DemoCandidate,
   type DemoConstraint,
   type DemoJob,
+  type DemoJobList,
   type DemoMetricCoverage,
   type DemoProfileConfig,
   type DemoSearchResult,
@@ -143,16 +145,53 @@ function constraintTitle(constraint: DemoConstraint, index: number): string {
 }
 
 function constraintValue(constraint: DemoConstraint): string {
-  if (typeof constraint.margin === "number") {
-    return `margin ${formatNumber(constraint.margin, 2)} ${constraint.unit ?? ""}`.trim();
-  }
-  if (typeof constraint.violation === "number") {
-    return `violation ${formatNumber(constraint.violation, 2)} ${constraint.unit ?? ""}`.trim();
-  }
-  if (typeof constraint.value === "number") {
-    return `${formatNumber(constraint.value, 2)} ${constraint.unit ?? ""}`.trim();
-  }
-  return constraint.satisfied === false ? "未满足" : "已检查";
+  const unit = constraint.unit ?? "";
+  const actual = typeof constraint.actual === "number"
+    ? constraint.actual
+    : typeof constraint.value === "number" ? constraint.value : null;
+  const parts = [
+    actual === null ? null : `实际 ${formatNumber(actual, 2)} ${unit}`.trim(),
+    typeof constraint.limit === "number"
+      ? `阈值 ${formatNumber(constraint.limit, 2)} ${unit}`.trim()
+      : null,
+    typeof constraint.margin === "number"
+      ? `余量 ${formatNumber(constraint.margin, 2)} ${unit}`.trim()
+      : null,
+    typeof constraint.violation === "number" && constraint.violation > 0
+      ? `违约 ${formatNumber(constraint.violation, 3)}`
+      : null,
+  ].filter((item): item is string => Boolean(item));
+  return parts.join(" · ") || (constraint.satisfied === false ? "未满足" : "已检查");
+}
+
+const SELECTION_REASON_LABELS: Record<string, string> = {
+  selected_best_ranked: "按当前排序入选",
+  selected_diverse: "满足几何差异阈值后入选",
+  selected_feasible_first_objective: "满足约束，按 objective 与几何差异入选",
+  selected_current_score_best_infeasible: "无可行解时，按当前 objective 与几何差异入选",
+  selected_infeasible_after_feasible: "排在可行候选之后，并通过几何差异阈值",
+  selected_legacy_result: "旧版结果（未记录选择原因）",
+  excluded_candidate_limit: "超出 Top-K 数量",
+  excluded_top_k_capacity: "Top-K 名额已满",
+  excluded_geometry_similarity: "与已选候选几何过近",
+  excluded_invalid_geometry: "几何无效",
+  invalid_evaluation: "评价无效",
+};
+
+function selectionReason(code: string): string {
+  return SELECTION_REASON_LABELS[code] ?? code.replaceAll("_", " ");
+}
+
+function jobStatusLabel(status: DemoJob["status"]): string {
+  const labels: Record<DemoJob["status"], string> = {
+    queued: "等待",
+    running: "运行中",
+    succeeded: "已完成",
+    failed: "异常失败",
+    cancelled: "已取消",
+    interrupted: "重启时中断",
+  };
+  return labels[status];
 }
 
 function coverageCounts(coverage: DemoMetricCoverage | null) {
@@ -160,6 +199,73 @@ function coverageCounts(coverage: DemoMetricCoverage | null) {
     status,
     count: coverage?.metrics.filter((metric) => metric.status === status).length ?? 0,
   }));
+}
+
+function CruiseConsistencyPanel({ candidate }: { candidate: DemoCandidate }) {
+  const diagnostic = candidate.cruise_consistency;
+  if (!diagnostic) {
+    return (
+      <section className={styles.cruisePanel} aria-label={`候选 ${candidate.rank} 巡航一致性诊断`}>
+        <div className={styles.sectionHeading}>
+          <h5>巡航一致性诊断</h5>
+          <strong>旧结果未记录</strong>
+        </div>
+        <p>此恢复结果早于 Round 7，不能据此判断参考巡航状态是否落在 polar 支持区间。</p>
+      </section>
+    );
+  }
+  const supported = diagnostic.status === "supported";
+  const point = diagnostic.matched_working_point;
+  return (
+    <section
+      className={styles.cruisePanel}
+      data-supported={supported}
+      aria-label={`候选 ${candidate.rank} 巡航一致性诊断`}
+    >
+      <div className={styles.sectionHeading}>
+        <h5>巡航一致性诊断</h5>
+        <strong>{supported ? "SUPPORTED" : "UNSUPPORTED · LIFT_NOT_SUPPORTED"}</strong>
+      </div>
+      <dl>
+        <div>
+          <dt>参考质量</dt>
+          <dd>{formatNumber(diagnostic.reference_state.mass_kg, 1)} kg</dd>
+        </div>
+        <div>
+          <dt>状态</dt>
+          <dd>
+            {formatNumber(diagnostic.reference_state.altitude_m, 0)} m · {formatNumber(diagnostic.reference_state.speed_kmh, 0)} km/h
+          </dd>
+        </div>
+        <div>
+          <dt>所需 CL</dt>
+          <dd>{formatNumber(diagnostic.required_cl, 3)}</dd>
+        </div>
+        <div>
+          <dt>polar CL 区间</dt>
+          <dd>{formatNumber(diagnostic.polar_support.min_cl, 3)} – {formatNumber(diagnostic.polar_support.max_cl, 3)}</dd>
+        </div>
+        <div>
+          <dt>参考状态 L/D</dt>
+          <dd>{point ? formatNumber(point.ld, 2) : "不支持，未外推"}</dd>
+        </div>
+        <div>
+          <dt>max L/D / 航程所用 L/D</dt>
+          <dd>
+            {formatNumber(diagnostic.comparison.max_ld, 2)} / {formatNumber(diagnostic.comparison.range_model_ld, 2)}
+          </dd>
+        </div>
+      </dl>
+      {!supported && (
+        <p>
+          当前起飞质量参考状态需要的升力超出已有 polar 支持区间；没有外推，也没有退回 max L/D 冒充匹配工作点。
+        </p>
+      )}
+      <p>
+        参考质量口径：Mission Demo 起飞质量。本诊断不进入 score 或现有航程估算，也不是配平、稳定性或推进匹配验证。
+      </p>
+    </section>
+  );
 }
 
 function CandidateCard({
@@ -176,10 +282,10 @@ function CandidateCard({
   onAnalyze: (candidate: DemoCandidate) => void;
 }) {
   const statusLabel = candidate.feasible
-    ? "可行 Demo 候选"
+    ? "满足当前 Demo 已接入约束"
     : !anyFeasible && candidate.rank === 1
-      ? "最小违约候选"
-      : "约束未满足";
+      ? "当前评分最优的未满足约束候选"
+      : "未满足当前 Demo 已接入约束";
 
   return (
     <article className={styles.candidateCard} data-feasible={candidate.feasible}>
@@ -190,6 +296,18 @@ function CandidateCard({
         </div>
         <span className={styles.feasibility}>{statusLabel}</span>
       </header>
+
+      <div className={styles.qualificationRow} aria-label={`候选 ${candidate.rank} 资格说明`}>
+        <span data-pass={candidate.qualification.geometry_valid}>
+          {candidate.qualification.geometry_valid ? "几何有效" : "几何无效"}
+        </span>
+        <span data-pass={candidate.qualification.demo_constraints_satisfied}>
+          {candidate.qualification.demo_constraints_satisfied
+            ? "满足 Demo 已接入约束"
+            : "未满足 Demo 已接入约束"}
+        </span>
+        <span data-pass="false">工程验证未执行（不能称已通过）</span>
+      </div>
 
       <div className={styles.previewFrame}>
         <ParametricAircraftPreview
@@ -234,6 +352,23 @@ function CandidateCard({
             )}</dd>
           </div>
         </dl>
+        {candidate.score_breakdown.terms.length > 0 && (
+          <details className={styles.scoreTerms}>
+            <summary>查看后端评分项</summary>
+            <ul>
+              {candidate.score_breakdown.terms.map((term, index) => (
+                <li key={`${term.metric_key ?? term.label ?? "term"}-${index}`}>
+                  <span>{term.label ?? term.metric_key ?? `评分项 ${index + 1}`}</span>
+                  <strong>
+                    {typeof term.contribution === "number"
+                      ? formatNumber(term.contribution, 4)
+                      : "已记录"}
+                  </strong>
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
         <p>此分数仅用于本次 Demo 排序，不是 Analyze 输出。</p>
       </section>
 
@@ -253,6 +388,8 @@ function CandidateCard({
         )}
       </section>
 
+      <CruiseConsistencyPanel candidate={candidate} />
+
       {(candidate.domain_status || candidate.warnings.length > 0) && (
         <div className={styles.candidateNotes}>
           {candidate.domain_status && (
@@ -263,7 +400,17 @@ function CandidateCard({
       )}
 
       <div className={styles.candidateFooter}>
-        <span title={candidate.design_hash}>design {compactId(candidate.design_hash)}</span>
+        <div>
+          <span title={candidate.design_hash}>design hash {compactId(candidate.design_hash)}</span>
+          <span title={candidate.geometry_fingerprint ?? undefined}>
+            geometry {candidate.geometry_fingerprint
+              ? compactId(candidate.geometry_fingerprint)
+              : "旧结果未记录"}
+          </span>
+          <span title={candidate.selection.explanation ?? undefined}>
+            选择：{selectionReason(candidate.selection.reason_code)}
+          </span>
+        </div>
         <button type="button" onClick={() => onAnalyze(candidate)}>
           在 Analyze 中检查
         </button>
@@ -291,6 +438,11 @@ export function MissionDemoPanel({
   const [resultLoading, setResultLoading] = useState(false);
   const [transport, setTransport] = useState<TransportState>("idle");
   const [view, setView] = useState<GeometryView>("3d");
+  const [recentJobs, setRecentJobs] = useState<DemoJob[]>([]);
+  const [recoveryPolicy, setRecoveryPolicy] = useState<DemoJobList["recovery"] | null>(null);
+  const [recentLoading, setRecentLoading] = useState(false);
+  const [recentError, setRecentError] = useState<string | null>(null);
+  const [recoveryOpen, setRecoveryOpen] = useState(false);
 
   const eventSourceRef = useRef<EventSource | null>(null);
   const pollTimerRef = useRef<number | null>(null);
@@ -303,6 +455,7 @@ export function MissionDemoPanel({
   const pollFailuresRef = useRef(0);
   const submitInFlightRef = useRef(false);
   const cancelInFlightRef = useRef(false);
+  const recentRequestRef = useRef(0);
 
   const supported = Boolean(
     manifest
@@ -377,11 +530,38 @@ export function MissionDemoPanel({
 
   useEffect(() => () => invalidateRun(), [invalidateRun]);
 
+  const loadRecentJobs = useCallback(async (): Promise<void> => {
+    const requestId = ++recentRequestRef.current;
+    setRecentLoading(true);
+    setRecentError(null);
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/rapid-design/demo/jobs?limit=10`);
+      if (!response.ok) throw await errorFromResponse(response, "无法读取可恢复任务");
+      const parsed = parseDemoJobList(await response.json());
+      if (requestId !== recentRequestRef.current) return;
+      setRecentJobs(parsed.jobs);
+      setRecoveryPolicy(parsed.recovery);
+    } catch (reason: unknown) {
+      if (requestId !== recentRequestRef.current) return;
+      setRecentError(reason instanceof Error ? reason.message : "可恢复任务读取失败");
+    } finally {
+      if (requestId === recentRequestRef.current) setRecentLoading(false);
+    }
+  }, [apiBaseUrl]);
+
+  useEffect(() => {
+    void loadRecentJobs();
+    return () => {
+      recentRequestRef.current += 1;
+    };
+  }, [loadRecentJobs]);
+
   const loadResult = useCallback(async (
     jobId: string,
     token: number,
     retryIndex = 0,
     manual = false,
+    restoreInputs = false,
   ): Promise<void> => {
     if (token !== runTokenRef.current || (resultInFlightRef.current && !manual)) return;
     resultControllerRef.current?.abort();
@@ -414,7 +594,9 @@ export function MissionDemoPanel({
         || parsed.job_id !== jobId
       ) return;
       setResult(parsed);
+      if (restoreInputs) setInputs({ ...parsed.inputs });
       setResultError(null);
+      void loadRecentJobs();
     } catch (reason: unknown) {
       if (
         (reason as { name?: string }).name === "AbortError"
@@ -428,7 +610,7 @@ export function MissionDemoPanel({
         setResultLoading(false);
       }
     }
-  }, [apiBaseUrl]);
+  }, [apiBaseUrl, loadRecentJobs]);
 
   const pollJob = useCallback(async function poll(
     jobId: string,
@@ -454,11 +636,18 @@ export function MissionDemoPanel({
         void loadResult(jobId, token);
         return;
       }
-      if (latest.status === "failed" || latest.status === "cancelled") {
+      if (
+        latest.status === "failed"
+        || latest.status === "cancelled"
+        || latest.status === "interrupted"
+      ) {
         cancelInFlightRef.current = false;
         setCancelling(false);
         stopTransport();
         if (latest.status === "failed") setRunError(latest.error ?? "Demo 搜索失败");
+        if (latest.status === "interrupted") {
+          setRunError(latest.error ?? "服务重启时任务尚未完成；本轮不支持断点续跑，请重新运行。");
+        }
         return;
       }
       pollTimerRef.current = window.setTimeout(() => void poll(jobId, token), POLL_INTERVAL_MS);
@@ -508,13 +697,18 @@ export function MissionDemoPanel({
           cancelInFlightRef.current = false;
           setCancelling(false);
           stopTransport();
+        } else if (status === "interrupted" || payload.type === "interrupted") {
+          cancelInFlightRef.current = false;
+          setCancelling(false);
+          stopTransport();
+          setRunError("服务重启时任务尚未完成；本轮不支持断点续跑，请重新运行。");
         }
       } catch {
         // A malformed event must not corrupt the active run. GET polling remains authoritative.
       }
     };
 
-    (["queued", "progress", "completed", "cancelled", "failed"] as const).forEach((name) => {
+    (["queued", "progress", "completed", "cancelled", "failed", "interrupted"] as const).forEach((name) => {
       source.addEventListener(name, handleEvent as EventListener);
     });
     source.onerror = () => {
@@ -612,6 +806,36 @@ export function MissionDemoPanel({
     void pollJob(job.id, runTokenRef.current);
   }, [job, pollJob, stopTransport]);
 
+  const recoverCompletedJob = useCallback(async (summary: DemoJob): Promise<void> => {
+    if (summary.status !== "succeeded" || running || submitting) return;
+    invalidateRun();
+    const token = runTokenRef.current;
+    setJob(null);
+    setResult(null);
+    setRunError(null);
+    setResultError(null);
+    setRecoveryOpen(true);
+    try {
+      const response = await fetch(
+        `${apiBaseUrl}/api/rapid-design/demo/jobs/${encodeURIComponent(summary.id)}`,
+      );
+      if (!response.ok) throw await errorFromResponse(response, "无法查询旧任务状态");
+      const latest = parseDemoJob(await response.json());
+      if (token !== runTokenRef.current || latest.id !== summary.id) return;
+      setJob(latest);
+      if (latest.status === "succeeded") {
+        await loadResult(latest.id, token, 0, true, true);
+      } else if (latest.status === "interrupted") {
+        setRunError(latest.error ?? "该任务在服务重启时中断，不支持断点续跑。");
+      } else {
+        setRunError(`旧任务当前状态为 ${jobStatusLabel(latest.status)}，仅已完成结果可恢复。`);
+      }
+    } catch (reason: unknown) {
+      if (token !== runTokenRef.current) return;
+      setRunError(reason instanceof Error ? reason.message : "旧任务恢复失败");
+    }
+  }, [apiBaseUrl, invalidateRun, loadResult, running, submitting]);
+
   const analyzeCandidate = useCallback((candidate: DemoCandidate) => {
     if (!result) return;
     try {
@@ -632,7 +856,7 @@ export function MissionDemoPanel({
           </div>
           <h2 id="mission-demo-title">Mission 输入 → 可解释候选搜索</h2>
           <p>
-            使用固定、可复现的演示 profile 搜索 3 个候选。目标、权重、边界与任务模型仍未获老师批准。
+            使用固定、可复现的演示 profile 搜索至多 3 个候选；不足 3 个时保留已有有效结果。目标、权重、边界与任务模型仍未获老师批准。
           </p>
         </div>
         <dl className={styles.profileSummary}>
@@ -718,6 +942,65 @@ export function MissionDemoPanel({
           <p className={styles.familyLine}>
             下一次运行选择 · Family <strong>{manifest?.family_id ?? "—"}</strong> · Preset <strong>{selectedPresetId ?? "—"}</strong>
           </p>
+
+          <section className={styles.recoveryPanel} aria-labelledby="mission-demo-recovery-title">
+            <button
+              type="button"
+              className={styles.recoveryToggle}
+              aria-expanded={recoveryOpen}
+              onClick={() => {
+                setRecoveryOpen((open) => !open);
+                if (!recoveryOpen) void loadRecentJobs();
+              }}
+            >
+              <span>
+                <strong id="mission-demo-recovery-title">恢复已完成任务</strong>
+                <small>刷新或服务重启后仍可查询已保存结果</small>
+              </span>
+              <b aria-hidden="true">{recoveryOpen ? "−" : "+"}</b>
+            </button>
+            {recoveryOpen && (
+              <div className={styles.recoveryBody}>
+                <div className={styles.recoveryPolicy}>
+                  <span>{recoveryPolicy?.completed_queryable === false ? "已完成结果不可查询" : "已完成结果可查询"}</span>
+                  <span>未完成任务不支持断点续跑</span>
+                </div>
+                {recentLoading && <p>正在读取旧任务…</p>}
+                {recentError && (
+                  <div className={styles.recoveryError} role="alert">
+                    <span>{recentError}</span>
+                    <button type="button" onClick={() => void loadRecentJobs()}>重试</button>
+                  </div>
+                )}
+                {!recentLoading && !recentError && recentJobs.length === 0 && (
+                  <p>尚无已保存任务。</p>
+                )}
+                {recentJobs.length > 0 && (
+                  <ul className={styles.recoveryList}>
+                    {recentJobs.map((item) => (
+                      <li key={item.id} data-status={item.status}>
+                        <div>
+                          <strong>{item.preset_id}</strong>
+                          <small title={item.id}>{compactId(item.id)} · {jobStatusLabel(item.status)}</small>
+                        </div>
+                        {item.status === "succeeded" ? (
+                          <button
+                            type="button"
+                            disabled={resultLoading || running || submitting}
+                            onClick={() => void recoverCompletedJob(item)}
+                          >
+                            查询结果
+                          </button>
+                        ) : (
+                          <span>{item.status === "interrupted" ? "需重新运行" : "不可恢复"}</span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+          </section>
         </aside>
 
         <div className={styles.resultsPane}>
@@ -741,6 +1024,7 @@ export function MissionDemoPanel({
               {transport === "sse" && <span>SSE 实时进度</span>}
               {transport === "polling" && <span>连接中断 · 已切换轮询</span>}
               {job?.status === "cancelled" && <span>本次 Demo 已取消</span>}
+              {job?.status === "interrupted" && <span>服务重启时中断 · 不支持断点续跑</span>}
             </div>
           </div>
 
@@ -775,12 +1059,12 @@ export function MissionDemoPanel({
 
           {!result && !resultLoading && !resultError && (
             <div className={styles.emptyState}>
-              <span>TOP 3</span>
+              <span>CANDIDATE RESULTS</span>
               <h3>{running ? "正在探索设计空间" : "运行后在此比较候选"}</h3>
               <p>候选将使用同一相机尺度展示，以便直接比较真实尺寸；预览不响应拖拽。</p>
             </div>
           )}
-          {resultLoading && <div className={styles.loading}>正在校验并读取 Top 3 候选…</div>}
+          {resultLoading && <div className={styles.loading}>正在校验并读取候选结果…</div>}
 
           {result && (
             <>
@@ -801,7 +1085,10 @@ export function MissionDemoPanel({
                 <div>
                   <span>EVALUATIONS</span>
                   <strong>{result.search.evaluations}</strong>
-                  <small>{result.search.invalid} invalid</small>
+                  <small>
+                    {result.search.valid} valid · {result.search.invalid} invalid
+                    {result.search.elapsed_ms !== null && ` · ${formatNumber(result.search.elapsed_ms, 0)} ms`}
+                  </small>
                 </div>
                 <div>
                   <span>RANKING</span>
@@ -809,6 +1096,53 @@ export function MissionDemoPanel({
                   <small>{result.ranking_rule.feasible_first ? "feasible first" : "objective only"}</small>
                 </div>
               </section>
+
+              <section
+                className={styles.outcomePanel}
+                data-status={result.status}
+                aria-label="候选搜索结果解释"
+              >
+                <div>
+                  <strong>
+                    {result.status === "no_valid_candidates"
+                      ? "没有有效候选评价"
+                      : result.status === "no_feasible_solution_found"
+                        ? "没有候选满足当前 Demo 已接入约束"
+                        : `${result.selection.feasible_valid_count} 个候选满足当前 Demo 已接入约束`}
+                  </strong>
+                  <p>
+                    返回 {result.selection.returned_count} / {result.selection.requested_count} 个候选；
+                    {result.selection.infeasible_valid_count} 个有效候选未满足当前 Demo 约束。
+                    {result.selection.outcome === "partial" && " 已保留不足 Top-K 的现有结果，没有将整次任务判为异常。"}
+                    {result.status === "no_feasible_solution_found" && " 排名仍遵循 feasible-first 后按 objective；第一名仅表示当前评分最优，并不表示违约量最小。"}
+                    {result.status === "no_valid_candidates" && " 这与“有有效候选但无可行解”及程序异常是不同结果。"}
+                  </p>
+                </div>
+                <span>工程验证：未执行</span>
+              </section>
+
+              <details className={styles.selectionPanel}>
+                <summary>
+                  <span>选择与排除记录</span>
+                  <strong>{result.selection.decisions.length} 条</strong>
+                </summary>
+                {result.selection.decisions.length === 0 ? (
+                  <p>没有可记录的有效候选决策。</p>
+                ) : (
+                  <ul>
+                    {result.selection.decisions.map((decision) => (
+                      <li key={`${decision.candidate_id}-${decision.ranked_position}`} data-selected={decision.selected}>
+                        <span>
+                          #{decision.ranked_position} · {compactId(decision.candidate_id)} · {decision.feasible ? "满足 Demo 约束" : "未满足 Demo 约束"}
+                        </span>
+                        <strong title={decision.explanation ?? undefined}>
+                          {decision.selected ? "入选" : "排除"} · {selectionReason(decision.reason_code)}
+                        </strong>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </details>
 
               <section className={styles.coveragePanel} aria-labelledby="coverage-title">
                 <div className={styles.coverageHeading}>
@@ -836,37 +1170,46 @@ export function MissionDemoPanel({
                 </div>
               </section>
 
-              <div className={styles.candidateToolbar}>
-                <div>
-                  <span>03 · TOP {topCandidates.length}</span>
-                  <h3>按后端 rank 展示</h3>
-                </div>
-                <div className={styles.viewSwitch} aria-label="候选预览视角">
-                  {VIEW_OPTIONS.map((option) => (
-                    <button
-                      type="button"
-                      key={option.id}
-                      aria-pressed={view === option.id}
-                      onClick={() => setView(option.id)}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              {topCandidates.length > 0 ? (
+                <>
+                  <div className={styles.candidateToolbar}>
+                    <div>
+                      <span>03 · RETURNED {topCandidates.length}</span>
+                      <h3>按后端 rank 逐项展示</h3>
+                    </div>
+                    <div className={styles.viewSwitch} aria-label="候选预览视角">
+                      {VIEW_OPTIONS.map((option) => (
+                        <button
+                          type="button"
+                          key={option.id}
+                          aria-pressed={view === option.id}
+                          onClick={() => setView(option.id)}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
-              <div className={styles.candidateGrid}>
-                {topCandidates.map((candidate) => (
-                  <CandidateCard
-                    key={candidate.candidate_id}
-                    candidate={candidate}
-                    view={view}
-                    sharedReferenceSize={sharedReferenceSize}
-                    anyFeasible={topCandidates.some((item) => item.feasible)}
-                    onAnalyze={analyzeCandidate}
-                  />
-                ))}
-              </div>
+                  <div className={styles.candidateGrid} data-count={topCandidates.length}>
+                    {topCandidates.map((candidate) => (
+                      <CandidateCard
+                        key={candidate.candidate_id}
+                        candidate={candidate}
+                        view={view}
+                        sharedReferenceSize={sharedReferenceSize}
+                        anyFeasible={topCandidates.some((item) => item.feasible)}
+                        onAnalyze={analyzeCandidate}
+                      />
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div className={styles.noCandidateState} role="status">
+                  <strong>没有可展示或交给 Analyze 的几何</strong>
+                  <p>搜索已正常结束，但所有评价都未形成几何有效候选。请检查逐案例记录；这不是“无可行解”的同义词。</p>
+                </div>
+              )}
 
               {(result.warnings.length > 0 || Object.keys(result.provenance).length > 0) && (
                 <footer className={styles.provenance}>

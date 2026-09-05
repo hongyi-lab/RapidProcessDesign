@@ -239,7 +239,7 @@ def test_not_connected_metrics_never_enter_the_score():
         assert score_keys.isdisjoint(disconnected)
 
 
-def test_impossible_demo_requirements_return_ranked_least_violation_candidates():
+def test_impossible_demo_requirements_return_current_score_ranked_candidates():
     profile = _fast_profile()
     result = search_mission_demo(
         job_id="no-feasible-check",

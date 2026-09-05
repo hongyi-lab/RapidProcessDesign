@@ -49,7 +49,9 @@ Mission Demo v1 固定用户当前选择的一个 `conventional_v2` preset，不
 
 搜索变量是 8 个原生 `ConventionalV2Design` 几何字段（机身长度与细长比、翼展、翼面积、后掠、梢根比、厚度比、尾翼尺度）和独立 fuel sizing。每一次评价都调用当前 family registry 的 Analyze，先得到同一候选的 Canonical `GeometryState`、几何指标、极曲线摘要和 `design_hash`，再通过透明的 Demo 质量构建与 Breguet 风格关系计算任务指标。
 
-结果按“可行优先 → Demo objective → 稳定 candidate hash”排序，并仅按 8 个几何变量的归一化距离筛选三个外形不同的候选。无可行点时仍返回最小违约候选，不把失败静默包装成可行。每个候选携带完整原生设计、fuel sizing、工况、评分分解、逐项约束、Analyze 摘要、精确 `GeometryState`、`design_hash`、domain 状态、warnings 与 provenance；点击候选会以同一设计和工况重新进入 Analyze。
+结果按“可行优先 → Demo objective → 稳定 candidate hash”排序，并按 8 个几何变量的归一化距离筛选最多三个外形不同的候选。若预算中只有一至两个有效且有差异的候选，系统返回已有结果并明确提示；零有效评价、存在有效评价但无可行解、程序异常是三种不同状态。无可行解时第一名是“当前评分最优的未满足约束候选”，不声称它具有最小总违约。每个候选携带完整原生设计、fuel sizing、工况、评分分解、逐项约束、选择/排除原因、Analyze 摘要、精确 `GeometryState`、原有 `design_hash`、独立的纯几何 `geometry_fingerprint`、domain 状态、warnings 与 provenance；点击候选会以同一设计和工况重新进入 Analyze。
+
+`design_hash` 继续包含飞行工况，以维持原有 Analyze 契约；`geometry_fingerprint` 只覆盖 family、实际设计及 GeometryState 几何内容，因此可用来区分“工况变化”与“飞机几何变化”。每个候选另提供独立巡航一致性诊断：以当前 Demo 起飞质量为明确参考质量，计算所需 CL，并只在已有 polar 采样支持区间内匹配工作点和 L/D；无法匹配时返回 `unsupported / lift_not_supported`，不外推也不退回 max L/D。该诊断同时展示 max L/D 和参考状态 L/D，但不进入现有 score，也不替换当前航程公式。
 
 指标覆盖按 `connected`、`partial`、`not_connected` 显式公开。尾翼配平/操稳、推进匹配、结构、起降与噪声等未接入项不进入 Demo score；当前尾翼湿面积、低阶整机极曲线等只标为部分接入。Demo profile、API、存储与 Legacy/Formal 完全隔离，所有页面和结果均标注 `DEMO / NOT FORMAL / UNAPPROVED ASSUMPTIONS`。
 
@@ -84,7 +86,7 @@ Canonical GeometryState + 概念极曲线 + design_hash
     ↓ 透明 Demo 质量构建 + Breguet 风格航程
 可行性、约束违约与 Demo objective
     ↓ feasible-first 排序 + 仅几何变量多样性筛选
-Top 3 候选 → 共享尺度预览 → 精确交给 Analyze 复核
+最多 3 个候选（不足时如实返回）→ 共享尺度预览 → 精确交给 Analyze 复核
 ```
 
 ### BWB Analyze
@@ -143,6 +145,8 @@ R = V / c × (L/D) × ln(m_takeoff / m_final)
 
 `c` 是概念级等效耗油率，不代表某一台具体发动机。任何工程使用都应先用目标推进系统数据校准。
 
+当前 Mission Demo 的航程公式仍直接使用 polar 的 `max_ld`，并未按任务全过程积分，也未完成推进匹配。Round 7 新增的参考起飞质量巡航诊断只暴露“该速度、高度、重量和面积所需 CL 是否落在现有 polar 支持区间，以及相应 L/D 与 max L/D 的差别”；它不会静默改变既有航程或排名。正式巡航参考状态、重量变化、任务积分和推进模型仍等待老师确认。
+
 ## API 与持久化
 
 | 方法 | 路径 | 用途 |
@@ -158,12 +162,13 @@ R = V / c × (L/D) × ln(m_takeoff / m_final)
 | POST | `/api/rapid-design/jobs/{id}/cancel` | 请求停止 |
 | GET | `/api/rapid-design/demo/config` | 读取版本化、非正式 Mission Demo profile |
 | POST | `/api/rapid-design/demo/jobs` | 为固定 conventional preset 创建 Demo 搜索任务 |
+| GET | `/api/rapid-design/demo/jobs?limit=10` | 列出最近 Demo 任务，供刷新或服务重启后恢复入口使用 |
 | GET | `/api/rapid-design/demo/jobs/{id}` | 查询 Demo 状态与评价进度 |
 | GET | `/api/rapid-design/demo/jobs/{id}/events` | 读取 Demo SSE 事件 |
-| GET | `/api/rapid-design/demo/jobs/{id}/result` | 读取 Top 3、覆盖声明与搜索证据 |
+| GET | `/api/rapid-design/demo/jobs/{id}/result` | 读取可变数量候选、覆盖声明与搜索证据 |
 | POST | `/api/rapid-design/demo/jobs/{id}/cancel` | 协作式停止 Demo 搜索 |
 
-Legacy 任务写入 `storage/rapid_design/jobs/{job_id}/`；Mission Demo 独立写入 `storage/rapid_design/demo_jobs/{job_id}/request.json`、`profile.json`、`status.json` 和成功后的 `result.json`。写入采用临时文件替换，便于保留可追溯证据。当前 runner 不在 API 重启后恢复内存任务索引，因此历史文件会保留，但重启前的 job ID 不能继续通过状态 API 查询。`storage/` 已被 Git 忽略，不会污染源码提交。
+Legacy 任务写入 `storage/rapid_design/jobs/{job_id}/`；Mission Demo 独立写入 `storage/rapid_design/demo_jobs/{job_id}/request.json`、`profile.json`、`status.json` 和成功后的 `result.json`。写入采用临时文件替换，便于保留可追溯证据。API 启动或按 job ID 查询时会校验并恢复这些文件：已完成且归属一致的结果可重新查询；没有结果的旧 `queued`、`running` 或 `cancelling` 状态会明确转为 `interrupted`，且 `resumable=false`，不声称支持断点续跑。`storage/` 已被 Git 忽略，不会污染源码提交。
 
 ## 本地启动
 

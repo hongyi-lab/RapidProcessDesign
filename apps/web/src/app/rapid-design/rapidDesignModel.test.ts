@@ -7,12 +7,14 @@ import {
   demoRunUpdateMatches,
   demoSelectionMismatch,
   demoSharedReferenceSize,
+  errorFromResponse,
   familyPreset,
   geometryMetricRows,
   initialConditionValues,
   initialDesignValues,
   parameterGroups,
   parseDemoConfig,
+  parseDemoJobList,
   parseDemoSearchResult,
   parseFamiliesResponse,
   preferredInitialFamily,
@@ -209,7 +211,7 @@ function demoCandidate(rank: number, id: string, span: number) {
       derived_metrics: { span_m: span, fuselage_length_m: 12 + rank },
     },
     design_hash: `hash-${id}`,
-    condition: { altitude_m: 9999 },
+    condition: { altitude_m: 2000, speed_kmh: 220 },
     metrics: {
       takeoff_mass_kg: 1000 + rank,
       achieved_range_km: 1200 - rank,
@@ -331,4 +333,159 @@ test("Demo input mismatch distinguishes the current draft from completed run inp
   assert.equal(demoInputsMismatch({ range_km: 1200 }, { range_km: 1000 }), true);
   assert.equal(demoInputsMismatch({ range_km: 1000, payload_kg: 50 }, { range_km: 1000 }), true);
   assert.equal(demoInputsMismatch({ range_km: 1200 }, null), false);
+});
+
+test("Demo parser accepts a partial variable-count result and keeps qualification metadata", () => {
+  const candidate = {
+    ...demoCandidate(1, "candidate-partial", 18),
+    feasible: false,
+    geometry_fingerprint: "geometry-only-fingerprint",
+    qualification: {
+      geometry_valid: true,
+      demo_constraints_satisfied: false,
+      engineering_validation: "not_performed",
+    },
+    selection: {
+      selected: true,
+      reason_code: "selected_best_ranked",
+      ranked_position: 1,
+      minimum_geometry_distance_to_selected: null,
+    },
+    cruise_consistency: {
+      status: "supported",
+      reason_code: "matched",
+      reference_state: {
+        mass_basis: "mission_demo_takeoff_mass",
+        mass_kg: 1001,
+        altitude_m: 2000,
+        speed_kmh: 220,
+        density_kg_m3: 1.006,
+        dynamic_pressure_pa: 1878,
+        reference_area_m2: 25,
+      },
+      required_cl: 0.209,
+      polar_support: {
+        min_cl: -0.2,
+        max_cl: 1.1,
+        alpha_min_deg: -4,
+        alpha_max_deg: 12,
+        sample_count: 17,
+      },
+      matched_working_point: {
+        alpha_deg: 1.4,
+        cl: 0.209,
+        cd: 0.031,
+        ld: 6.74,
+        method: "linear_interpolation_in_cl",
+        bracket_indices: [5, 6],
+      },
+      comparison: { max_ld: 17, ld_at_reference_state: 6.74, range_model_ld: 17 },
+      enters_score: false,
+      enters_range_estimate: false,
+      scope: "diagnostic_only",
+    },
+  };
+  const payload = {
+    ...DEMO_RESULT_PAYLOAD,
+    status: "no_feasible_solution_found",
+    search: { ...DEMO_RESULT_PAYLOAD.search, valid: 23, elapsed_ms: 42.5 },
+    candidates: [candidate],
+    selection: {
+      requested_count: 3,
+      returned_count: 1,
+      valid_candidate_count: 23,
+      feasible_valid_count: 0,
+      infeasible_valid_count: 23,
+      outcome: "partial",
+      decisions: [
+        {
+          candidate_id: "candidate-partial",
+          ranked_position: 1,
+          selected: true,
+          reason_code: "selected_best_ranked",
+          feasible: false,
+          objective: 100,
+          geometry_fingerprint: "geometry-only-fingerprint",
+          minimum_geometry_distance_to_selected: null,
+        },
+      ],
+    },
+  };
+  const parsed = parseDemoSearchResult(payload);
+  assert.equal(parsed.candidates.length, 1);
+  assert.equal(parsed.selection.outcome, "partial");
+  assert.equal(parsed.candidates[0].qualification.engineering_validation, "not_performed");
+  assert.equal(parsed.candidates[0].cruise_consistency?.comparison.max_ld, 17);
+  assert.equal(parsed.search.elapsed_ms, 42.5);
+});
+
+test("Demo parser distinguishes no valid candidates from no feasible candidates", () => {
+  const parsed = parseDemoSearchResult({
+    ...DEMO_RESULT_PAYLOAD,
+    status: "no_valid_candidates",
+    search: { ...DEMO_RESULT_PAYLOAD.search, evaluations: 24, valid: 0, invalid: 24 },
+    candidates: [],
+    selection: {
+      requested_count: 3,
+      returned_count: 0,
+      valid_candidate_count: 0,
+      feasible_valid_count: 0,
+      infeasible_valid_count: 0,
+      outcome: "none",
+      decisions: [],
+    },
+  });
+  assert.equal(parsed.status, "no_valid_candidates");
+  assert.deepEqual(parsed.candidates, []);
+  assert.equal(parsed.selection.returned_count, 0);
+  assert.throws(
+    () => parseDemoSearchResult({
+      ...DEMO_RESULT_PAYLOAD,
+      status: "no_feasible_solution_found",
+      candidates: [],
+    }),
+    /没有候选方案/,
+  );
+});
+
+test("Demo recovery list parser supports succeeded and interrupted jobs", () => {
+  const baseJob = {
+    id: "demo-job-complete",
+    status: "succeeded",
+    progress: 1,
+    stage: "completed",
+    error: null,
+    created_at: "2026-09-05T00:00:00Z",
+    updated_at: "2026-09-05T00:01:00Z",
+    mode: "demo",
+    family_id: "conventional_v2",
+    preset_id: "utility",
+    profile_id: "mission_demo_v1",
+    profile_version: "1.0.0",
+    formal_status: "pending_teacher_decision",
+  };
+  const parsed = parseDemoJobList({
+    jobs: [baseJob, {
+      ...baseJob,
+      id: "demo-job-interrupted",
+      status: "interrupted",
+      stage: "interrupted",
+      error: "automatic resume is not supported",
+    }],
+    recovery: { completed_queryable: true, interrupted_resumable: false },
+  });
+  assert.deepEqual(parsed.jobs.map(({ status }) => status), ["succeeded", "interrupted"]);
+  assert.equal(parsed.recovery.interrupted_resumable, false);
+});
+
+test("API error parser preserves structured recovery error code and message", async () => {
+  const error = await errorFromResponse(new Response(JSON.stringify({
+    detail: {
+      code: "job_interrupted",
+      message: "Automatic resume is not supported.",
+      resumable: false,
+    },
+  }), { status: 409, headers: { "Content-Type": "application/json" } }), "fallback");
+  assert.match(error.message, /job_interrupted/);
+  assert.match(error.message, /Automatic resume is not supported/);
 });
