@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import {
-  type KeyboardEvent,
   useEffect,
   useMemo,
   useRef,
@@ -15,6 +14,7 @@ import {
   geometryNominalSize,
   modelScaleForMode,
   type GeometryScaleMode,
+  type GeometryState,
 } from "@/components/rapid-design/geometry";
 
 import { ConvergenceChart, PolarChart } from "./RapidCharts";
@@ -54,17 +54,7 @@ const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8900";
 
 const TEACHER_DECISIONS_URL =
-  "https://github.com/hongyi-lab/RapidProcessDesign/blob/codex/round7-task-response-reliability/docs/teacher-decisions-optimization-spec-cn.md";
-
-const WORKSPACE_TABS: ReadonlyArray<{
-  id: WorkspaceTab;
-  label: string;
-  description: string;
-}> = [
-  { id: "analyze", label: "Analyze", description: "整机几何与低阶分析" },
-  { id: "mission", label: "Mission Design", description: "可运行 Demo · Formal 待确认" },
-  { id: "legacy", label: "Legacy Conventional Demo", description: "原有任务优化演示" },
-];
+  "https://github.com/hongyi-lab/RapidProcessDesign/blob/codex/round8-simple-design-flow/docs/teacher-decisions-optimization-spec-cn.md";
 
 type AnalysisRecord = {
   data: AnalyzeEnvelope;
@@ -140,7 +130,7 @@ function NumericControl({
 }
 
 export default function RapidDesignPage() {
-  const [activeTab, setActiveTab] = useState<WorkspaceTab>("analyze");
+  const [activeTab, setActiveTab] = useState<WorkspaceTab>("mission");
   const [families, setFamilies] = useState<FamilyManifest[]>([]);
   const [familiesLoading, setFamiliesLoading] = useState(true);
   const [familyError, setFamilyError] = useState<string | null>(null);
@@ -155,6 +145,9 @@ export default function RapidDesignPage() {
   const [analyzeError, setAnalyzeError] = useState<string | null>(null);
   const [analyzeRunNonce, setAnalyzeRunNonce] = useState(0);
   const analyzeSequenceRef = useRef(0);
+  const advancedMenuRef = useRef<HTMLDetailsElement>(null);
+  const [missionPresetId, setMissionPresetId] = useState<string | null>(null);
+  const [missionBaselineGeometry, setMissionBaselineGeometry] = useState<GeometryState | null>(null);
 
   const [config, setConfig] = useState<RapidConfig | null>(null);
   const [inputs, setInputs] = useState<Record<string, number>>({});
@@ -166,6 +159,10 @@ export default function RapidDesignPage() {
   const selectedManifest = useMemo(
     () => families.find((manifest) => manifest.family_id === selectedFamilyId) ?? null,
     [families, selectedFamilyId],
+  );
+  const missionManifest = useMemo(
+    () => families.find((manifest) => manifest.family_id === "conventional_v2") ?? null,
+    [families],
   );
   const selectedPreset = useMemo(
     () => selectedManifest ? familyPreset(selectedManifest, selectedPresetId) : null,
@@ -207,8 +204,12 @@ export default function RapidDesignPage() {
       })
       .then((payload) => {
         const initialFamily = preferredInitialFamily(payload);
+        const demoFamily = payload.find((manifest) => manifest.family_id === "conventional_v2") ?? null;
         setFamilies(payload);
         if (initialFamily) selectFamily(initialFamily);
+        setMissionPresetId(
+          demoFamily?.default_preset_id ?? demoFamily?.presets[0]?.preset_id ?? null,
+        );
         setFamiliesLoading(false);
       })
       .catch((reason: unknown) => {
@@ -220,6 +221,7 @@ export default function RapidDesignPage() {
   }, []);
 
   useEffect(() => {
+    if (activeTab !== "legacy") return;
     const controller = new AbortController();
     fetch(`${API_BASE_URL}/api/rapid-design/config`, { signal: controller.signal })
       .then(async (response) => {
@@ -236,10 +238,46 @@ export default function RapidDesignPage() {
         }
       });
     return () => controller.abort();
-  }, []);
+  }, [activeTab]);
 
   useEffect(() => {
-    if (!selectedManifest || !selectedManifest.capabilities.analyze) {
+    if (!missionManifest || !missionPresetId) {
+      setMissionBaselineGeometry(null);
+      return;
+    }
+    setMissionBaselineGeometry(null);
+    const controller = new AbortController();
+    const payload = toAnalyzePayload(
+      missionManifest.family_id,
+      missionPresetId,
+      initialDesignValues(missionManifest, missionPresetId),
+      initialConditionValues(missionManifest),
+    );
+    fetch(`${API_BASE_URL}/api/rapid-design/analyze`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        if (!response.ok) throw await errorFromResponse(response, "无法读取原方案几何");
+        return (await response.json()) as AnalyzeEnvelope;
+      })
+      .then((data) => {
+        if (data.family_id === missionManifest.family_id && data.preset_id === missionPresetId) {
+          setMissionBaselineGeometry(data.geometry_state);
+        }
+      })
+      .catch((reason: unknown) => {
+        if ((reason as { name?: string }).name !== "AbortError") {
+          setMissionBaselineGeometry(null);
+        }
+      });
+    return () => controller.abort();
+  }, [missionManifest, missionPresetId]);
+
+  useEffect(() => {
+    if (activeTab !== "analyze" || !selectedManifest || !selectedManifest.capabilities.analyze) {
       setAnalyzeLoading(false);
       return;
     }
@@ -290,7 +328,7 @@ export default function RapidDesignPage() {
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [analyzeRequestKey, analyzeRunNonce, condition, conditionKey, design, selectedManifest, selectedPresetId]);
+  }, [activeTab, analyzeRequestKey, analyzeRunNonce, condition, conditionKey, design, selectedManifest, selectedPresetId]);
 
   useEffect(() => () => eventSourceRef.current?.close(), []);
 
@@ -340,6 +378,11 @@ export default function RapidDesignPage() {
     setAnalyzeError(null);
   }
 
+  function handleMissionPresetChange(presetId: string) {
+    if (!missionManifest?.presets.some((preset) => preset.preset_id === presetId)) return;
+    setMissionPresetId(presetId);
+  }
+
   function resetCurrentPreset() {
     if (!selectedManifest) return;
     setDesign(initialDesignValues(selectedManifest, selectedPresetId));
@@ -385,21 +428,6 @@ export default function RapidDesignPage() {
       familyId: currentAnalysis.family_id,
       conditionKey,
     });
-  }
-
-  function handleTabKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
-    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
-    event.preventDefault();
-    const currentIndex = WORKSPACE_TABS.findIndex((tab) => tab.id === activeTab);
-    const nextIndex = event.key === "Home"
-      ? 0
-      : event.key === "End"
-        ? WORKSPACE_TABS.length - 1
-        : (currentIndex + (event.key === "ArrowLeft" ? -1 : 1) + WORKSPACE_TABS.length)
-          % WORKSPACE_TABS.length;
-    const nextTab = WORKSPACE_TABS[nextIndex].id;
-    setActiveTab(nextTab);
-    window.requestAnimationFrame(() => document.getElementById(`rapid-tab-${nextTab}`)?.focus());
   }
 
   async function loadResult(jobId: string) {
@@ -481,42 +509,68 @@ export default function RapidDesignPage() {
         <div className={styles.brandMark} aria-hidden="true">RP</div>
         <div className={styles.brandCopy}>
           <h1>Rapid Process Design</h1>
-          <p>Overall Aircraft Design Workbench</p>
+          <p>任务驱动的飞机概念方案生成</p>
         </div>
         <div className={styles.topbarMeta}>
-          <span>{selectedManifest?.display_name ?? "Loading families"}</span>
+          <span>
+            {activeTab === "mission"
+              ? "方案生成"
+              : activeTab === "analyze" ? "高级 · 整机分析" : "高级 · 旧版演示"}
+          </span>
           <Link href="/">返回 AeroSpec</Link>
         </div>
       </header>
 
-      <nav className={styles.tabbar} role="tablist" aria-label="Rapid Design 工作模式">
-        {WORKSPACE_TABS.map((tab) => (
-          <button
-            key={tab.id}
-            id={`rapid-tab-${tab.id}`}
-            type="button"
-            role="tab"
-            aria-selected={activeTab === tab.id}
-            aria-controls={`rapid-panel-${tab.id}`}
-            tabIndex={activeTab === tab.id ? 0 : -1}
-            className={activeTab === tab.id ? styles.activeTab : undefined}
-            onClick={() => setActiveTab(tab.id)}
-            onKeyDown={handleTabKeyDown}
-          >
-            {tab.label}
-            <small>{tab.description}</small>
-          </button>
-        ))}
+      <nav className={styles.simpleNav} aria-label="Rapid Design 页面导航">
+        <button
+          type="button"
+          className={styles.designHomeButton}
+          data-active={activeTab === "mission"}
+          aria-current={activeTab === "mission" ? "page" : undefined}
+          onClick={() => setActiveTab("mission")}
+        >
+          <strong>生成飞机方案</strong>
+          <small>填写任务 → 生成 → 比较</small>
+        </button>
+        <details ref={advancedMenuRef} className={styles.advancedMenu}>
+          <summary>高级工具</summary>
+          <div>
+            <button
+              type="button"
+              data-active={activeTab === "analyze"}
+              onClick={() => {
+                setActiveTab("analyze");
+                if (advancedMenuRef.current) advancedMenuRef.current.open = false;
+              }}
+            >
+              <strong>整机参数分析</strong>
+              <small>调整几何并查看气动曲线</small>
+            </button>
+            <button
+              type="button"
+              data-active={activeTab === "legacy"}
+              onClick={() => {
+                setActiveTab("legacy");
+                if (advancedMenuRef.current) advancedMenuRef.current.open = false;
+              }}
+            >
+              <strong>旧版演示</strong>
+              <small>保留原有流程用于回归</small>
+            </button>
+          </div>
+        </details>
       </nav>
 
       {activeTab === "analyze" && (
         <section
           id="rapid-panel-analyze"
-          role="tabpanel"
-          aria-labelledby="rapid-tab-analyze"
+          aria-label="高级整机参数分析"
           className={styles.analyzeWorkspace}
         >
           <aside className={styles.analyzeSidebar} aria-label="Aircraft family 分析输入">
+            <button type="button" className={styles.backToDesign} onClick={() => setActiveTab("mission")}>
+              ← 返回生成方案
+            </button>
             <div className={styles.sidebarIntro}>
               <span>INPUT / FAMILY MANIFEST</span>
               <h2>构型与工况</h2>
@@ -760,44 +814,63 @@ export default function RapidDesignPage() {
 
       <section
         id="rapid-panel-mission"
-        role="tabpanel"
-        aria-labelledby="rapid-tab-mission"
+        aria-label="飞机方案生成"
         className={styles.missionWorkspace}
         hidden={activeTab !== "mission"}
         aria-hidden={activeTab !== "mission"}
       >
+          {familyError && (
+            <div className={styles.missionStartupError} role="alert">
+              <div>
+                <strong>无法加载飞机方案配置</strong>
+                <p>{familyError}</p>
+              </div>
+              <button type="button" onClick={() => window.location.reload()}>
+                重新加载
+              </button>
+            </div>
+          )}
           <MissionDemoPanel
             apiBaseUrl={API_BASE_URL}
-            manifest={selectedManifest}
-            selectedPresetId={selectedPresetId}
+            manifest={missionManifest}
+            selectedPresetId={missionPresetId}
+            onPresetChange={handleMissionPresetChange}
+            baselineGeometry={missionBaselineGeometry}
             onAnalyzeCandidate={inspectDemoCandidate}
           />
-          <article className={styles.missionPanel}>
-            <span className={styles.pendingCode}>optimization_spec_pending</span>
-            <h2>Formal Optimization 规范待老师确认</h2>
-            <p>
-              上方 Mission Demo 使用明确标注、可复现的临时 profile。正式优化仍不会自行决定目标函数、
-              设计变量、约束权重、population、iterations 或不确定性方法。
-            </p>
-            <dl>
-              <div><dt>当前 family</dt><dd>{selectedManifest?.display_name ?? "尚未选择"}</dd></div>
-              <div><dt>Family 状态</dt><dd>{selectedManifest?.optimization_status ?? "pending_teacher_decision"}</dd></div>
-              <div><dt>Formal 接口行为</dt><dd>保持阻断；Demo 结果不冒充正式优化结论</dd></div>
-            </dl>
-            <a href={TEACHER_DECISIONS_URL} target="_blank" rel="noreferrer">
-              查看老师决策清单 ↗
-            </a>
-          </article>
+          <details className={styles.teacherDetails}>
+            <summary>
+              <span>技术说明与老师待确认项</span>
+              <small>不会阻挡当前 Demo 运行</small>
+            </summary>
+            <article className={styles.missionPanel}>
+              <span className={styles.pendingCode}>optimization_spec_pending</span>
+              <h2>正式优化规范仍待老师确认</h2>
+              <p>
+                当前页面使用独立、可复现的临时 Demo 配置。正式优化的目标、变量、约束、算法与验证标准仍保持待确认。
+              </p>
+              <dl>
+                <div><dt>当前 Demo</dt><dd>可运行、可恢复、可追溯</dd></div>
+                <div><dt>正式优化</dt><dd>{missionManifest?.optimization_status ?? "pending_teacher_decision"}</dd></div>
+                <div><dt>工程验证</dt><dd>尚未执行，不把 Demo 结果称为定型结论</dd></div>
+              </dl>
+              <a href={TEACHER_DECISIONS_URL} target="_blank" rel="noreferrer">
+                查看老师决策摘要 ↗
+              </a>
+            </article>
+          </details>
       </section>
 
       {activeTab === "legacy" && (
         <section
           id="rapid-panel-legacy"
-          role="tabpanel"
-          aria-labelledby="rapid-tab-legacy"
+          aria-label="高级旧版演示"
           className={styles.optimizeWorkspace}
         >
           <aside className={styles.optimizeSidebar} aria-label="Legacy Conventional Demo 输入">
+            <button type="button" className={styles.backToDesign} onClick={() => setActiveTab("mission")}>
+              ← 返回生成方案
+            </button>
             <div className={styles.sidebarIntro}>
               <span>LEGACY / CONVENTIONAL_V1</span>
               <h2>原有任务与约束</h2>

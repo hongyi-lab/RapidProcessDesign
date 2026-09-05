@@ -10,6 +10,9 @@ import {
 
 import {
   ParametricAircraftPreview,
+  geometryNominalSize,
+  modelScaleForMode,
+  type GeometryState,
   type GeometryView,
 } from "@/components/rapid-design/geometry";
 
@@ -60,12 +63,39 @@ const VIEW_OPTIONS: ReadonlyArray<{ id: GeometryView; label: string }> = [
   { id: "front", label: "前视" },
 ];
 
+const INPUT_LABELS: Record<string, string> = {
+  required_range_km: "目标航程",
+  payload_mass_kg: "任务载荷",
+  cruise_speed_kmh: "巡航速度",
+  cruise_altitude_m: "巡航高度",
+  max_fuel_mass_kg: "最大燃油质量",
+  max_takeoff_mass_kg: "最大起飞质量",
+  target_lift_to_drag: "目标升阻比",
+};
+
+const TASK_PRESENTATION: Record<string, { label: string; description: string }> = {
+  long_endurance_uav: {
+    label: "长航时无人机",
+    description: "高展弦比、V 尾、后推布局",
+  },
+  fast_cruise_recon: {
+    label: "快速巡航侦察",
+    description: "后掠薄翼、T 尾、前拉布局",
+  },
+  payload_utility: {
+    label: "载荷运输",
+    description: "宽机身、高翼、双发吊舱",
+  },
+};
+
 type TransportState = "idle" | "sse" | "polling";
 
 type MissionDemoPanelProps = {
   apiBaseUrl: string;
   manifest: FamilyManifest | null;
   selectedPresetId: string | null;
+  onPresetChange: (presetId: string) => void;
+  baselineGeometry: GeometryState | null;
   onAnalyzeCandidate: (handoff: DemoAnalyzeHandoff) => void;
 };
 
@@ -82,47 +112,64 @@ function DemoNumericControl({
 }) {
   const digits = digitsForStep(definition.step);
   const id = `mission-demo-${definition.key}`;
-  const update = (raw: string) => {
-    const parsed = Number(raw);
-    if (Number.isFinite(parsed)) {
-      onChange(clamp(parsed, definition.minimum, definition.maximum));
+  const [draft, setDraft] = useState(() => String(value));
+
+  useEffect(() => {
+    setDraft(String(value));
+  }, [value]);
+
+  const commitDraft = () => {
+    const parsed = Number(draft);
+    if (draft.trim() === "" || !Number.isFinite(parsed)) {
+      setDraft(String(value));
+      return;
     }
+    const next = clamp(parsed, definition.minimum, definition.maximum);
+    setDraft(String(Number(next.toFixed(digits))));
+    if (next !== value) onChange(next);
   };
+
+  const parsedDraft = Number(draft);
+  const draftIsValid = draft.trim() !== ""
+    && Number.isFinite(parsedDraft)
+    && parsedDraft >= definition.minimum
+    && parsedDraft <= definition.maximum;
 
   return (
     <div className={styles.inputControl}>
       <div className={styles.inputLabel}>
-        <label id={`${id}-label`} htmlFor={`${id}-number`}>{definition.label}</label>
-        <span>{definition.unit || "—"}</span>
+        <label id={`${id}-label`} htmlFor={`${id}-number`}>
+          {INPUT_LABELS[definition.key] ?? definition.label}
+        </label>
       </div>
       <div className={styles.inputFields}>
         <input
-          id={`${id}-range`}
-          type="range"
-          min={definition.minimum}
-          max={definition.maximum}
-          step={definition.step}
-          value={value}
-          disabled={disabled}
-          aria-labelledby={`${id}-label`}
-          onChange={(event) => update(event.target.value)}
-        />
-        <input
           id={`${id}-number`}
           type="number"
+          inputMode="decimal"
           min={definition.minimum}
           max={definition.maximum}
           step={definition.step}
-          value={value}
+          value={draft}
           disabled={disabled}
           aria-labelledby={`${id}-label`}
-          onChange={(event) => update(event.target.value)}
+          aria-describedby={`${id}-bounds`}
+          aria-invalid={!draftIsValid}
+          onChange={(event) => setDraft(event.target.value)}
+          onBlur={commitDraft}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") event.currentTarget.blur();
+            if (event.key === "Escape") {
+              event.preventDefault();
+              setDraft(String(value));
+            }
+          }}
         />
+        <span>{definition.unit || "—"}</span>
       </div>
-      <div className={styles.inputBounds}>
-        <span>{formatNumber(definition.minimum, digits)}</span>
-        <span>{formatNumber(definition.maximum, digits)}</span>
-      </div>
+      <p id={`${id}-bounds`} className={styles.inputBounds}>
+        可填 {formatNumber(definition.minimum, digits)}–{formatNumber(definition.maximum, digits)} {definition.unit}
+      </p>
     </div>
   );
 }
@@ -273,12 +320,14 @@ function CandidateCard({
   view,
   sharedReferenceSize,
   anyFeasible,
+  baselineGeometry,
   onAnalyze,
 }: {
   candidate: DemoCandidate;
   view: GeometryView;
   sharedReferenceSize: number;
   anyFeasible: boolean;
+  baselineGeometry: GeometryState | null;
   onAnalyze: (candidate: DemoCandidate) => void;
 }) {
   const statusLabel = candidate.feasible
@@ -292,7 +341,7 @@ function CandidateCard({
       <header className={styles.candidateHeader}>
         <div>
           <span className={styles.rank}>#{candidate.rank}</span>
-          <h4>候选 {compactId(candidate.candidate_id)}</h4>
+          <h4>{candidate.rank === 1 ? "当前 Demo 首选飞机" : `候选方案 ${candidate.rank}`}</h4>
         </div>
         <span className={styles.feasibility}>{statusLabel}</span>
       </header>
@@ -312,14 +361,14 @@ function CandidateCard({
       <div className={styles.previewFrame}>
         <ParametricAircraftPreview
           geometry={candidate.geometry_state}
+          baselineGeometry={baselineGeometry}
           view={view}
           scaleMode="world"
           sharedReferenceSize={sharedReferenceSize}
-          interactive={false}
+          interactive
           showViewControls={false}
           showScaleControls={false}
         />
-        <span className={styles.scaleStamp}>共享米制尺度 · 只读</span>
       </div>
 
       <dl className={styles.metricGrid}>
@@ -334,46 +383,8 @@ function CandidateCard({
         ))}
       </dl>
 
-      <section className={styles.scorePanel} aria-label={`候选 ${candidate.rank} Demo score`}>
-        <div className={styles.sectionHeading}>
-          <h5>Demo score breakdown</h5>
-          <strong>{formatNumber(candidate.score_breakdown.objective, 3)}</strong>
-        </div>
-        <dl>
-          <div><dt>归一化质量</dt><dd>{formatNumber(candidate.score_breakdown.normalized_takeoff_mass, 3)}</dd></div>
-          <div><dt>违约权重</dt><dd>{formatNumber(candidate.score_breakdown.constraint_penalty, 3)}</dd></div>
-          <div><dt>总违约量</dt><dd>{formatNumber(candidate.score_breakdown.constraint_violation, 3)}</dd></div>
-          <div>
-            <dt>实际违约贡献</dt>
-            <dd>{formatNumber(
-              candidate.score_breakdown.constraint_penalty
-                * candidate.score_breakdown.constraint_violation,
-              3,
-            )}</dd>
-          </div>
-        </dl>
-        {candidate.score_breakdown.terms.length > 0 && (
-          <details className={styles.scoreTerms}>
-            <summary>查看后端评分项</summary>
-            <ul>
-              {candidate.score_breakdown.terms.map((term, index) => (
-                <li key={`${term.metric_key ?? term.label ?? "term"}-${index}`}>
-                  <span>{term.label ?? term.metric_key ?? `评分项 ${index + 1}`}</span>
-                  <strong>
-                    {typeof term.contribution === "number"
-                      ? formatNumber(term.contribution, 4)
-                      : "已记录"}
-                  </strong>
-                </li>
-              ))}
-            </ul>
-          </details>
-        )}
-        <p>此分数仅用于本次 Demo 排序，不是 Analyze 输出。</p>
-      </section>
-
-      <section className={styles.constraintPanel} aria-label={`候选 ${candidate.rank} constraints`}>
-        <h5>约束检查</h5>
+      <section className={styles.constraintSummary} aria-label={`候选 ${candidate.rank} 约束结果`}>
+        <h5>任务要求</h5>
         {candidate.constraints.length === 0 ? (
           <p>后端未返回逐项约束。</p>
         ) : (
@@ -381,40 +392,99 @@ function CandidateCard({
             {candidate.constraints.slice(0, 5).map((constraint, index) => (
               <li key={`${constraint.key ?? constraint.name ?? index}`} data-pass={constraint.satisfied !== false}>
                 <span>{constraintTitle(constraint, index)}</span>
-                <strong>{constraintValue(constraint)}</strong>
+                <strong>{constraint.satisfied === false ? "未通过" : "通过"}</strong>
               </li>
             ))}
           </ul>
         )}
       </section>
 
-      <CruiseConsistencyPanel candidate={candidate} />
+      <details className={styles.candidateTechnical}>
+        <summary>候选技术详情</summary>
+        <div className={styles.candidateTechnicalBody}>
+          <section className={styles.scorePanel} aria-label={`候选 ${candidate.rank} Demo score`}>
+            <div className={styles.sectionHeading}>
+              <h5>Demo score breakdown</h5>
+              <strong>{formatNumber(candidate.score_breakdown.objective, 3)}</strong>
+            </div>
+            <dl>
+              <div><dt>归一化质量</dt><dd>{formatNumber(candidate.score_breakdown.normalized_takeoff_mass, 3)}</dd></div>
+              <div><dt>违约权重</dt><dd>{formatNumber(candidate.score_breakdown.constraint_penalty, 3)}</dd></div>
+              <div><dt>总违约量</dt><dd>{formatNumber(candidate.score_breakdown.constraint_violation, 3)}</dd></div>
+              <div>
+                <dt>实际违约贡献</dt>
+                <dd>{formatNumber(
+                  candidate.score_breakdown.constraint_penalty
+                    * candidate.score_breakdown.constraint_violation,
+                  3,
+                )}</dd>
+              </div>
+            </dl>
+            {candidate.score_breakdown.terms.length > 0 && (
+              <details className={styles.scoreTerms}>
+                <summary>查看后端评分项</summary>
+                <ul>
+                  {candidate.score_breakdown.terms.map((term, index) => (
+                    <li key={`${term.metric_key ?? term.label ?? "term"}-${index}`}>
+                      <span>{term.label ?? term.metric_key ?? `评分项 ${index + 1}`}</span>
+                      <strong>
+                        {typeof term.contribution === "number"
+                          ? formatNumber(term.contribution, 4)
+                          : "已记录"}
+                      </strong>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
+            <p>此分数仅用于本次 Demo 排序，不是 Analyze 输出。</p>
+          </section>
 
-      {(candidate.domain_status || candidate.warnings.length > 0) && (
-        <div className={styles.candidateNotes}>
-          {candidate.domain_status && (
-            <p><strong>Analyze domain:</strong> {candidate.domain_status.status}</p>
+          <section className={styles.constraintPanel} aria-label={`候选 ${candidate.rank} constraints`}>
+            <h5>详细约束余量</h5>
+            {candidate.constraints.length === 0 ? (
+              <p>后端未返回逐项约束。</p>
+            ) : (
+              <ul>
+                {candidate.constraints.slice(0, 5).map((constraint, index) => (
+                  <li key={`${constraint.key ?? constraint.name ?? index}`} data-pass={constraint.satisfied !== false}>
+                    <span>{constraintTitle(constraint, index)}</span>
+                    <strong>{constraintValue(constraint)}</strong>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          <CruiseConsistencyPanel candidate={candidate} />
+
+          {(candidate.domain_status || candidate.warnings.length > 0) && (
+            <div className={styles.candidateNotes}>
+              {candidate.domain_status && (
+                <p><strong>Analyze domain:</strong> {candidate.domain_status.status}</p>
+              )}
+              {candidate.warnings.map((warning) => <p key={warning}>{warning}</p>)}
+            </div>
           )}
-          {candidate.warnings.map((warning) => <p key={warning}>{warning}</p>)}
-        </div>
-      )}
 
-      <div className={styles.candidateFooter}>
-        <div>
-          <span title={candidate.design_hash}>design hash {compactId(candidate.design_hash)}</span>
-          <span title={candidate.geometry_fingerprint ?? undefined}>
-            geometry {candidate.geometry_fingerprint
-              ? compactId(candidate.geometry_fingerprint)
-              : "旧结果未记录"}
-          </span>
-          <span title={candidate.selection.explanation ?? undefined}>
-            选择：{selectionReason(candidate.selection.reason_code)}
-          </span>
+          <div className={styles.candidateFooter}>
+            <div>
+              <span title={candidate.design_hash}>design hash {compactId(candidate.design_hash)}</span>
+              <span title={candidate.geometry_fingerprint ?? undefined}>
+                geometry {candidate.geometry_fingerprint
+                  ? compactId(candidate.geometry_fingerprint)
+                  : "旧结果未记录"}
+              </span>
+              <span title={candidate.selection.explanation ?? undefined}>
+                选择：{selectionReason(candidate.selection.reason_code)}
+              </span>
+            </div>
+            <button type="button" onClick={() => onAnalyze(candidate)}>
+              在技术分析中打开
+            </button>
+          </div>
         </div>
-        <button type="button" onClick={() => onAnalyze(candidate)}>
-          在 Analyze 中检查
-        </button>
-      </div>
+      </details>
     </article>
   );
 }
@@ -423,6 +493,8 @@ export function MissionDemoPanel({
   apiBaseUrl,
   manifest,
   selectedPresetId,
+  onPresetChange,
+  baselineGeometry,
   onAnalyzeCandidate,
 }: MissionDemoPanelProps) {
   const [config, setConfig] = useState<DemoProfileConfig | null>(null);
@@ -443,6 +515,7 @@ export function MissionDemoPanel({
   const [recentLoading, setRecentLoading] = useState(false);
   const [recentError, setRecentError] = useState<string | null>(null);
   const [recoveryOpen, setRecoveryOpen] = useState(false);
+  const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null);
 
   const eventSourceRef = useRef<EventSource | null>(null);
   const pollTimerRef = useRef<number | null>(null);
@@ -471,9 +544,11 @@ export function MissionDemoPanel({
     () => topDemoCandidates(result?.candidates ?? [], 3),
     [result],
   );
-  const sharedReferenceSize = useMemo(
-    () => demoSharedReferenceSize(topCandidates, "world"),
-    [topCandidates],
+  const selectedCandidate = useMemo(
+    () => topCandidates.find((candidate) => candidate.candidate_id === selectedCandidateId)
+      ?? topCandidates[0]
+      ?? null,
+    [selectedCandidateId, topCandidates],
   );
   const metricCoverage = result?.metric_coverage ?? config?.metric_coverage ?? null;
   const runFamilyId = result?.family_id ?? job?.family_id ?? null;
@@ -485,6 +560,15 @@ export function MissionDemoPanel({
     runPresetId,
   );
   const inputsMismatch = demoInputsMismatch(inputs, result?.inputs);
+  const comparisonGeometry = selectionMismatch ? null : baselineGeometry;
+  const sharedReferenceSize = useMemo(() => {
+    const candidateSize = demoSharedReferenceSize(topCandidates, "world");
+    if (!comparisonGeometry) return candidateSize;
+    return Math.max(
+      candidateSize,
+      geometryNominalSize(comparisonGeometry) * modelScaleForMode(comparisonGeometry, "world"),
+    );
+  }, [comparisonGeometry, topCandidates]);
 
   const stopTransport = useCallback(() => {
     eventSourceRef.current?.close();
@@ -529,6 +613,10 @@ export function MissionDemoPanel({
   }, [apiBaseUrl, configAttempt]);
 
   useEffect(() => () => invalidateRun(), [invalidateRun]);
+
+  useEffect(() => {
+    setSelectedCandidateId(topCandidates[0]?.candidate_id ?? null);
+  }, [result?.job_id, topCandidates]);
 
   const loadRecentJobs = useCallback(async (): Promise<void> => {
     const requestId = ++recentRequestRef.current;
@@ -594,7 +682,10 @@ export function MissionDemoPanel({
         || parsed.job_id !== jobId
       ) return;
       setResult(parsed);
-      if (restoreInputs) setInputs({ ...parsed.inputs });
+      if (restoreInputs) {
+        setInputs({ ...parsed.inputs });
+        onPresetChange(parsed.preset_id);
+      }
       setResultError(null);
       void loadRecentJobs();
     } catch (reason: unknown) {
@@ -610,7 +701,7 @@ export function MissionDemoPanel({
         setResultLoading(false);
       }
     }
-  }, [apiBaseUrl, loadRecentJobs]);
+  }, [apiBaseUrl, loadRecentJobs, onPresetChange]);
 
   const pollJob = useCallback(async function poll(
     jobId: string,
@@ -850,24 +941,14 @@ export function MissionDemoPanel({
       <header className={styles.hero}>
         <div>
           <div className={styles.badges} aria-label="Mission Demo status">
-            <span>DEMO</span>
-            <span>NOT FORMAL</span>
-            <span>UNAPPROVED</span>
+            <span>概念级 Demo</span>
           </div>
-          <h2 id="mission-demo-title">Mission 输入 → 可解释候选搜索</h2>
+          <h2 id="mission-demo-title">填写任务，生成飞机方案</h2>
           <p>
-            使用固定、可复现的演示 profile 搜索至多 3 个候选；不足 3 个时保留已有有效结果。目标、权重、边界与任务模型仍未获老师批准。
+            选择任务类型并填写基础需求，系统会搜索并展示最多三个可比较方案。
           </p>
         </div>
-        <dl className={styles.profileSummary}>
-          <div><dt>Profile</dt><dd>{config ? `${config.profile_id} · v${config.profile_version}` : "读取中"}</dd></div>
-          <div><dt>Status</dt><dd>{result?.formal_status ?? config?.formal_status ?? "—"}</dd></div>
-          <div><dt>Seed</dt><dd>{profileNumber(config, "seed")}</dd></div>
-          <div><dt>预算</dt><dd>{config ? `${profileNumber(config, "iterations")} × ${profileNumber(config, "evaluations_per_iteration")}` : "—"}</dd></div>
-        </dl>
       </header>
-
-      {config?.disclaimer && <p className={styles.disclaimer}>{config.disclaimer}</p>}
 
       {configError && (
         <div className={styles.errorBanner} role="alert">
@@ -901,15 +982,51 @@ export function MissionDemoPanel({
       <div className={styles.workspace}>
         <aside className={styles.inputPane} aria-label="Mission Demo 输入">
           <div className={styles.paneHeading}>
-            <span>01 · INPUTS</span>
-            <h3>任务需求与约束</h3>
-            <p>新运行会清空旧候选；运行中输入锁定。</p>
+            <span>01 · 任务设置</span>
+            <h3>你要设计什么飞机？</h3>
+            <p>先选任务类型，再填写四项基础需求。</p>
           </div>
 
-          {(["requirement", "constraint"] as const).map((group) => (
-            <fieldset key={group} disabled={!config || running || submitting}>
-              <legend>{group === "requirement" ? "任务输入" : "上限与目标"}</legend>
-              {groupedInputs[group].map((definition) => (
+          <fieldset className={styles.taskTypeGroup} disabled={!manifest || running || submitting}>
+            <legend>任务类型</legend>
+            <div className={styles.taskTypeCards}>
+              {manifest?.presets.map((preset) => {
+                const presentation = TASK_PRESENTATION[preset.preset_id];
+                const active = selectedPresetId === preset.preset_id;
+                return (
+                  <button
+                    key={preset.preset_id}
+                    type="button"
+                    className={styles.taskTypeCard}
+                    aria-pressed={active}
+                    onClick={() => onPresetChange(preset.preset_id)}
+                  >
+                    <strong>{presentation?.label ?? preset.label}</strong>
+                    <span>{presentation?.description ?? preset.description}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </fieldset>
+
+          <fieldset className={styles.basicInputs} disabled={!config || running || submitting}>
+            <legend>基础任务输入</legend>
+            {groupedInputs.requirement.map((definition) => (
+              <DemoNumericControl
+                key={definition.key}
+                definition={definition}
+                value={inputs[definition.key] ?? definition.default}
+                disabled={!config || running || submitting}
+                onChange={(value) => setInputs((current) => ({ ...current, [definition.key]: value }))}
+              />
+            ))}
+          </fieldset>
+
+          <details className={styles.advancedConstraints}>
+            <summary>高级约束（可选）</summary>
+            <fieldset disabled={!config || running || submitting}>
+              <legend>保持默认值即可运行</legend>
+              {groupedInputs.constraint.map((definition) => (
                 <DemoNumericControl
                   key={definition.key}
                   definition={definition}
@@ -919,28 +1036,32 @@ export function MissionDemoPanel({
                 />
               ))}
             </fieldset>
-          ))}
+          </details>
 
-          <div className={styles.actions}>
+          <div className={styles.actions} data-cancellable={running}>
             <button
               type="button"
               className={styles.runButton}
               disabled={!config || !supported || !selectedPresetId || running || submitting}
               onClick={() => void runDemo()}
             >
-              {submitting ? "正在创建 Demo…" : running ? "Demo 运行中" : "运行 Mission Demo"}
+              {submitting ? "正在创建任务…" : running ? "正在生成方案…" : "生成飞机方案"}
             </button>
-            <button
-              type="button"
-              className={styles.cancelButton}
-              disabled={!running || cancelling}
-              onClick={() => void cancelDemo()}
-            >
-              {cancelling ? "正在停止…" : "取消"}
-            </button>
+            {running && (
+              <button
+                type="button"
+                className={styles.cancelButton}
+                disabled={cancelling}
+                onClick={() => void cancelDemo()}
+              >
+                {cancelling ? "正在取消…" : "取消"}
+              </button>
+            )}
           </div>
           <p className={styles.familyLine}>
-            下一次运行选择 · Family <strong>{manifest?.family_id ?? "—"}</strong> · Preset <strong>{selectedPresetId ?? "—"}</strong>
+            当前任务类型：<strong>{selectedPresetId
+              ? TASK_PRESENTATION[selectedPresetId]?.label ?? selectedPresetId
+              : "尚未选择"}</strong>
           </p>
 
           <section className={styles.recoveryPanel} aria-labelledby="mission-demo-recovery-title">
@@ -954,8 +1075,8 @@ export function MissionDemoPanel({
               }}
             >
               <span>
-                <strong id="mission-demo-recovery-title">恢复已完成任务</strong>
-                <small>刷新或服务重启后仍可查询已保存结果</small>
+                <strong id="mission-demo-recovery-title">历史结果</strong>
+                <small>刷新或服务重启后恢复已完成方案</small>
               </span>
               <b aria-hidden="true">{recoveryOpen ? "−" : "+"}</b>
             </button>
@@ -1007,22 +1128,29 @@ export function MissionDemoPanel({
           <div className={styles.runStatus} aria-live="polite">
             <div className={styles.statusHeader}>
               <div>
-                <span>02 · SEARCH</span>
-                <h3>{job ? stageLabel(job.stage) : "等待运行"}</h3>
+                <span>02 · 方案生成</span>
+                <h3>{job ? stageLabel(job.stage) : "等待生成"}</h3>
               </div>
               {job && <strong>{Math.round(job.progress * 100)}%</strong>}
             </div>
-            <div className={styles.progressTrack} aria-hidden="true">
+            <div
+              className={styles.progressTrack}
+              role="progressbar"
+              aria-label="飞机方案生成进度"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Math.round((job?.progress ?? 0) * 100)}
+            >
               <span style={{ width: `${Math.round((job?.progress ?? 0) * 100)}%` }} />
             </div>
             <div className={styles.statusMeta}>
               <span>
                 {job
-                  ? `${job.status} · ${job.family_id}/${job.preset_id} · ${compactId(job.id)}`
-                  : "尚未创建 job"}
+                  ? `${jobStatusLabel(job.status)} · ${TASK_PRESENTATION[job.preset_id]?.label ?? job.preset_id}`
+                  : "尚未生成方案"}
               </span>
-              {transport === "sse" && <span>SSE 实时进度</span>}
-              {transport === "polling" && <span>连接中断 · 已切换轮询</span>}
+              {transport === "sse" && <span>实时更新</span>}
+              {transport === "polling" && <span>连接波动 · 正在继续查询</span>}
               {job?.status === "cancelled" && <span>本次 Demo 已取消</span>}
               {job?.status === "interrupted" && <span>服务重启时中断 · 不支持断点续跑</span>}
             </div>
@@ -1059,48 +1187,21 @@ export function MissionDemoPanel({
 
           {!result && !resultLoading && !resultError && (
             <div className={styles.emptyState}>
-              <span>CANDIDATE RESULTS</span>
-              <h3>{running ? "正在探索设计空间" : "运行后在此比较候选"}</h3>
-              <p>候选将使用同一相机尺度展示，以便直接比较真实尺寸；预览不响应拖拽。</p>
+              <span>03 · 飞机方案</span>
+              <h3>{running ? "正在探索设计空间" : "生成后在这里查看飞机"}</h3>
+              <p>结果生成后可以切换候选、比较关键性能，并旋转查看三维飞机。</p>
             </div>
           )}
           {resultLoading && <div className={styles.loading}>正在校验并读取候选结果…</div>}
 
           {result && (
             <>
-              <section className={styles.resultSummary} aria-label="Demo result summary">
-                <div>
-                  <span>PROFILE</span>
-                  <strong>{result.profile.id} · v{result.profile.version}</strong>
-                </div>
-                <div>
-                  <span>RUN TARGET</span>
-                  <strong>{result.family_id}</strong>
-                  <small>{result.preset_id}</small>
-                </div>
-                <div>
-                  <span>SEED</span>
-                  <strong>{result.search.seed}</strong>
-                </div>
-                <div>
-                  <span>EVALUATIONS</span>
-                  <strong>{result.search.evaluations}</strong>
-                  <small>
-                    {result.search.valid} valid · {result.search.invalid} invalid
-                    {result.search.elapsed_ms !== null && ` · ${formatNumber(result.search.elapsed_ms, 0)} ms`}
-                  </small>
-                </div>
-                <div>
-                  <span>RANKING</span>
-                  <strong>{result.ranking_rule.primary}</strong>
-                  <small>{result.ranking_rule.feasible_first ? "feasible first" : "objective only"}</small>
-                </div>
-              </section>
-
               <section
                 className={styles.outcomePanel}
                 data-status={result.status}
                 aria-label="候选搜索结果解释"
+                role="status"
+                aria-live="polite"
               >
                 <div>
                   <strong>
@@ -1111,98 +1212,72 @@ export function MissionDemoPanel({
                         : `${result.selection.feasible_valid_count} 个候选满足当前 Demo 已接入约束`}
                   </strong>
                   <p>
-                    返回 {result.selection.returned_count} / {result.selection.requested_count} 个候选；
-                    {result.selection.infeasible_valid_count} 个有效候选未满足当前 Demo 约束。
+                    已返回 {result.selection.returned_count} 个可查看方案。
                     {result.selection.outcome === "partial" && " 已保留不足 Top-K 的现有结果，没有将整次任务判为异常。"}
-                    {result.status === "no_feasible_solution_found" && " 排名仍遵循 feasible-first 后按 objective；第一名仅表示当前评分最优，并不表示违约量最小。"}
-                    {result.status === "no_valid_candidates" && " 这与“有有效候选但无可行解”及程序异常是不同结果。"}
+                    {result.status === "no_feasible_solution_found" && " 首个方案是当前评分最优的未满足约束候选。"}
+                    {result.status === "no_valid_candidates" && " 本次没有可展示的有效几何。"}
                   </p>
                 </div>
-                <span>工程验证：未执行</span>
-              </section>
-
-              <details className={styles.selectionPanel}>
-                <summary>
-                  <span>选择与排除记录</span>
-                  <strong>{result.selection.decisions.length} 条</strong>
-                </summary>
-                {result.selection.decisions.length === 0 ? (
-                  <p>没有可记录的有效候选决策。</p>
-                ) : (
-                  <ul>
-                    {result.selection.decisions.map((decision) => (
-                      <li key={`${decision.candidate_id}-${decision.ranked_position}`} data-selected={decision.selected}>
-                        <span>
-                          #{decision.ranked_position} · {compactId(decision.candidate_id)} · {decision.feasible ? "满足 Demo 约束" : "未满足 Demo 约束"}
-                        </span>
-                        <strong title={decision.explanation ?? undefined}>
-                          {decision.selected ? "入选" : "排除"} · {selectionReason(decision.reason_code)}
-                        </strong>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </details>
-
-              <section className={styles.coveragePanel} aria-labelledby="coverage-title">
-                <div className={styles.coverageHeading}>
-                  <div>
-                    <span>MODEL COVERAGE</span>
-                    <h3 id="coverage-title">指标连接状态</h3>
-                  </div>
-                  <div className={styles.coverageCounts}>
-                    {coverageCounts(metricCoverage).map(({ status, count }) => (
-                      <span key={status} data-status={status}>{status} · {count}</span>
-                    ))}
-                  </div>
-                </div>
-                <div className={styles.coverageList}>
-                  {metricCoverage?.metrics.map((metric) => (
-                    <details key={metric.key} data-status={metric.status}>
-                      <summary>
-                        <span>{metric.label}</span>
-                        <strong>{metric.status}</strong>
-                      </summary>
-                      <p>{metric.reason || metric.source || "未提供说明"}</p>
-                      <small>{metric.used_in_score ? "参与 Demo score" : "不参与 Demo score"}</small>
-                    </details>
-                  ))}
-                </div>
+                <span>概念级结果</span>
               </section>
 
               {topCandidates.length > 0 ? (
                 <>
-                  <div className={styles.candidateToolbar}>
-                    <div>
-                      <span>03 · RETURNED {topCandidates.length}</span>
-                      <h3>按后端 rank 逐项展示</h3>
+                  <section className={styles.candidateChooser} aria-labelledby="candidate-chooser-title">
+                    <div className={styles.candidateToolbar}>
+                      <div>
+                        <span>03 · 飞机方案</span>
+                        <h3 id="candidate-chooser-title">切换候选方案</h3>
+                      </div>
+                      <div className={styles.viewSwitch} aria-label="候选预览视角">
+                        {VIEW_OPTIONS.map((option) => (
+                          <button
+                            type="button"
+                            key={option.id}
+                            aria-pressed={view === option.id}
+                            onClick={() => setView(option.id)}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    <div className={styles.viewSwitch} aria-label="候选预览视角">
-                      {VIEW_OPTIONS.map((option) => (
+                    <div className={styles.candidateChoices}>
+                      {topCandidates.map((candidate) => (
                         <button
+                          key={candidate.candidate_id}
                           type="button"
-                          key={option.id}
-                          aria-pressed={view === option.id}
-                          onClick={() => setView(option.id)}
+                          className={styles.candidateChoice}
+                          aria-pressed={selectedCandidate?.candidate_id === candidate.candidate_id}
+                          onClick={() => setSelectedCandidateId(candidate.candidate_id)}
                         >
-                          {option.label}
+                          <span>
+                            <strong>{candidate.rank === 1 ? "首选" : `候选 ${candidate.rank}`}</strong>
+                            <small>{candidate.feasible ? "满足 Demo 约束" : "有约束未满足"}</small>
+                          </span>
+                          <span className={styles.choiceMetrics}>
+                            <small>{formatNumber(candidate.metrics.achieved_range_km, 0)} km</small>
+                            <small>{formatNumber(candidate.metrics.takeoff_mass_kg, 0)} kg</small>
+                            <small>L/D {formatNumber(candidate.metrics.max_lift_to_drag, 1)}</small>
+                            <small>燃油 {formatNumber(candidate.metrics.fuel_mass_kg, 0)} kg</small>
+                          </span>
                         </button>
                       ))}
                     </div>
-                  </div>
+                  </section>
 
-                  <div className={styles.candidateGrid} data-count={topCandidates.length}>
-                    {topCandidates.map((candidate) => (
+                  {selectedCandidate && (
+                    <div className={styles.selectedCandidate}>
                       <CandidateCard
-                        key={candidate.candidate_id}
-                        candidate={candidate}
+                        candidate={selectedCandidate}
                         view={view}
                         sharedReferenceSize={sharedReferenceSize}
                         anyFeasible={topCandidates.some((item) => item.feasible)}
+                        baselineGeometry={comparisonGeometry}
                         onAnalyze={analyzeCandidate}
                       />
-                    ))}
-                  </div>
+                    </div>
+                  )}
                 </>
               ) : (
                 <div className={styles.noCandidateState} role="status">
@@ -1210,23 +1285,119 @@ export function MissionDemoPanel({
                   <p>搜索已正常结束，但所有评价都未形成几何有效候选。请检查逐案例记录；这不是“无可行解”的同义词。</p>
                 </div>
               )}
-
-              {(result.warnings.length > 0 || Object.keys(result.provenance).length > 0) && (
-                <footer className={styles.provenance}>
-                  <div>
-                    <strong>Warnings</strong>
-                    {result.warnings.length > 0
-                      ? result.warnings.map((warning) => <p key={warning}>{warning}</p>)
-                      : <p>无结果级 warning。</p>}
-                  </div>
-                  <div>
-                    <strong>Provenance</strong>
-                    <p>{Object.entries(result.provenance).map(([key, value]) => `${key}: ${String(value)}`).join(" · ")}</p>
-                  </div>
-                </footer>
-              )}
             </>
           )}
+
+          <details className={styles.runDetails}>
+            <summary>运行与模型详情</summary>
+            <div className={styles.runDetailsBody}>
+              <dl className={styles.profileSummary}>
+                <div><dt>Profile</dt><dd>{config ? `${config.profile_id} · v${config.profile_version}` : "读取中"}</dd></div>
+                <div><dt>Status</dt><dd>{result?.formal_status ?? config?.formal_status ?? "—"}</dd></div>
+                <div><dt>Seed</dt><dd>{result?.search.seed ?? profileNumber(config, "seed")}</dd></div>
+                <div><dt>预算</dt><dd>{config ? `${profileNumber(config, "iterations")} × ${profileNumber(config, "evaluations_per_iteration")}` : "—"}</dd></div>
+                {job && <div><dt>Job</dt><dd title={job.id}>{compactId(job.id)}</dd></div>}
+              </dl>
+              {config?.disclaimer && <p className={styles.disclaimer}>{config.disclaimer}</p>}
+
+              {result && (
+                <>
+                  <section className={styles.resultSummary} aria-label="Demo result summary">
+                    <div>
+                      <span>PROFILE</span>
+                      <strong>{result.profile.id} · v{result.profile.version}</strong>
+                    </div>
+                    <div>
+                      <span>RUN TARGET</span>
+                      <strong>{result.family_id}</strong>
+                      <small>{result.preset_id}</small>
+                    </div>
+                    <div>
+                      <span>SEED</span>
+                      <strong>{result.search.seed}</strong>
+                    </div>
+                    <div>
+                      <span>EVALUATIONS</span>
+                      <strong>{result.search.evaluations}</strong>
+                      <small>
+                        {result.search.valid} valid · {result.search.invalid} invalid
+                        {result.search.elapsed_ms !== null && ` · ${formatNumber(result.search.elapsed_ms, 0)} ms`}
+                      </small>
+                    </div>
+                    <div>
+                      <span>RANKING</span>
+                      <strong>{result.ranking_rule.primary}</strong>
+                      <small>{result.ranking_rule.feasible_first ? "feasible first" : "objective only"}</small>
+                    </div>
+                  </section>
+
+                  <details className={styles.selectionPanel}>
+                    <summary>
+                      <span>选择与排除记录</span>
+                      <strong>{result.selection.decisions.length} 条</strong>
+                    </summary>
+                    {result.selection.decisions.length === 0 ? (
+                      <p>没有可记录的有效候选决策。</p>
+                    ) : (
+                      <ul>
+                        {result.selection.decisions.map((decision) => (
+                          <li key={`${decision.candidate_id}-${decision.ranked_position}`} data-selected={decision.selected}>
+                            <span>
+                              #{decision.ranked_position} · {compactId(decision.candidate_id)} · {decision.feasible ? "满足 Demo 约束" : "未满足 Demo 约束"}
+                            </span>
+                            <strong title={decision.explanation ?? undefined}>
+                              {decision.selected ? "入选" : "排除"} · {selectionReason(decision.reason_code)}
+                            </strong>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </details>
+
+                  <section className={styles.coveragePanel} aria-labelledby="coverage-title">
+                    <div className={styles.coverageHeading}>
+                      <div>
+                        <span>MODEL COVERAGE</span>
+                        <h3 id="coverage-title">指标连接状态</h3>
+                      </div>
+                      <div className={styles.coverageCounts}>
+                        {coverageCounts(metricCoverage).map(({ status, count }) => (
+                          <span key={status} data-status={status}>{status} · {count}</span>
+                        ))}
+                      </div>
+                    </div>
+                    <div className={styles.coverageList}>
+                      {metricCoverage?.metrics.map((metric) => (
+                        <details key={metric.key} data-status={metric.status}>
+                          <summary>
+                            <span>{metric.label}</span>
+                            <strong>{metric.status}</strong>
+                          </summary>
+                          <p>{metric.reason || metric.source || "未提供说明"}</p>
+                          <small>{metric.used_in_score ? "参与 Demo score" : "不参与 Demo score"}</small>
+                        </details>
+                      ))}
+                    </div>
+                  </section>
+
+                  {(result.warnings.length > 0 || Object.keys(result.provenance).length > 0) && (
+                    <footer className={styles.provenance}>
+                      <div>
+                        <strong>Warnings</strong>
+                        {result.warnings.length > 0
+                          ? result.warnings.map((warning) => <p key={warning}>{warning}</p>)
+                          : <p>无结果级 warning。</p>}
+                      </div>
+                      <div>
+                        <strong>Provenance</strong>
+                        <p>{Object.entries(result.provenance).map(([key, value]) => `${key}: ${String(value)}`).join(" · ")}</p>
+                      </div>
+                    </footer>
+                  )}
+                </>
+              )}
+            </div>
+          </details>
         </div>
       </div>
     </section>
