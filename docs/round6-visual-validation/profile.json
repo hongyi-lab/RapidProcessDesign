@@ -1,0 +1,396 @@
+{
+  "schema_version": "1.0",
+  "profile_id": "mission_demo_v1",
+  "profile_version": "1.0.0",
+  "mode": "demo_only",
+  "formal_status": "pending_teacher_decision",
+  "title": "Mission Demo Search",
+  "description": "Deterministic concept-search profile for one fixed conventional_v2 preset. Every evaluation uses the current family registry, canonical GeometryState and conceptual Analyze response before applying transparent demo-only sizing and mission equations.",
+  "disclaimer": "DEMO / NOT FORMAL / UNAPPROVED ASSUMPTIONS. Search bounds, objective, penalties, mass coefficients, range coefficients, seed and budget are temporary demonstration settings and are not teacher-approved optimization requirements.",
+  "supported_family_ids": [
+    "conventional_v2"
+  ],
+  "candidate_count": 3,
+  "diversity_threshold": 0.18,
+  "inputs": [
+    {
+      "key": "required_range_km",
+      "label": "Required range",
+      "unit": "km",
+      "minimum": 100.0,
+      "maximum": 3000.0,
+      "step": 50.0,
+      "default": 1000.0,
+      "kind": "requirement"
+    },
+    {
+      "key": "payload_mass_kg",
+      "label": "Payload mass",
+      "unit": "kg",
+      "minimum": 20.0,
+      "maximum": 500.0,
+      "step": 10.0,
+      "default": 100.0,
+      "kind": "requirement"
+    },
+    {
+      "key": "cruise_speed_kmh",
+      "label": "Cruise speed",
+      "unit": "km/h",
+      "minimum": 80.0,
+      "maximum": 500.0,
+      "step": 5.0,
+      "default": 220.0,
+      "kind": "requirement"
+    },
+    {
+      "key": "cruise_altitude_m",
+      "label": "Cruise altitude",
+      "unit": "m",
+      "minimum": 0.0,
+      "maximum": 11000.0,
+      "step": 100.0,
+      "default": 2000.0,
+      "kind": "requirement"
+    },
+    {
+      "key": "max_fuel_mass_kg",
+      "label": "Maximum fuel mass",
+      "unit": "kg",
+      "minimum": 25.0,
+      "maximum": 900.0,
+      "step": 5.0,
+      "default": 400.0,
+      "kind": "constraint"
+    },
+    {
+      "key": "max_takeoff_mass_kg",
+      "label": "Maximum takeoff mass",
+      "unit": "kg",
+      "minimum": 300.0,
+      "maximum": 5000.0,
+      "step": 50.0,
+      "default": 1600.0,
+      "kind": "constraint"
+    },
+    {
+      "key": "target_lift_to_drag",
+      "label": "Target lift-to-drag ratio",
+      "unit": "-",
+      "minimum": 5.0,
+      "maximum": 40.0,
+      "step": 0.5,
+      "default": 16.0,
+      "kind": "constraint"
+    }
+  ],
+  "geometry_variables": [
+    {
+      "key": "fuselage_length_m",
+      "label": "Fuselage length",
+      "unit": "m",
+      "minimum": 6.0,
+      "maximum": 20.0,
+      "step": 0.1,
+      "input_upper_bound": null
+    },
+    {
+      "key": "fineness_ratio",
+      "label": "Fuselage fineness ratio",
+      "unit": "-",
+      "minimum": 6.0,
+      "maximum": 16.0,
+      "step": 0.1,
+      "input_upper_bound": null
+    },
+    {
+      "key": "wing_span_m",
+      "label": "Wing span",
+      "unit": "m",
+      "minimum": 8.0,
+      "maximum": 30.0,
+      "step": 0.1,
+      "input_upper_bound": null
+    },
+    {
+      "key": "wing_area_m2",
+      "label": "Wing area",
+      "unit": "m2",
+      "minimum": 12.0,
+      "maximum": 55.0,
+      "step": 0.5,
+      "input_upper_bound": null
+    },
+    {
+      "key": "wing_sweep_deg",
+      "label": "Wing sweep",
+      "unit": "deg",
+      "minimum": 0.0,
+      "maximum": 35.0,
+      "step": 1.0,
+      "input_upper_bound": null
+    },
+    {
+      "key": "wing_taper_ratio",
+      "label": "Wing taper ratio",
+      "unit": "-",
+      "minimum": 0.2,
+      "maximum": 0.6,
+      "step": 0.01,
+      "input_upper_bound": null
+    },
+    {
+      "key": "wing_thickness_ratio",
+      "label": "Wing thickness ratio",
+      "unit": "-",
+      "minimum": 0.08,
+      "maximum": 0.18,
+      "step": 0.005,
+      "input_upper_bound": null
+    },
+    {
+      "key": "tail_scale",
+      "label": "Tail size scale",
+      "unit": "-",
+      "minimum": 0.65,
+      "maximum": 1.4,
+      "step": 0.01,
+      "input_upper_bound": null
+    }
+  ],
+  "sizing_variables": [
+    {
+      "key": "fuel_mass_kg",
+      "label": "Fuel mass",
+      "unit": "kg",
+      "minimum": 25.0,
+      "maximum": 900.0,
+      "step": 5.0,
+      "input_upper_bound": "max_fuel_mass_kg"
+    }
+  ],
+  "optimizer": {
+    "method": "seeded_uniform_search",
+    "seed": 2711,
+    "iterations": 3,
+    "evaluations_per_iteration": 8,
+    "constraint_penalty": 1500.0
+  },
+  "mission_model": {
+    "alpha_min_deg": -4.0,
+    "alpha_max_deg": 12.0,
+    "alpha_samples": 25,
+    "wing_areal_density_kg_m2": 8.2,
+    "wetted_area_density_kg_m2": 3.6,
+    "wing_span_penalty_kg_m": 2.0,
+    "systems_base_mass_kg": 105.0,
+    "systems_payload_fraction": 0.18,
+    "propulsion_mass_per_unit_kg": 52.0,
+    "landing_gear_fraction": 0.035,
+    "reserve_fuel_fraction": 0.15,
+    "equivalent_tsfc_per_second": 0.00017
+  },
+  "metric_coverage": {
+    "metrics": [
+      {
+        "key": "geometry.reference_area_m2",
+        "label": "Reference area",
+        "unit": "m2",
+        "status": "connected",
+        "source": "registry.analyze geometry_metrics",
+        "reason": "Used by the transparent wing mass estimate and by the current Analyze model.",
+        "used_in_score": true
+      },
+      {
+        "key": "geometry.span_m",
+        "label": "Wing span",
+        "unit": "m",
+        "status": "connected",
+        "source": "registry.analyze geometry_metrics",
+        "reason": "Used by the transparent span mass term and by the current Analyze model.",
+        "used_in_score": true
+      },
+      {
+        "key": "geometry.aspect_ratio",
+        "label": "Wing aspect ratio",
+        "unit": "-",
+        "status": "connected",
+        "source": "registry.analyze geometry_metrics",
+        "reason": "Native span and area enter the current finite-wing Analyze model.",
+        "used_in_score": true
+      },
+      {
+        "key": "geometry.wetted_area_m2",
+        "label": "Wetted area proxy",
+        "unit": "m2",
+        "status": "partial",
+        "source": "registry.analyze geometry_metrics",
+        "reason": "Includes body, wing and tail proxies but not complete propulsion or interference wetted area.",
+        "used_in_score": true
+      },
+      {
+        "key": "design.wing_sweep_deg",
+        "label": "Wing sweep",
+        "unit": "deg",
+        "status": "connected",
+        "source": "native ConventionalV2Design through registry.analyze",
+        "reason": "Enters the current conceptual lift slope, drag and lift-limit equations.",
+        "used_in_score": true
+      },
+      {
+        "key": "design.wing_taper_ratio",
+        "label": "Wing taper ratio",
+        "unit": "-",
+        "status": "connected",
+        "source": "native ConventionalV2Design through registry.analyze",
+        "reason": "Enters canonical planform geometry and the current induced-drag correction.",
+        "used_in_score": true
+      },
+      {
+        "key": "design.wing_thickness_ratio",
+        "label": "Wing thickness ratio",
+        "unit": "-",
+        "status": "connected",
+        "source": "native ConventionalV2Design through registry.analyze",
+        "reason": "Enters canonical sections and the current profile-drag and lift-limit corrections.",
+        "used_in_score": true
+      },
+      {
+        "key": "design.fuselage_scale",
+        "label": "Fuselage length and fineness",
+        "unit": "mixed",
+        "status": "partial",
+        "source": "native ConventionalV2Design through registry.analyze",
+        "reason": "Enters body dimensions and a wetted-area mass and drag proxy only.",
+        "used_in_score": true
+      },
+      {
+        "key": "design.tail_scale",
+        "label": "Tail size scale",
+        "unit": "-",
+        "status": "partial",
+        "source": "native ConventionalV2Design through registry.analyze",
+        "reason": "Enters canonical tail size and total wetted-area proxies but not trim or stability.",
+        "used_in_score": true
+      },
+      {
+        "key": "analysis.max_ld",
+        "label": "Maximum lift-to-drag ratio",
+        "unit": "-",
+        "status": "partial",
+        "source": "registry.analyze summary",
+        "reason": "Conceptual whole-aircraft polar; tail, propulsion and airfoil integration remain limited.",
+        "used_in_score": true
+      },
+      {
+        "key": "sizing.fuel_mass_kg",
+        "label": "Fuel mass",
+        "unit": "kg",
+        "status": "connected",
+        "source": "demo sizing variable",
+        "reason": "Enters takeoff mass, reserve fuel and Breguet-style range.",
+        "used_in_score": true
+      },
+      {
+        "key": "mission.takeoff_mass_kg",
+        "label": "Conceptual takeoff mass",
+        "unit": "kg",
+        "status": "connected",
+        "source": "demo mission model",
+        "reason": "Transparent coefficient-based mass estimate.",
+        "used_in_score": true
+      },
+      {
+        "key": "mission.achieved_range_km",
+        "label": "Conceptual range",
+        "unit": "km",
+        "status": "connected",
+        "source": "demo mission model",
+        "reason": "Transparent Breguet-style range estimate.",
+        "used_in_score": true
+      },
+      {
+        "key": "mission.analysis_domain",
+        "label": "Analyze declared domain",
+        "unit": "state",
+        "status": "connected",
+        "source": "registry.analyze domain_status",
+        "reason": "Out-of-domain evaluations receive an explicit constraint violation.",
+        "used_in_score": true
+      },
+      {
+        "key": "tail.wetted_area_proxy",
+        "label": "Tail aerodynamic and mass connection",
+        "unit": "m2",
+        "status": "partial",
+        "source": "registry.analyze total wetted area",
+        "reason": "Tail size contributes only through aggregate low-order wetted-area effects.",
+        "used_in_score": true
+      },
+      {
+        "key": "propulsion.count_mass",
+        "label": "Propulsion count mass",
+        "unit": "count",
+        "status": "partial",
+        "source": "canonical GeometryState propeller symmetry",
+        "reason": "Physical propeller count contributes a fixed demo mass only; no thrust matching is performed.",
+        "used_in_score": true
+      },
+      {
+        "key": "airfoil.section_camber",
+        "label": "Spanwise airfoil camber",
+        "unit": "chord",
+        "status": "not_connected",
+        "source": "unavailable",
+        "reason": "Conventional Analyze does not consume section airfoil IDs or camber fields.",
+        "used_in_score": false
+      },
+      {
+        "key": "tail.trim_and_stability",
+        "label": "Tail trim and stability",
+        "unit": "-",
+        "status": "not_connected",
+        "source": "unavailable",
+        "reason": "V-tail and T-tail position or cant are not evaluated for trim, control or static margin.",
+        "used_in_score": false
+      },
+      {
+        "key": "propulsion.matching",
+        "label": "Propulsion matching",
+        "unit": "-",
+        "status": "not_connected",
+        "source": "unavailable",
+        "reason": "Propeller, nacelle and pylon geometry is not coupled to thrust, power or interference models.",
+        "used_in_score": false
+      },
+      {
+        "key": "structure.stress_and_buckling",
+        "label": "Structural stress and buckling",
+        "unit": "-",
+        "status": "not_connected",
+        "source": "unavailable",
+        "reason": "No structural load or sizing solver is connected.",
+        "used_in_score": false
+      },
+      {
+        "key": "performance.field",
+        "label": "Takeoff and landing performance",
+        "unit": "-",
+        "status": "not_connected",
+        "source": "unavailable",
+        "reason": "No field-performance model is connected.",
+        "used_in_score": false
+      },
+      {
+        "key": "acoustics.noise",
+        "label": "Noise",
+        "unit": "-",
+        "status": "not_connected",
+        "source": "unavailable",
+        "reason": "No acoustic model is connected.",
+        "used_in_score": false
+      }
+    ]
+  },
+  "profile_hash": "e66c3889d771f8c211fa468bc4e3228c72a96124df7d80661da40f60322a046b"
+}

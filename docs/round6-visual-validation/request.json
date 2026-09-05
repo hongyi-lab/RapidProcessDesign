@@ -1,0 +1,14 @@
+{
+  "mode": "demo",
+  "family_id": "conventional_v2",
+  "preset_id": "long_endurance_uav",
+  "inputs": {
+    "required_range_km": 1000.0,
+    "payload_mass_kg": 100.0,
+    "cruise_speed_kmh": 220.0,
+    "cruise_altitude_m": 2000.0,
+    "max_fuel_mass_kg": 400.0,
+    "max_takeoff_mass_kg": 1600.0,
+    "target_lift_to_drag": 16.0
+  }
+}

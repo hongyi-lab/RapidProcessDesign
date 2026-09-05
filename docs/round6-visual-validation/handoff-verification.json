@@ -1,0 +1,26 @@
+{
+  "schema_version": "1.0",
+  "verified_in_browser": true,
+  "job_id": "9597b23b76444e3fbe52676dece669ef",
+  "candidate_rank": 2,
+  "candidate_id": "demo-a98351acd90697e682e5",
+  "expected_design_hash": "777b751fd2770622c011da5a84ac77499fa382b53d1f411c3d24ede476ce7521",
+  "displayed_analyze_hash_prefix": "777b751f",
+  "design_matches": true,
+  "condition_matches": true,
+  "observed_search_design": {
+    "fuselage_length_m": 15.0,
+    "fineness_ratio": 16.0,
+    "wing_span_m": 15.0,
+    "wing_area_m2": 17.0,
+    "wing_sweep_deg": 15.0,
+    "wing_taper_ratio": 0.48,
+    "wing_thickness_ratio": 0.115,
+    "tail_scale": 1.31
+  },
+  "observed_analyze_condition": {
+    "altitude_m": 2000.0,
+    "speed_kmh": 220.0
+  },
+  "verification_note": "Candidate rank 2 was selected because it is not the preset-default geometry. The eight searched geometry controls and the mission condition matched the archived candidate, and Analyze displayed the same design-hash prefix."
+}
