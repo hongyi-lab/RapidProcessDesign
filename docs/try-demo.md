@@ -49,10 +49,12 @@ Saved runs belong to the local installation. Older saved shapes show a prompt to
 
 ## Sharing
 
-The GitHub repository is public, so anyone can download and run it. There is currently no hosted public demo URL. `localhost` always refers to the visitor's own computer; sending someone your localhost link does not share your running application.
+Open the [public online demo](https://rapidprocessdesign.onrender.com/) to generate aircraft and download STEP/STL without installing anything or signing in. The free server may take about a minute to wake up after inactivity. Saved runs are temporary; download files you want to keep.
+
+The GitHub repository is also public, so anyone can download and run their own copy. `localhost` always refers to the visitor's own computer; use the public link above when sharing the demo.
 
 A browser-only public experience needs a deployment that runs both the web interface and Python analysis service. GitHub Pages alone hosts static files and cannot run the current Python service. See the [GitHub Pages documentation](https://docs.github.com/en/pages/getting-started-with-github-pages/what-is-github-pages).
 
-To publish that experience, follow the [single-service Render deployment guide](deploy-render.md). The repository includes a Dockerfile and a Free-plan configuration; a live URL still needs to be deployed and verified in the owner's Render account.
+To publish your own instance, follow the [single-service Render deployment guide](deploy-render.md). The repository includes a Dockerfile and a Free-plan configuration.
 
-中文：体验最新版请下载上面的开发分支，安装 Python 和 Node.js 后按对应系统的步骤启动。Design、Analyze 和文件导出无需 API 密钥。仓库目前提供源码与本地运行方式，尚无免安装的在线体验网址。
+中文：[点击在线体验](https://rapidprocessdesign.onrender.com/)，无需安装或登录，可以调整输入、生成飞机并下载 STEP/STL。免费服务闲置后可能需要约一分钟启动，历史记录可能随服务器重启而清空。本地运行请下载上面的开发分支，安装 Python 和 Node.js 后按对应系统的步骤启动。

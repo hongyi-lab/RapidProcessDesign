@@ -19,7 +19,11 @@
 
 [English](./README.md) | 中文
 
-[Rapid Design](#rapid-design-任务驱动设计) · [AeroSpec 上游](https://github.com/zweien/aero-spec-agent) · [查看演示](#快速开始)
+[在线体验](https://rapidprocessdesign.onrender.com/) · [Rapid Design](#rapid-design-任务驱动设计) · [AeroSpec 上游](https://github.com/zweien/aero-spec-agent)
+
+**[打开飞机设计演示 →](https://rapidprocessdesign.onrender.com/)**
+
+无需安装或登录：调整任务输入、生成飞机方案、检查几何形状，并下载 STEP/STL 文件。免费服务器闲置后可能需要约一分钟启动；演示历史为临时保存，请下载需要保留的文件。
 
 </div>
 
@@ -27,7 +31,7 @@
 
 ## Rapid Design 任务驱动设计
 
-**体验最新版：**请使用 [`codex/round8-simple-design-flow` 分支](https://github.com/hongyi-lab/RapidProcessDesign/tree/codex/round8-simple-design-flow)，按[本地体验指南](docs/try-demo.md)启动。Design、Analyze 和 STEP/STL 导出无需 API 密钥。目前尚无公开在线体验网址。
+**本地运行：**请使用 [`codex/round8-simple-design-flow` 分支](https://github.com/hongyi-lab/RapidProcessDesign/tree/codex/round8-simple-design-flow)，按[本地体验指南](docs/try-demo.md)启动。Design、Analyze 和 STEP/STL 导出无需 API 密钥。
 
 `/rapid-design` 现在是 family-neutral 的整机概念设计工作台。Analyze 当前注册 `conventional_v2` 与 `bwb_v1`；每个 family 提供 preset 和参数定义，统一解码为 Canonical `GeometryState`，并共用同一套截面 loft 三维渲染器与分析响应。
 

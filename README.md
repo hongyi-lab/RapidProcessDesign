@@ -19,7 +19,11 @@ Describe an aircraft in plain language — get parametric CAD models, aerodynami
 
 English | [中文](./README_CN.md)
 
-[Rapid Design](#rapid-design-workflow) · [Upstream AeroSpec](https://github.com/zweien/aero-spec-agent) · [View Demo](#quick-start)
+[Try the online demo](https://rapidprocessdesign.onrender.com/) · [Rapid Design](#rapid-design-workflow) · [Upstream AeroSpec](https://github.com/zweien/aero-spec-agent)
+
+**[Open the aircraft design demo →](https://rapidprocessdesign.onrender.com/)**
+
+No installation or login. Adjust mission inputs, generate aircraft concepts, inspect geometry, and download STEP/STL files. The free server may take about a minute to wake up after inactivity; download files you want to keep because demo history is temporary.
 
 </div>
 
@@ -27,7 +31,7 @@ English | [中文](./README_CN.md)
 
 ## Rapid Design workflow
 
-**Try the latest demo:** use the [`codex/round8-simple-design-flow` branch](https://github.com/hongyi-lab/RapidProcessDesign/tree/codex/round8-simple-design-flow) and follow the [Windows / macOS / Linux setup guide](docs/try-demo.md). Design, Analyze, and STEP/STL export need no API key. There is currently no hosted public demo URL.
+**Run it locally:** use the [`codex/round8-simple-design-flow` branch](https://github.com/hongyi-lab/RapidProcessDesign/tree/codex/round8-simple-design-flow) and follow the [Windows / macOS / Linux setup guide](docs/try-demo.md). Design, Analyze, and STEP/STL export need no API key.
 
 **Publish an online demo:** the [Render deployment guide](docs/deploy-render.md) packages the web interface and Python analysis into one Free Web Service. Visitors can generate aircraft and download STEP/STL in their browser.
 

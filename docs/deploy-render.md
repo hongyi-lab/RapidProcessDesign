@@ -1,5 +1,8 @@
 # Publish the browser demo on Render
 
+The project demo is live at **[rapidprocessdesign.onrender.com](https://rapidprocessdesign.onrender.com/)**.
+Use the steps below to publish another instance or review its configuration.
+
 One **Free Web Service** runs the Next.js interface and Python analysis together.
 Visitors open its HTTPS address, change mission inputs, generate concepts, inspect
 geometry, and download STEP or STL files. They need no account, API key, or local
@@ -40,8 +43,8 @@ Blueprint. Do not create both a Blueprint service and a manual service for this 
 4. Paste the verified public URL into the repository README as **Try the online demo**
    and into the GitHub repository's About → Website field.
 
-The deployment address is assigned by Render; this guide does not claim that a
-public deployment already exists.
+The project instance was first deployed from `96ebb50` and verified on 6 September
+2026. Other Render deployments receive their own address.
 
 ## Free demo behavior
 
