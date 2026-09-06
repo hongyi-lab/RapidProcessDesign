@@ -85,7 +85,10 @@
 .candidateChoice small { font-size: 10px; color: var(--rapid-muted); }
 .choiceMetrics { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 4px; font-variant-numeric: tabular-nums; }
 .selectedCandidate { margin-top: 14px; }
+.historyNote { margin: 0 0 14px !important; padding: 11px 14px; border: 1px solid var(--rapid-line); border-radius: 6px; color: var(--rapid-muted); background: #fff; font-size: 11px; line-height: 1.6; }
 .candidateHeader button { min-height: 30px; padding: 0 10px; font-size: 10px; white-space: nowrap; }
+.candidateActions { display: flex; align-items: center; gap: 8px; }
+.candidateHeader { flex-wrap: wrap; }
 .feasibility { display: block; font-size: 10px; color: #8d6546; margin-top: 4px; }
 .candidateCard[data-feasible="true"] .feasibility { color: #4c725b; }
 .metricGrid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); margin: 0; padding: 18px 6px; border-top: 1px solid var(--rapid-line-soft); }

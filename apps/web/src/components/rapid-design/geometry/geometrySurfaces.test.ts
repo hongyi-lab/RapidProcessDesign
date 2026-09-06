@@ -237,6 +237,24 @@ test("vertical lifting surfaces loft in z and have physical thickness in y", () 
   geometry.dispose();
 });
 
+test("vertical fin caps and skins traverse shared edges in opposite directions for CAD solids", () => {
+  const fin = buildLiftingSurface(VERTICAL_TAIL);
+  assert.ok(fin);
+  const edges = new Map<string, number[]>();
+  for (let offset = 0; offset < fin.indices.length; offset += 3) {
+    const [a, b, c] = fin.indices.slice(offset, offset + 3);
+    for (const [from, to] of [[a, b], [b, c], [c, a]]) {
+      const key = from < to ? `${from}:${to}` : `${to}:${from}`;
+      edges.set(key, [...(edges.get(key) ?? []), from < to ? 1 : -1]);
+    }
+  }
+  for (const directions of edges.values()) {
+    assert.equal(directions.length, 2);
+    assert.equal(directions[0] + directions[1], 0);
+  }
+  assert.ok(signedVolume(fin) > 0);
+});
+
 test("component parameters deform their own generated coordinates", () => {
   const body = buildLoftBodySurface(BODY, { radialSections: 24 });
   const fullerBody = buildLoftBodySurface({

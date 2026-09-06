@@ -15,6 +15,7 @@ import {
 } from "@/components/rapid-design/geometry";
 
 import styles from "./MissionDemoPanel.module.css";
+import { GeometryExport } from "@/components/rapid-design/geometry/GeometryExport";
 import { sharedGeometryFrame, type GeometryFrame } from "@/components/rapid-design/geometry/cameraFraming";
 import {
   STAGE_LABELS,
@@ -344,7 +345,14 @@ function CandidateCard({
           <h4>{candidate.rank === 1 && candidate.feasible ? "Recommended concept" : `Concept ${candidate.rank}`}</h4>
           <span className={styles.feasibility}>{statusLabel}</span>
         </div>
-        <button type="button" onClick={() => onAnalyze(candidate)}>Inspect geometry ↗</button>
+        <div className={styles.candidateActions}>
+          <button type="button" onClick={() => onAnalyze(candidate)}>Inspect geometry ↗</button>
+          <GeometryExport
+            key={candidate.candidate_id}
+            geometry={candidate.geometry_state}
+            name={`${candidate.geometry_state.family_id}-${candidate.candidate_id}`}
+          />
+        </div>
       </header>
 
       <div className={styles.previewFrame}>
@@ -555,6 +563,11 @@ export function MissionDemoPanel({
     runPresetId,
   );
   const inputsMismatch = demoInputsMismatch(inputs, result?.inputs);
+  const previousGeometryVersion = Boolean(
+    selectedCandidate && baselineGeometry
+    && selectedCandidate.geometry_state.family_id === baselineGeometry.family_id
+    && selectedCandidate.geometry_state.geometry_version !== baselineGeometry.geometry_version,
+  );
   const sharedReferenceSize = useMemo(
     () => demoSharedReferenceSize(topCandidates, "world"),
     [topCandidates],
@@ -1213,6 +1226,11 @@ export function MissionDemoPanel({
 
               {topCandidates.length > 0 ? (
                 <>
+                  {previousGeometryVersion && (
+                    <p className={styles.historyNote} role="status">
+                      This saved run uses an earlier aircraft shape. Select Generate aircraft to use the updated model.
+                    </p>
+                  )}
                   <section className={styles.candidateChooser} aria-labelledby="candidate-chooser-title">
                     <div className={styles.candidateToolbar}>
                       <div>

@@ -27,10 +27,13 @@
 
 ## Rapid Design 任务驱动设计
 
+**体验最新版：**请使用 [`codex/round8-simple-design-flow` 分支](https://github.com/hongyi-lab/RapidProcessDesign/tree/codex/round8-simple-design-flow)，按[本地体验指南](docs/try-demo.md)启动。Design、Analyze 和 STEP/STL 导出无需 API 密钥。目前尚无公开在线体验网址。
+
 `/rapid-design` 现在是 family-neutral 的整机概念设计工作台。Analyze 当前注册 `conventional_v2` 与 `bwb_v1`；每个 family 提供 preset 和参数定义，统一解码为 Canonical `GeometryState`，并共用同一套截面 loft 三维渲染器与分析响应。
 
 - 明显不同的初始外形：`conventional_v2` 提供长航时、快速侦察和载荷运输三种 preset；同页仍可切换 BWB。
 - 统一几何契约：多截面机身、翼面和短舱同时服务于浏览器预览和 family analysis adapter。
+- CAD 文件交接：在生成方案卡片或 Analyze 中点击 **Export → Download STEP / Download STL**。统一使用毫米；STEP 保留分面实体，暂不带参数化特征树，导出无需安装 CAD 软件。详见[文件交接说明](docs/rapid-design.md#solidworks-文件交接首版)。
 - 明确保真度：当前 Analyze 均标注为概念级低阶模型，并展示适用域和来源。
 - 路线隔离：Mission Design 暂时显示 `optimization_spec_pending`；原 NeuralFoil/差分进化流程保留在 **Legacy Conventional Demo**，不会声称它优化了屏幕上当前飞机。
 
@@ -142,13 +145,13 @@ OpenVSP 根据规格构建机身、机翼、尾翼、发动机舱、鸭翼、尾
 ### 前置要求
 
 - Python 3.11+
-- Node.js 18+
-- OpenAI 兼容的 LLM API 密钥（DeepSeek、OpenAI 等）
+- Node.js 24（已测试）
+- 仅可选的 AI 工作区需要 OpenAI 兼容的 LLM API 密钥
 
 ### 1. 克隆与安装
 
 ```bash
-git clone https://github.com/hongyi-lab/RapidProcessDesign.git
+git clone --branch codex/round8-simple-design-flow https://github.com/hongyi-lab/RapidProcessDesign.git
 cd RapidProcessDesign
 
 # 后端
@@ -164,7 +167,7 @@ cd apps/web && npm install && cd ../..
 在项目根目录创建 `.env` 文件：
 
 ```bash
-# LLM（必填）
+# LLM（可选，仅 AI 工作区需要）
 OPENAI_API_KEY=your-key-here
 OPENAI_BASE_URL=https://api.deepseek.com   # 或 https://api.openai.com/v1
 OPENAI_MODEL=deepseek-chat                  # 或 gpt-4o 等

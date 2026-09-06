@@ -27,10 +27,13 @@ English | [中文](./README_CN.md)
 
 ## Rapid Design workflow
 
+**Try the latest demo:** use the [`codex/round8-simple-design-flow` branch](https://github.com/hongyi-lab/RapidProcessDesign/tree/codex/round8-simple-design-flow) and follow the [Windows / macOS / Linux setup guide](docs/try-demo.md). Design, Analyze, and STEP/STL export need no API key. There is currently no hosted public demo URL.
+
 The `/rapid-design` workspace is a family-neutral whole-aircraft concept workbench. Its Analyze path currently registers `conventional_v2` and `bwb_v1`; each family publishes presets and parameter definitions, decodes them into one canonical `GeometryState`, and uses the same loft-based 3D renderer and analysis envelope.
 
 - Distinct aircraft presets: `conventional_v2` includes long-endurance, fast-cruise reconnaissance, and payload-utility geometries; `bwb_v1` remains available in the same page.
 - One geometry contract: multi-section bodies, lifting surfaces, and nacelles feed the browser renderer and the family analysis adapter.
+- CAD handoff: choose **Export → Download STEP / Download STL** on a generated concept or in Analyze. Files use millimeters; STEP preserves separate faceted solids without parametric feature history. No CAD installation is needed to export. See the [file handoff guide](docs/rapid-design.md#solidworks-文件交接首版).
 - Transparent fidelity: current Analyze models are explicitly labelled conceptual low-order models with domain checks and provenance.
 - Safe product separation: Mission Design remains `optimization_spec_pending`; the original NeuralFoil/differential-evolution workflow is preserved under **Legacy Conventional Demo** and does not claim to optimize the currently displayed aircraft.
 
@@ -142,13 +145,13 @@ Switch between Fake/OpenVSP backends and toggle VSPAERO analysis from the UI —
 ### Prerequisites
 
 - Python 3.11+
-- Node.js 18+
-- An OpenAI-compatible LLM API key (DeepSeek, OpenAI, etc.)
+- Node.js 24 (tested)
+- An OpenAI-compatible LLM API key only for the optional AI workspace
 
 ### 1. Clone & Install
 
 ```bash
-git clone https://github.com/hongyi-lab/RapidProcessDesign.git
+git clone --branch codex/round8-simple-design-flow https://github.com/hongyi-lab/RapidProcessDesign.git
 cd RapidProcessDesign
 
 # Backend
@@ -164,7 +167,7 @@ cd apps/web && npm install && cd ../..
 Create a `.env` file in the project root:
 
 ```bash
-# LLM (required)
+# LLM (optional; only for the AI workspace)
 OPENAI_API_KEY=your-key-here
 OPENAI_BASE_URL=https://api.deepseek.com   # or https://api.openai.com/v1
 OPENAI_MODEL=deepseek-chat                  # or gpt-4o, etc.

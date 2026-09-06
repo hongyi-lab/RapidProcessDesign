@@ -12,7 +12,7 @@ from services.api.app.services.rapid_design.families.conventional_v2.presets imp
 )
 
 GEOMETRY_DECODER_ID = "clean-room-conventional-v2-archetype-loft"
-GEOMETRY_DECODER_VERSION = "0.2.0"
+GEOMETRY_DECODER_VERSION = "0.3.0"
 
 
 @dataclass(frozen=True)
@@ -52,12 +52,14 @@ BODY_GRAMMARS: dict[str, BodyGrammar] = {
         reference_ovality=0.86,
     ),
     "fast_cruise_recon": BodyGrammar(
-        x_fractions=(0.0, 0.035, 0.085, 0.15, 0.22, 0.27, 0.39, 0.55, 0.68, 0.76, 0.86, 0.94, 1.0),
-        width_scales=(0.0, 0.10, 0.28, 0.52, 0.74, 0.88, 0.94, 0.96, 0.88, 0.72, 0.51, 0.25, 0.0),
-        height_scales=(0.0, 0.12, 0.32, 0.60, 0.85, 0.98, 1.00, 0.96, 0.84, 0.68, 0.48, 0.25, 0.0),
-        z_scales=(0.00, 0.00, 0.01, 0.03, 0.06, 0.08, 0.07, 0.04, 0.03, 0.05, 0.09, 0.13, 0.17),
-        exponents=(1.70, 1.78, 1.88, 2.02, 2.20, 2.35, 2.42, 2.38, 2.28, 2.16, 2.02, 1.88, 2.0),
-        cabin_weights=(0.0, 0.02, 0.10, 0.30, 0.65, 0.90, 1.0, 1.0, 0.82, 0.52, 0.20, 0.05, 0.0),
+        # The forward fuselage includes the engine cowling. Its cross-sections
+        # grow into the cabin instead of placing a separate pod on a pointed nose.
+        x_fractions=(0.0, 0.006, 0.035, 0.085, 0.15, 0.22, 0.27, 0.39, 0.55, 0.68, 0.76, 0.86, 0.94, 1.0),
+        width_scales=(0.0, 0.32, 0.50, 0.64, 0.76, 0.86, 0.91, 0.94, 0.96, 0.88, 0.72, 0.51, 0.25, 0.0),
+        height_scales=(0.0, 0.32, 0.52, 0.68, 0.82, 0.93, 0.99, 1.00, 0.96, 0.84, 0.68, 0.48, 0.25, 0.0),
+        z_scales=(0.00, 0.00, 0.00, 0.01, 0.03, 0.06, 0.08, 0.07, 0.04, 0.03, 0.05, 0.09, 0.13, 0.17),
+        exponents=(2.0, 2.0, 2.0, 2.02, 2.10, 2.22, 2.35, 2.42, 2.38, 2.28, 2.16, 2.02, 1.88, 2.0),
+        cabin_weights=(0.0, 0.0, 0.02, 0.10, 0.30, 0.65, 0.90, 1.0, 1.0, 0.82, 0.52, 0.20, 0.05, 0.0),
         reference_nose_ratio=0.27,
         reference_tailcone_ratio=0.28,
         reference_fullness=0.80,
@@ -448,15 +450,6 @@ def _nacelle_component(
         maximum_radius = 0.18 * maximum_width
         fractions = (0.0, 0.12, 0.32, 0.62, 0.84, 1.0)
         radii = (0.0, 0.72, 1.0, 0.92, 0.58, 0.0)
-    elif layout == "nose_tractor":
-        nacelle_length = 0.22 * length
-        start_x = -0.085 * length
-        centerline_y = 0.0
-        center_z = body_stations[2]["z_offset_m"]
-        symmetry = "none"
-        maximum_radius = 0.34 * maximum_width
-        fractions = (0.0, 0.10, 0.25, 0.52, 0.78, 1.0)
-        radii = (0.0, 0.58, 0.96, 1.0, 0.72, 0.0)
     else:
         nacelle_length = 0.20 * length
         centerline_y = 0.28 * design.wing_span_m
@@ -493,6 +486,31 @@ def _nacelle_component(
     }
 
 
+def _nose_propeller_component(
+    design: ConventionalV2Design,
+    body_stations: list[dict[str, float]],
+) -> dict[str, object]:
+    cowl = body_stations[1]
+    radius = 0.112 * design.wing_span_m
+    # The aft edge of the spinner's full-radius section meets the first cowl
+    # section. Size the hub from the cowl, independently of the blade diameter.
+    hub_radius = min(0.48 * min(cowl["width_m"], cowl["height_m"]), 0.22 * radius)
+    return {
+        "id": "propeller_nose_tractor",
+        "kind": "propeller",
+        "symmetry": "none",
+        "center_x_m": 0.30 * cowl["x_m"],
+        "centerline_y_m": 0.0,
+        "center_z_m": cowl["z_offset_m"],
+        "radius_m": radius,
+        "hub_radius_m": hub_radius,
+        "hub_length_m": 4.0 * cowl["x_m"],
+        "blade_count": 5,
+        "blade_chord_m": 0.16 * radius,
+        "rotation_deg": 9.0,
+    }
+
+
 def _propeller_component(
     design: ConventionalV2Design,
     preset_id: str,
@@ -509,11 +527,6 @@ def _propeller_component(
         radius = 0.073 * design.wing_span_m
         blade_count = 4
         rotation = 18.0
-    elif layout == "nose_tractor":
-        center_x = start_x - 0.012 * design.fuselage_length_m
-        radius = 0.112 * design.wing_span_m
-        blade_count = 5
-        rotation = 9.0
     else:
         center_x = start_x - 0.015 * design.fuselage_length_m
         radius = 0.071 * design.wing_span_m
@@ -709,11 +722,16 @@ def decode_conventional_geometry(
     body_stations = _body_stations(design, preset_id)
     wing_sections = _wing_sections(design, preset_id, body_stations)
     tail_components = _tail_components(design, preset_id, body_stations)
-    nacelle = _nacelle_component(
-        design, preset_id, wing_sections, body_stations
-    )
-    propeller = _propeller_component(design, preset_id, nacelle)
-    pylons = _pylon_components(preset_id, nacelle, wing_sections)
+    layout = PRESET_PROPULSION[preset_id]
+    if layout == "nose_tractor":
+        # One external cowling/fuselage loft, shared by preview and CAD export.
+        nacelle = None
+        propeller = _nose_propeller_component(design, body_stations)
+        pylons = []
+    else:
+        nacelle = _nacelle_component(design, preset_id, wing_sections, body_stations)
+        propeller = _propeller_component(design, preset_id, nacelle)
+        pylons = _pylon_components(preset_id, nacelle, wing_sections)
     features = _integration_features(
         design, preset_id, body_stations, wing_sections
     )
@@ -756,7 +774,7 @@ def decode_conventional_geometry(
         "fuselage",
         "main_wing",
         *(str(component["id"]) for component in tail_components),
-        str(nacelle["id"]),
+        *([str(nacelle["id"])] if nacelle else []),
         str(propeller["id"]),
         *(str(component["id"]) for component in pylons),
         *(str(component["id"]) for component in features),
@@ -781,29 +799,34 @@ def decode_conventional_geometry(
     )
     root_z = float(wing_sections[0]["leading_edge_z_m"])
     root_attached = abs(root_z) <= maximum_height
-    layout = PRESET_PROPULSION[preset_id]
-    nacelle_stations = nacelle["stations"]
-    assert isinstance(nacelle_stations, list)
-    propulsion_mounted = (
-        layout == "rear_pusher"
-        and float(nacelle_stations[0]["x_m"]) < design.fuselage_length_m
-        and float(nacelle_stations[-1]["x_m"]) > design.fuselage_length_m
-    ) or (
-        layout == "nose_tractor"
-        and float(nacelle_stations[0]["x_m"]) < 0.0
-        and float(nacelle_stations[-1]["x_m"]) > 0.0
-    ) or (
-        layout == "twin_wing_mounted"
-        and nacelle["symmetry"] == "y"
-        and float(nacelle["centerline_y_m"]) > 0.0
-    )
-    propeller_aft_or_forward = (
-        layout == "rear_pusher"
-        and float(propeller["center_x_m"]) > float(nacelle_stations[-1]["x_m"])
-    ) or (
-        layout in {"nose_tractor", "twin_wing_mounted"}
-        and float(propeller["center_x_m"]) < float(nacelle_stations[0]["x_m"])
-    )
+    if nacelle is None:
+        cowl = body_stations[1]
+        propulsion_mounted = (
+            float(propeller["hub_radius_m"]) * 2.0
+            <= min(cowl["width_m"], cowl["height_m"])
+            and float(propeller["center_x_m"]) + float(propeller["hub_length_m"]) / 2.0
+            > cowl["x_m"]
+        )
+        propeller_aft_or_forward = 0.0 <= float(propeller["center_x_m"]) < cowl["x_m"]
+    else:
+        nacelle_stations = nacelle["stations"]
+        assert isinstance(nacelle_stations, list)
+        propulsion_mounted = (
+            layout == "rear_pusher"
+            and float(nacelle_stations[0]["x_m"]) < design.fuselage_length_m
+            and float(nacelle_stations[-1]["x_m"]) > design.fuselage_length_m
+        ) or (
+            layout == "twin_wing_mounted"
+            and nacelle["symmetry"] == "y"
+            and float(nacelle["centerline_y_m"]) > 0.0
+        )
+        propeller_aft_or_forward = (
+            layout == "rear_pusher"
+            and float(propeller["center_x_m"]) > float(nacelle_stations[-1]["x_m"])
+        ) or (
+            layout == "twin_wing_mounted"
+            and float(propeller["center_x_m"]) < float(nacelle_stations[0]["x_m"])
+        )
     pylon_relationship = layout != "twin_wing_mounted" or len(pylons) == 2
     checks = [
         {
@@ -842,12 +865,12 @@ def decode_conventional_geometry(
         {
             "name": "propulsion_mount_relationship",
             "status": "pass" if propulsion_mounted else "fail",
-            "message": f"{layout} nacelle placement matches its preset installation relationship.",
+            "message": f"{layout} propulsion is attached to its cowling or nacelle.",
         },
         {
             "name": "propeller_layout_relationship",
             "status": "pass" if propeller_aft_or_forward else "fail",
-            "message": f"Propeller disk is on the correct side of the {layout} nacelle.",
+            "message": f"Propeller disk matches the {layout} installation.",
         },
         {
             "name": "pylon_attachment_relationship",
@@ -869,7 +892,7 @@ def decode_conventional_geometry(
                 {"id": "fuselage", "kind": "loft_body", "stations": body_stations},
                 main_wing,
                 *tail_components,
-                nacelle,
+                *([nacelle] if nacelle else []),
                 propeller,
                 *pylons,
                 *features,

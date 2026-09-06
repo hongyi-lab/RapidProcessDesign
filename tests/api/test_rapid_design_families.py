@@ -169,7 +169,9 @@ def test_conventional_presets_generate_complete_valid_geometry(
         assert tail_surfaces[0]["sections"][-1]["leading_edge_z_m"] > 1.0
     else:
         assert any(component["orientation"] == "vertical" for component in tail_surfaces)
-    assert any(component["kind"] == "nacelle" for component in state["components"])
+    assert any(component["kind"] == "nacelle" for component in state["components"]) == (
+        preset_id != "fast_cruise_recon"
+    )
     assert "wing_root_fairing" in components
     assert state["provenance"]["archetype_id"]
     assert state["provenance"]["reference_basis"]
@@ -220,13 +222,21 @@ def test_conventional_propeller_count_and_longitudinal_installation(
     propellers = [
         component for component in components if component["kind"] == "propeller"
     ]
-    assert len(nacelles) == 1
+    assert len(nacelles) == (0 if preset_id == "fast_cruise_recon" else 1)
     assert len(propellers) == 1
 
-    nacelle = nacelles[0]
     propeller = propellers[0]
     physical_propeller_count = 2 if propeller["symmetry"] == "y" else 1
     assert physical_propeller_count == expected_propeller_count
+    if preset_id == "fast_cruise_recon":
+        body = next(component for component in components if component["id"] == "fuselage")
+        cowl = body["stations"][1]
+        assert 0 <= propeller["center_x_m"] < cowl["x_m"]
+        assert propeller["center_x_m"] + propeller["hub_length_m"] / 2 > cowl["x_m"]
+        assert propeller["centerline_y_m"] == 0
+        assert propeller["center_z_m"] == pytest.approx(cowl["z_offset_m"])
+        return
+    nacelle = nacelles[0]
     assert propeller["symmetry"] == nacelle["symmetry"]
     assert propeller["centerline_y_m"] == pytest.approx(
         nacelle["centerline_y_m"]
@@ -241,6 +251,39 @@ def test_conventional_propeller_count_and_longitudinal_installation(
         assert propeller["center_x_m"] > nacelle_end_x
     else:
         assert propeller["center_x_m"] < nacelle_start_x
+
+
+@pytest.mark.parametrize("design", [
+    {},
+    {"fuselage_length_m": 6, "fineness_ratio": 6, "nose_length_ratio": 0.08,
+     "cabin_fullness": 0.65, "section_ovality": 0.7, "wing_span_m": 8},
+    {"fuselage_length_m": 20, "fineness_ratio": 16, "nose_length_ratio": 0.28,
+     "cabin_fullness": 1.25, "section_ovality": 1.3, "wing_span_m": 30},
+])
+def test_fast_recon_has_continuous_cowling_and_attached_spinner(
+    client: TestClient, condition: dict[str, float | int], design: dict,
+):
+    response = client.post("/api/rapid-design/analyze", json={
+        "family_id": "conventional_v2", "preset_id": "fast_cruise_recon",
+        "design": design, "condition": condition,
+    })
+    assert response.status_code == 200, response.text
+    state = response.json()["geometry_state"]
+    components = state["components"]
+    assert state["geometry_version"] == "0.3.0"
+    assert not any(component["kind"] == "nacelle" for component in components)
+    body = next(component for component in components if component["id"] == "fuselage")
+    propeller = next(component for component in components if component["kind"] == "propeller")
+    nose = body["stations"][:7]
+    # No pinched join between an engine pod and the cabin, including control extremes.
+    for field in ("width_m", "height_m"):
+        assert [station[field] for station in nose] == sorted(station[field] for station in nose)
+    cowl = nose[1]
+    aft_spinner_shoulder = propeller["center_x_m"] + 0.175 * propeller["hub_length_m"]
+    assert aft_spinner_shoulder == pytest.approx(cowl["x_m"])
+    assert 2 * propeller["hub_radius_m"] <= min(cowl["width_m"], cowl["height_m"])
+    spinner_tip = propeller["center_x_m"] - propeller["hub_length_m"] / 2
+    assert spinner_tip > -0.025 * body["stations"][-1]["x_m"]
 
 
 def test_payload_utility_has_paired_wing_attached_pylons(
@@ -356,7 +399,7 @@ def test_conventional_presets_are_geometrically_distinct(
             next(
                 component["id"]
                 for component in result["geometry_state"]["components"]
-                if component["kind"] == "nacelle"
+                if component["kind"] == "propeller"
             ),
         )
         for result in results.values()
@@ -440,7 +483,7 @@ def test_conventional_manifest_documents_archetype_and_public_ratio_basis(
     client: TestClient,
 ):
     manifest = client.get("/api/rapid-design/families/conventional_v2").json()
-    assert manifest["version"] == "0.2.0"
+    assert manifest["version"] == "0.3.0"
     for preset in manifest["presets"]:
         assert preset["archetype_id"]
         reference = preset["reference_basis"]

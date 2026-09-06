@@ -650,8 +650,9 @@ export function buildLiftingSurface(
       else indices.push(centreIndex, current, next);
     }
   }
-  capSection(0, true);
-  capSection(sections.length - 1, false);
+  // Vertical skins use reversed winding; their root and tip must match it.
+  capSection(0, orientation !== "vertical");
+  capSection(sections.length - 1, orientation === "vertical");
 
   return {
     componentId: component.id,

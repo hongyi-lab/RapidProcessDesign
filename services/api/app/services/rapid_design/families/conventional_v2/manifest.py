@@ -40,7 +40,7 @@ _PRESET_METADATA = {
     ),
     "fast_cruise_recon": (
         "Fast-cruise reconnaissance",
-        "Pointed tractor concept with a thin cranked-swept wing and high-mounted tailplane.",
+        "Integrated nose cowling and propeller, with a thin swept wing and high-mounted tailplane.",
     ),
     "payload_utility": (
         "Payload utility",
@@ -56,7 +56,7 @@ def conventional_v2_manifest() -> RapidFamilyManifest:
             "family_id": "conventional_v2",
             "display_name": "Conventional V2",
             "description": "Multi-section conventional aircraft concept geometry.",
-            "version": "0.2.0",
+            "version": "0.3.0",
             "default_preset_id": "long_endurance_uav",
             "presets": [
                 {

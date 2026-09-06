@@ -9,6 +9,7 @@ import {
 } from "react";
 
 import { CadViewer } from "@/components/cad-viewer/CadViewer";
+import { GeometryExport } from "@/components/rapid-design/geometry/GeometryExport";
 import {
   ParametricAircraftPreview,
   geometryNominalSize,
@@ -672,6 +673,12 @@ export default function RapidDesignPage() {
                   >
                     Save baseline
                   </button>
+                  <GeometryExport
+                    key={displayedAnalysis?.design_hash}
+                    geometry={displayedAnalysis?.geometry_state ?? null}
+                    name={`${selectedFamilyId}-${displayedAnalysis?.design_hash.slice(0, 12) ?? "aircraft"}`}
+                    disabled={analyzeLoading || Boolean(analyzeError)}
+                  />
                 </div>
               </header>
               <ParametricAircraftPreview

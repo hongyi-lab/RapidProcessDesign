@@ -22,10 +22,24 @@ family + preset + design parameters
         Canonical GeometryState
         ├── generic Three.js renderer
         ├── family analysis adapter
-        └── future exporter / optimizer
+        ├── STEP / STL mesh export
+        └── future optimizer
 ```
 
 `AircraftSpec` 和旧 `geometry_mapper.py` 继续服务于 legacy pipeline，不再是新高质量预览的几何真相。
+
+## SolidWorks 文件交接（首版）
+
+在 Design 中生成或恢复方案，选中一个 concept，然后点击飞机卡片右上角的 **Export → Download STEP / Download STL**。Analyze 的预览标题栏也有相同入口，导出当前显示的几何；更新中或几何无效时禁用下载。
+
+- STEP：AP203 (`CONFIG_CONTROL_DESIGN`) 分面 B-rep，每个机身、翼面、短舱、桨毂和桨叶实例保留为独立封闭实体。使用显式平面及有向边界环，保留预览三角面，不重建光顺曲面或 SolidWorks 草图/特征树。相交部件没有布尔合并，不代表可制造装配体。
+- STL：二进制网格。两种格式均将模型坐标从米转为毫米；STEP 内含毫米单位，STL 没有标准单位字段，因此文件名带 `-mm`，在 SolidWorks 中导入 STL 时选择毫米。
+- 导出直接复用预览的 `buildGeometrySurfaces`，排除基准叠加、视角变换和显示缩放。文件名保留候选 ID 或分析 hash，便于追溯。导出前检查每个部件都存在、坐标有效、边闭合且朝向一致。
+- 文件在浏览器本地生成，无新增 CAD 服务或运行依赖。SolidWorks 中通过 **File → Open** 打开文件；STL 可按需要选为网格/图形体。下载后可另存为 SolidWorks 文件，但不会自动产生参数化建模历史。
+
+本版目的是接通“任务输入 → 概念方案 → CAD 文件交接”。正式优化目标与约束继续等待老师确认，surrogate 训练和光顺 CAD 建模仍是后续工作。
+
+验证：四个预设的 STEP 已使用 Open Cascade (`occt-import-js 0.0.23`) 独立重新导入，分别保留 BWB 1、长航时 11、高速侦察 12、载荷运输 20 个部件，外包尺寸与原网格误差小于 0.01 mm。STL 经 trimesh 重新读取，四个预设均闭合且朝向一致。测试修复了垂直翼面根部/端部封盖朝向不一致的问题。SolidWorks 本机导入尚未验证。
 
 ## BWB V1 输入与输出
 
@@ -41,7 +55,11 @@ Analyze 返回：设计身份、模型适用域检查、几何量、`CL/CD/L/D` 
 
 `conventional_v2` 提供三个合法的几何起点：`long_endurance_uav`、`fast_cruise_recon` 与 `payload_utility`。它们分别采用修长高展弦比/后推、尖细后掠/机头牵引、饱满高翼/双翼下短舱语法，不代表优化结论。
 
-高层滑块由 decoder 展开成 9 个机身截面、4 个主翼半展向 section、三段平尾、三段垂尾及 preset-defined nacelle。分析 adapter 使用透明的概念级有限翼和阻力关系，只用于交互趋势比较，不声称经过 CFD、VSPAERO 或试验验证。
+高层滑块由 decoder 展开成各预设的多截面机身、主翼、尾翼及推进部件。分析 adapter 使用透明的概念级有限翼和阻力关系，只用于交互趋势比较，不声称经过 CFD、VSPAERO 或试验验证。
+
+几何解码器 `0.3.0` 将高速侦察机的发动机罩融入机身前段，移除独立的 `propulsion_nose_tractor` 短舱。桨毂根据机头截面定尺寸和位置，机头到舱段的宽高连续增加，避免过去两个尖头叠放造成的缩颈。预览、导出以及机身面积/容积代理量使用同一份几何。前置螺旋桨、T 尾和后掠翼仍是该预设的固定布局。
+
+历史任务保留原始几何、指标和排名，不会在读取时替换成新版外形。页面检测到旧几何版本时提示重新生成；使用原任务输入点击 **Generate aircraft** 会创建新版结果。速度范围仍为 80–500 km/h，属于演示输入范围，不表示经过推进功率验证的速度包线。
 
 ## Mission Demo Search 输入与输出
 
