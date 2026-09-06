@@ -178,6 +178,10 @@ Legacy 任务写入 `storage/rapid_design/jobs/{job_id}/`；Mission Demo 独立�
 
 <http://localhost:3900/rapid-design>
 
+网站根路径 `/` 也会进入该页面。主界面与参数分析页使用英文浅色布局，AI 工作台独立放在 `/aerospec`，未连接模型时先显示配置提示。
+
+三维预览默认仅显示当前飞机，按其实际几何自动取景。生成候选后，可用 `Fit aircraft / Same scale` 切换自适应与统一米制比例；统一比例使用所有候选的实际几何包围盒。拖动旋转，普通滚动用于浏览页面，`Ctrl + 滚轮` 缩放，`Reset view` 恢复取景。Analyze 中的基准叠加需要明确点击 `Overlay baseline`；性能指标始终位于画布下方。
+
 使用结束后双击 `Stop-RapidDesign.cmd`。运行日志保存在被 Git 忽略的 `.rapid-local/` 中。这个方式仍然是在本机运行，但不需要手动打开两个终端或记忆启动命令。
 
 ### 手动启动（开发者）

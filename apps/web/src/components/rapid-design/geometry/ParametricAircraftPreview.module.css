@@ -194,3 +194,11 @@
     transition: none;
   }
 }
+.previewFooter { position: absolute; bottom: 10px; left: 14px; right: 14px; display: flex; align-items: center; justify-content: flex-end; gap: 8px; z-index: 2; }
+.previewFooter > span { margin-right: auto; font-size: 10px; color: #7b8994; pointer-events: none; }
+.previewFooter button { min-height: 26px; padding: 0 8px; border: 1px solid #dbe2e8; border-radius: 4px; font-size: 10px; font-weight: 400; color: #556774; background: #ffffffde; }
+.previewFooter button[aria-pressed="true"] { background: #eaf0f4; border-color: #8da0af; }
+.legend { bottom: 46px; }
+.viewControls, .scaleControls { border-color: #e1e7ec; border-radius: 6px; padding: 2px; }
+.viewButton, .scaleButton { min-height: 28px; font-size: 10px; }
+@media (max-width: 520px) { .previewFooter > span { max-width: 145px; font-size: 9px; } .scaleControls { top: 48px; } }

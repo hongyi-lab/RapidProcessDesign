@@ -703,6 +703,15 @@ export function ChatPanel({
         }
       } catch { /* ignore */ }
 
+      let useAiSdk = Boolean(llmSettings);
+      if (!llmSettings) {
+        try {
+          const response = await fetch("/api/chat", { cache: "no-store" });
+          const connection = await response.json();
+          useAiSdk = connection.mode === "sdk";
+        } catch { /* The request below reports connection failures. */ }
+      }
+
       // Build messages in AI SDK UIMessage format
       const uiMessages = messages
         .filter((m) => m.role === "user" || m.role === "assistant")
@@ -731,15 +740,15 @@ export function ChatPanel({
             selected_refs: selectedRefs,
             messages: uiMessages,
             llm_settings: llmSettings,
-            mode: llmSettings ? undefined : "legacy",
+            mode: useAiSdk ? undefined : "legacy",
           }),
         });
 
         if (!response.ok || !response.body) {
-          throw new Error(`Chat API failed with status ${response.status}`);
+          const failure = await response.json().catch(() => null);
+          throw new Error(failure?.error ?? "Chat is unavailable. Check your model connection in Settings.");
         }
 
-        const useAiSdk = !!llmSettings;
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         const cb: StreamCallbacks = {

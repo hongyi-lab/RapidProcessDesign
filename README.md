@@ -192,7 +192,7 @@ set -a && . ../../.env && set +a
 npm run dev
 ```
 
-Open http://localhost:3900 and start describing your aircraft.
+Open http://localhost:3900 for the English aircraft design demo. For natural-language design, open http://localhost:3900/aerospec and connect a model in Settings.
 
 ### Recommended: Real-time Agent Run Mode
 
@@ -229,7 +229,7 @@ Seed three demo designs (long-endurance UAV, high-speed recon, heavy-lift cruise
 CAD_BACKEND=fake .venv/bin/python scripts/seed_demo_designs.py
 ```
 
-Then open http://localhost:3900 — the demo designs appear in the version panel with metrics, trust badges, and 3D previews. No LLM key needed for viewing seeded data.
+The seeded designs belong to the AI workspace at http://localhost:3900/aerospec. Connect a model in Settings to enter that workspace and inspect the seeded sessions. The separate mission demo at http://localhost:3900/rapid-design works without an LLM key.
 
 > Demo designs carry a `demo-` ID prefix and are clearly labeled. They can coexist with normal designs.
 > See [Demo Scenarios](docs/demo-scenarios.md) for details on each scenario.

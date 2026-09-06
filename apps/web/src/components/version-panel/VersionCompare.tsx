@@ -1,6 +1,6 @@
 "use client";
 
-import type { DesignRuleEntry, PerformanceEstimateEntry, VspaeroAnalysisEntry } from "@/app/page";
+import type { DesignRuleEntry, PerformanceEstimateEntry, VspaeroAnalysisEntry } from "@/app/aerospec/page";
 
 type VersionResponse = {
   files: string[];

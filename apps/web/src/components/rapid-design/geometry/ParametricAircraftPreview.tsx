@@ -9,6 +9,9 @@ import {
   framingReferenceSize,
   modelScaleForMode,
   orthographicFrustum,
+  perspectiveFitDistance,
+  PREVIEW_DIRECTION,
+  type GeometryFrame,
 } from "./cameraFraming";
 import { createGeometryGroup, disposeObjectResources } from "./threeGeometry";
 import type { GeometryScaleMode, GeometryState, GeometryView } from "./types";
@@ -24,6 +27,7 @@ export type ParametricAircraftPreviewProps = {
   scaleMode?: GeometryScaleMode;
   defaultScaleMode?: GeometryScaleMode;
   sharedReferenceSize?: number;
+  sharedFrame?: GeometryFrame;
   onScaleModeChange?: (mode: GeometryScaleMode) => void;
   showScaleControls?: boolean;
   interactive?: boolean;
@@ -46,19 +50,21 @@ type PreviewRuntime = {
 type ViewBounds = {
   center: THREE.Vector3;
   maxDimension: number;
+  size: THREE.Vector3;
+  fitToGeometry: boolean;
 };
 
 const VIEW_PRESETS: ReadonlyArray<{ id: GeometryView; label: string }> = [
   { id: "3d", label: "3D" },
-  { id: "top", label: "顶视" },
-  { id: "side", label: "侧视" },
-  { id: "front", label: "前视" },
+  { id: "top", label: "Top" },
+  { id: "side", label: "Side" },
+  { id: "front", label: "Front" },
 ];
 
 const SCALE_PRESETS: ReadonlyArray<{ id: GeometryScaleMode; label: string; title: string }> = [
-  { id: "auto", label: "自动", title: "当前构型自动充满画幅" },
-  { id: "world", label: "同尺度", title: "比较对象使用相同米制比例" },
-  { id: "normalized", label: "机长归一", title: "机身长度归一后比较轮廓" },
+  { id: "auto", label: "Fit view", title: "Fit the current aircraft to the view" },
+  { id: "world", label: "Same scale", title: "Keep the same physical scale when comparing aircraft" },
+  { id: "normalized", label: "Body length", title: "Normalize body length to compare shapes" },
 ];
 
 function applyViewPreset(
@@ -81,8 +87,10 @@ function applyViewPreset(
   if (camera instanceof THREE.PerspectiveCamera) {
     camera.aspect = aspect;
     const halfFov = THREE.MathUtils.degToRad(camera.fov / 2);
-    const distance = (safeReference * 0.67) / Math.tan(halfFov);
-    const direction = new THREE.Vector3(-1.25, -1.25, 0.9).normalize();
+    const distance = bounds.fitToGeometry
+      ? perspectiveFitDistance(bounds.size.toArray(), aspect, camera.fov)
+      : (safeReference * 0.67) / Math.min(Math.tan(halfFov), Math.tan(halfFov) * aspect);
+    const direction = new THREE.Vector3(...PREVIEW_DIRECTION).normalize();
     camera.up.set(0, 0, 1);
     camera.position.copy(center).addScaledVector(direction, distance);
     camera.near = Math.max(0.005, safeReference / 500);
@@ -144,6 +152,7 @@ export function ParametricAircraftPreview({
   scaleMode,
   defaultScaleMode = "auto",
   sharedReferenceSize,
+  sharedFrame,
   onScaleModeChange,
   showScaleControls = true,
   interactive = true,
@@ -155,10 +164,13 @@ export function ParametricAircraftPreview({
   const boundsRef = useRef<ViewBounds>({
     center: new THREE.Vector3(),
     maxDimension: 10,
+    size: new THREE.Vector3(10, 10, 2),
+    fitToGeometry: true,
   });
   const referenceSizeRef = useRef(10);
   const [internalView, setInternalView] = useState<GeometryView>(defaultView);
   const [internalScaleMode, setInternalScaleMode] = useState<GeometryScaleMode>(defaultScaleMode);
+  const [showBaseline, setShowBaseline] = useState(false);
   const effectiveView = view ?? internalView;
   const effectiveScaleMode = scaleMode ?? internalScaleMode;
   const selectedViewRef = useRef<GeometryView>(effectiveView);
@@ -181,7 +193,7 @@ export function ParametricAircraftPreview({
         powerPreference: "high-performance",
       });
     } catch (reason) {
-      setRendererError(reason instanceof Error ? reason.message : "WebGL 初始化失败");
+      setRendererError(reason instanceof Error ? reason.message : "3D preview could not start");
       return;
     }
     renderer.setClearColor(0xf7f9fb, 1);
@@ -197,6 +209,12 @@ export function ParametricAircraftPreview({
     controls.enableDamping = false;
     controls.enabled = interactive;
     controls.enablePan = false;
+    controls.enableZoom = false;
+    // Ordinary scrolling moves the page; zoom is an intentional modified gesture.
+    const onWheel = (event: WheelEvent) => {
+      controls.enableZoom = event.ctrlKey || event.metaKey;
+    };
+    canvas.addEventListener("wheel", onWheel, { capture: true, passive: true });
     controls.rotateSpeed = 0.62;
     controls.zoomSpeed = 0.72;
     const hemisphere = new THREE.HemisphereLight(0xffffff, 0xd9e1e8, 2.35);
@@ -241,6 +259,7 @@ export function ParametricAircraftPreview({
       resizeObserver.disconnect();
       controls.removeEventListener("change", runtime.render);
       controls.dispose();
+      canvas.removeEventListener("wheel", onWheel, true);
       if (modelRef.current) {
         scene.remove(modelRef.current);
         disposeObjectResources(modelRef.current);
@@ -271,22 +290,27 @@ export function ParametricAircraftPreview({
     let nextComparison: THREE.Group | null = new THREE.Group();
     nextComparison.name = "aircraft-geometry-comparison";
     try {
-      if (baselineGeometry) {
+      if (baselineGeometry && showBaseline) {
         nextComparison.add(scaledGeometryGroup(baselineGeometry, true, effectiveScaleMode));
       }
       const currentGroup = scaledGeometryGroup(geometry, false, effectiveScaleMode);
       if (currentGroup.children.length === 0) {
-        throw new Error("GeometryState 中没有可显示的有效组件");
+        throw new Error("No valid components to display");
       }
       nextComparison.add(currentGroup);
       nextComparison.updateMatrixWorld(true);
 
-      const box = new THREE.Box3().setFromObject(nextComparison);
-      if (box.isEmpty()) throw new Error("GeometryState 没有有限的三维边界");
+      const box = effectiveScaleMode === "world" && sharedFrame
+        ? new THREE.Box3(new THREE.Vector3(...sharedFrame.min), new THREE.Vector3(...sharedFrame.max))
+        : new THREE.Box3().setFromObject(nextComparison);
+      if (box.isEmpty()) throw new Error("Geometry bounds are invalid");
       const center = box.getCenter(new THREE.Vector3());
       const size = box.getSize(new THREE.Vector3());
       const maxDimension = Math.max(size.x, size.y, size.z, 1e-3);
-      const nextBounds = { center, maxDimension };
+      const nextBounds = {
+        center, maxDimension, size,
+        fitToGeometry: effectiveScaleMode === "auto" || (effectiveScaleMode === "world" && Boolean(sharedFrame)),
+      };
       const referenceSize = framingReferenceSize(
         maxDimension,
         effectiveScaleMode,
@@ -307,7 +331,7 @@ export function ParametricAircraftPreview({
       runtime.render();
     } catch (reason) {
       if (nextComparison) disposeObjectResources(nextComparison);
-      setGeometryError(reason instanceof Error ? reason.message : "几何数据无法显示");
+      setGeometryError(reason instanceof Error ? reason.message : "Unable to display this geometry");
       runtime.render();
     }
   }, [
@@ -315,8 +339,10 @@ export function ParametricAircraftPreview({
     geometryKey,
     baselineGeometry,
     baselineKey,
+    showBaseline,
     effectiveScaleMode,
     sharedReferenceSize,
+    sharedFrame,
   ]);
 
   useEffect(() => {
@@ -345,11 +371,11 @@ export function ParametricAircraftPreview({
       <canvas
         ref={canvasRef}
         className={styles.canvas}
-        aria-label="可旋转的整机参数化三维预览"
+        aria-label="Interactive 3D aircraft preview"
         tabIndex={interactive ? 0 : -1}
       />
       {showViewControls ? (
-        <div className={styles.viewControls} role="toolbar" aria-label="三维预览视角">
+        <div className={styles.viewControls} role="toolbar" aria-label="Aircraft view">
           {VIEW_PRESETS.map((preset) => (
             <button
               key={preset.id}
@@ -366,7 +392,7 @@ export function ParametricAircraftPreview({
         </div>
       ) : null}
       {showScaleControls ? (
-        <div className={styles.scaleControls} role="toolbar" aria-label="预览尺度模式">
+        <div className={styles.scaleControls} role="toolbar" aria-label="View scale">
           {SCALE_PRESETS.map((preset) => (
             <button
               key={preset.id}
@@ -383,25 +409,39 @@ export function ParametricAircraftPreview({
           ))}
         </div>
       ) : null}
-      {baselineGeometry && geometry ? (
-        <div className={styles.legend} aria-label="几何对比图例">
+      <div className={styles.previewFooter}>
+        {interactive && <span>Drag to rotate · Ctrl + scroll to zoom</span>}
+        {baselineGeometry && geometry && (
+          <button type="button" aria-pressed={showBaseline} onClick={() => setShowBaseline((current) => !current)}>
+            {showBaseline ? "Hide baseline" : "Overlay baseline"}
+          </button>
+        )}
+        {interactive && <button type="button" onClick={() => {
+          const runtime = runtimeRef.current;
+          if (!runtime) return;
+          applyViewPreset(runtime, effectiveView, boundsRef.current, referenceSizeRef.current);
+          runtime.render();
+        }}>Reset view</button>}
+      </div>
+      {baselineGeometry && geometry && showBaseline ? (
+        <div className={styles.legend} aria-label="Comparison legend">
           <span className={styles.legendItem}>
-            <span className={styles.legendSwatch} aria-hidden="true" />当前
+            <span className={styles.legendSwatch} aria-hidden="true" />Current
           </span>
           <span className={styles.legendItem}>
-            <span className={styles.legendWire} aria-hidden="true" />基准
+            <span className={styles.legendWire} aria-hidden="true" />Baseline
           </span>
         </div>
       ) : null}
       {!geometry && !fallbackMessage ? (
         <div className={styles.fallback} role="status">
-          <strong>等待几何数据</strong>
-          <span>调整参数后将在这里显示整机外形。</span>
+          <strong>Loading aircraft</strong>
+          <span>The aircraft preview will appear here.</span>
         </div>
       ) : null}
       {fallbackMessage ? (
         <div className={styles.fallback} role="status" title={fallbackMessage}>
-          <strong>当前几何无法显示</strong>
+          <strong>Preview unavailable</strong>
           <span>{fallbackMessage}</span>
         </div>
       ) : null}

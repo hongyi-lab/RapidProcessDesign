@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import React from "react";
 import { renderToString } from "react-dom/server";
+import type { GraphNode, VariantResult } from "./GraphExecutionPanel.tsx";
 
 import {
   GraphExecutionPanel,
@@ -11,7 +12,7 @@ import {
 } from "./GraphExecutionPanel.tsx";
 
 test("GraphNodeTimeline renders all nodes", () => {
-  const nodes = [
+  const nodes: GraphNode[] = [
     { name: "parse", label: "Parse", state: "completed" },
     { name: "prepare", label: "Prepare", state: "running" },
   ];
@@ -21,7 +22,7 @@ test("GraphNodeTimeline renders all nodes", () => {
 });
 
 test("GraphNodeTimeline shows latency", () => {
-  const nodes = [
+  const nodes: GraphNode[] = [
     { name: "parse", label: "Parse", state: "completed", latencyMs: 12.3 },
   ];
   const html = renderToString(<GraphNodeTimeline nodes={nodes} />);
@@ -34,7 +35,7 @@ test("GraphNodeTimeline renders empty list", () => {
 });
 
 test("VariantRuntimeStatus renders variant table", () => {
-  const variants = [
+  const variants: VariantResult[] = [
     { label: "compact", status: "succeeded", durationMs: 1200 },
     { label: "standard", status: "running" },
   ];
@@ -66,8 +67,8 @@ test("EventStreamViewer shows empty state", () => {
 });
 
 test("GraphExecutionPanel renders all sections", () => {
-  const nodes = [{ name: "parse", label: "Parse", state: "completed" }];
-  const variants = [{ label: "v1", status: "succeeded" }];
+  const nodes: GraphNode[] = [{ name: "parse", label: "Parse", state: "completed" }];
+  const variants: VariantResult[] = [{ label: "v1", status: "succeeded" }];
   const events = [{ timestamp: "12:00:00", eventType: "test" }];
   const html = renderToString(
     <GraphExecutionPanel nodes={nodes} variants={variants} events={events} />,

@@ -192,7 +192,7 @@ set -a && . ../../.env && set +a
 npm run dev
 ```
 
-打开 http://localhost:3900，开始描述你的飞行器。
+打开 http://localhost:3900 进入英文飞机设计 Demo。自然语言设计入口位于 http://localhost:3900/aerospec，需要先在 Settings 中连接模型。
 
 ### 推荐：实时 Agent Run 模式
 
@@ -229,7 +229,7 @@ cd apps/web && npm run dev
 CAD_BACKEND=fake .venv/bin/python scripts/seed_demo_designs.py
 ```
 
-然后打开 http://localhost:3900 — 演示设计出现在版本面板中，包含指标、可信度徽章和 3D 预览。查看已填充数据不需要 LLM 密钥。
+已填充的演示会话属于 http://localhost:3900/aerospec 的 AI 工作台；在 Settings 中连接模型后即可进入并查看。独立任务设计 Demo 位于 http://localhost:3900/rapid-design，不需要 LLM 密钥。
 
 > 演示设计带有 `demo-` ID 前缀并明确标注。可与正常设计共存。
 > 各场景详情请见 [演示场景](docs/demo-scenarios.md)。

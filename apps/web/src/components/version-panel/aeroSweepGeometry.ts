@@ -1,4 +1,4 @@
-import type { AeroSweepPoint } from "@/app/page";
+import type { AeroSweepPoint } from "@/app/aerospec/page";
 
 export type SweepSeriesGeometry = {
   clPath: string;

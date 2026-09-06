@@ -16,6 +16,29 @@ const FASTAPI_BASE_URL =
 
 export const dynamic = "force-dynamic";
 
+const CONNECTION_REQUIRED = "Connect an AI model in Settings to use chat, or open Design to generate aircraft without an API key.";
+
+async function legacyConfigured(): Promise<boolean> {
+  try {
+    const response = await fetch(`${FASTAPI_BASE_URL}/api/settings`, {
+      cache: "no-store",
+      signal: AbortSignal.timeout(3000),
+    });
+    if (!response.ok) return false;
+    return (await response.json()).llm_configured === true;
+  } catch {
+    return false;
+  }
+}
+
+export async function GET() {
+  const sdkConfigured = Boolean(process.env.OPENAI_API_KEY?.trim());
+  return Response.json({
+    configured: sdkConfigured || await legacyConfigured(),
+    mode: sdkConfigured ? "sdk" : "legacy",
+  }, { headers: { "Cache-Control": "no-store" } });
+}
+
 export async function POST(req: NextRequest) {
   const body = await req.json();
   const {
@@ -34,6 +57,9 @@ export async function POST(req: NextRequest) {
 
   // Legacy mode: proxy to FastAPI as before
   if (mode === "legacy") {
+    if (!await legacyConfigured()) {
+      return Response.json({ error: CONNECTION_REQUIRED }, { status: 503 });
+    }
     return legacyProxy(body);
   }
 
@@ -53,7 +79,7 @@ export async function POST(req: NextRequest) {
 
   if (!apiKey) {
     return new Response(
-      JSON.stringify({ error: "No API key configured" }),
+      JSON.stringify({ error: CONNECTION_REQUIRED }),
       { status: 400, headers: { "Content-Type": "application/json" } },
     );
   }

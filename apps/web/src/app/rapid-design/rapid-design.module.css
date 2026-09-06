@@ -1,14 +1,14 @@
 .app {
-  --rapid-navy: #0b2d4f;
-  --rapid-navy-mid: #143d61;
-  --rapid-blue: #176aa6;
-  --rapid-blue-dark: #10527f;
-  --rapid-yellow: #f2c94c;
-  --rapid-page: #eef1f4;
+  --rapid-navy: #263e50;
+  --rapid-navy-mid: #3c586c;
+  --rapid-blue: #536f84;
+  --rapid-blue-dark: #344f62;
+  --rapid-yellow: #9aaebb;
+  --rapid-page: #f8fafb;
   --rapid-panel: #ffffff;
   --rapid-panel-muted: #f7f8fa;
-  --rapid-line: #cbd3db;
-  --rapid-line-soft: #e2e6ea;
+  --rapid-line: #dfe5e9;
+  --rapid-line-soft: #edf0f3;
   --rapid-text: #1e2b37;
   --rapid-muted: #647381;
   --rapid-danger: #a63838;
@@ -16,6 +16,13 @@
   color: var(--rapid-text);
   background: var(--rapid-page);
   color-scheme: light;
+  --text: var(--rapid-text);
+  --text-dim: #53636f;
+  --text-muted: var(--rapid-muted);
+  --bg-surface: #ffffff;
+  --bg-hover: #eff3f6;
+  --border-default: var(--rapid-line);
+  --border-strong: #aab9c5;
 }
 
 .topbar {
@@ -24,9 +31,9 @@
   align-items: center;
   gap: 12px;
   padding: 0 22px;
-  border-bottom: 1px solid #254967;
-  background: var(--rapid-navy);
-  color: #ffffff;
+  border-bottom: 1px solid var(--rapid-line);
+  background: #ffffff;
+  color: var(--rapid-text);
 }
 
 .brandMark {
@@ -37,7 +44,7 @@
   place-items: center;
   border: 1px solid #7890a4;
   border-radius: 3px;
-  color: var(--rapid-yellow);
+  color: var(--rapid-navy);
   font-family: var(--font-mono);
   font-size: 11px;
   font-weight: 800;
@@ -69,7 +76,7 @@
 
 .brandCopy p {
   margin-top: 1px;
-  color: #b7c7d5;
+  color: var(--rapid-muted);
   font-size: 10px;
   letter-spacing: 0.03em;
 }
@@ -85,9 +92,9 @@
 
 .topbarMeta span {
   padding: 3px 8px;
-  border: 1px solid #57728a;
+  border: 0;
   border-radius: 2px;
-  color: #d6e1e9;
+  color: var(--rapid-muted);
 }
 
 .topbarMeta a {
@@ -367,8 +374,9 @@
 .familySelectors {
   margin-top: 18px;
   padding: 13px;
-  border: 1px solid #42637e;
-  background: #123755;
+  border: 1px solid var(--rapid-line);
+  border-radius: 7px;
+  background: #f8fafb;
 }
 
 .familySelectors > label {
@@ -382,7 +390,7 @@
 .familySelectors label > span {
   display: block;
   margin-bottom: 5px;
-  color: #c8d6e0;
+  color: var(--rapid-muted);
   font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.05em;
@@ -977,10 +985,10 @@
 
 .missionWorkspace {
   min-height: calc(100vh - 122px);
-  display: grid;
-  place-items: start center;
-  gap: 24px;
-  padding: 28px 22px 54px;
+  display: block;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 28px 32px 42px;
   background: var(--rapid-page);
 }
 
@@ -1027,6 +1035,7 @@
   border: 1px solid var(--rapid-line);
   border-radius: 5px;
   background: #fff;
+  margin-top: 20px;
 }
 
 .teacherDetails > summary {
@@ -1810,3 +1819,42 @@
     display: none;
   }
 }
+/* Shared navigation and advanced workspaces use the same light palette. */
+.simpleNav { height: 50px; padding: 0 24px; align-items: stretch; gap: 16px; background: #fff; }
+.designHomeButton { min-width: 0; min-height: 0; padding: 0 8px; border: 0; border-radius: 0; background: transparent; font-size: 12px; }
+.designHomeButton[data-active="true"] { border: 0; border-bottom: 2px solid #536f84; background: transparent; box-shadow: none; }
+.designHomeButton:hover:not(:disabled) { color: #263e50; background: #f4f7f9; }
+.advancedMenu { align-self: center; }
+.advancedMenu > summary { min-height: 32px; min-width: 0; border: 0; background: transparent; color: var(--rapid-muted); font-size: 11px; }
+.advancedMenu > div { z-index: 20; border-radius: 8px; box-shadow: 0 8px 25px #263e5010; }
+.advancedMenu a { display: grid; gap: 4px; padding: 14px; color: var(--rapid-text); text-decoration: none; border-bottom: 1px solid var(--rapid-line-soft); }
+.advancedMenu a:hover { background: #f2f5f8; }
+.advancedMenu a strong { font-size: 12px; }
+.advancedMenu a small { font-size: 10px; color: var(--rapid-muted); }
+.topbarMeta > span:first-child { display: none; }
+.analyzeWorkspace { height: calc(100vh - 112px); grid-template-columns: 300px minmax(0,1fr); }
+.analyzeSidebar, .optimizeSidebar { background: white; color: var(--rapid-text); border-right-color: var(--rapid-line); scrollbar-color: #bdc9d1 #fff; }
+.analyzeSidebar p, .optimizeSidebar p, .analyzeSidebar label, .optimizeSidebar label, .sidebarIntro > span { color: var(--rapid-muted); }
+.analyzeSidebar select, .analyzeSidebar input[type="number"], .optimizeSidebar input[type="number"] { background: #f9fbfc; border-color: var(--rapid-line); color: var(--rapid-text); }
+.analyzeSidebar fieldset, .optimizeSidebar fieldset, .analyzeSidebar legend, .optimizeSidebar legend { border-color: var(--rapid-line); color: var(--rapid-text); }
+.analyzeSidebar button, .optimizeSidebar button { color: var(--rapid-text); border-color: var(--rapid-line); background: #f7f9fb; }
+.analyzeSidebar input[type="range"], .optimizeSidebar input[type="range"] { accent-color: #647e92; }
+.analyzeSidebar small, .optimizeSidebar small { color: var(--rapid-muted); }
+.analyzeSidebar .backToDesign { display: none; }
+.sidebarIntro h2 { font-size: 16px; }
+.analysisMain { padding: 22px; }
+.previewPanel, .metricsPanel, .polarPanel, .modelStrip, .dataPanel { border-radius: 8px; overflow: hidden; }
+.previewPanel { min-height: 0; display: block; }
+.aircraftPreview { height: 400px; min-height: 300px; border: 0; border-radius: 0; }
+.panelHeader > div > span, .sectionHeader > div > span { display: none; }
+.panelHeader h2, .sectionHeader h2 { font-size: 14px; }
+.previewActions > .legend { display: none; }
+.teacherDetails > summary { min-height: 42px; font-size: 11px; color: var(--rapid-muted); }
+.teacherDetails > summary small { font-size: 10px; }
+@media (max-width: 800px) { .analyzeWorkspace { display: block; height: auto; overflow: visible; } .analyzeSidebar { max-height: 430px; border-bottom: 1px solid var(--rapid-line); } .analysisMain { overflow: visible; padding: 16px; } .missionWorkspace { padding: 22px 18px 36px; } .topbar { padding: 0 18px; } }
+@media (max-width: 520px) { .missionWorkspace { padding: 20px 14px 30px; } .simpleNav { padding: 0 14px; } .topbarMeta { display: none; } .teacherDetails > summary small { display: none; } .panelHeader { align-items: flex-start; flex-direction: column; gap: 8px; } .aircraftPreview { height: 310px; } }
+.simpleNav { min-height: 50px; box-shadow: none; }
+.designHomeButton { align-items: center; }
+.sidebarIntro > span { display: none; }
+.familySelectors > p { color: var(--rapid-muted); }
+.teacherDetails .modelStrip { border: 0; border-radius: 0; }

@@ -341,6 +341,7 @@ def get_settings():
     return {
         "cad_backend": os.getenv("CAD_BACKEND", "fake"),
         "run_vspaero_analysis": _run_vspaero_analysis(),
+        "llm_configured": bool(os.getenv("OPENAI_API_KEY", "").strip()),
     }
 
 

@@ -53,6 +53,7 @@ export function saveLlmSettings(patch: Partial<LlmSettings>): void {
   const current = getLlmSettings();
   const updated = { ...current, ...patch };
   localStorage.setItem(OLD_KEY, JSON.stringify(updated));
+  window.dispatchEvent(new Event("llm-settings-changed"));
 }
 
 // --- Multi-profile management ---
@@ -73,6 +74,7 @@ export function getProfiles(): LlmProfile[] {
 
 export function saveProfiles(profiles: LlmProfile[]): void {
   localStorage.setItem(PROFILES_KEY, JSON.stringify(profiles));
+  window.dispatchEvent(new Event("llm-settings-changed"));
 }
 
 export function getActiveProfileId(): string | null {
@@ -82,6 +84,7 @@ export function getActiveProfileId(): string | null {
 
 export function setActiveProfileId(id: string): void {
   localStorage.setItem(ACTIVE_KEY, id);
+  window.dispatchEvent(new Event("llm-settings-changed"));
 }
 
 export function addProfile(name: string, settings: LlmSettings): LlmProfile {
@@ -118,7 +121,7 @@ export const PRESET_TEMPLATES: Array<{ name: string; modelName: string; baseUrl:
   { name: "DeepSeek", modelName: "deepseek-chat", baseUrl: "https://api.deepseek.com/v1" },
   { name: "OpenAI", modelName: "gpt-4o", baseUrl: "https://api.openai.com/v1" },
   { name: "MiniMax-M2.5", modelName: "MiniMax-M2.5", baseUrl: "http://192.168.2.220:3000/v1" },
-  { name: "自定义", modelName: "", baseUrl: "" },
+  { name: "Custom", modelName: "", baseUrl: "" },
 ];
 
 function migrateFromOld(): LlmProfile[] {
@@ -130,7 +133,7 @@ function migrateFromOld(): LlmProfile[] {
     if (!old.modelName && !old.apiKey && !old.baseUrl) return [];
     const profile: LlmProfile = {
       id: crypto.randomUUID(),
-      name: "默认",
+      name: "Default",
       ...old,
     };
     saveProfiles([profile]);

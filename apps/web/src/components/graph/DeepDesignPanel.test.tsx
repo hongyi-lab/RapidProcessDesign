@@ -12,6 +12,7 @@ const mockStream: DeepDesignStreamState & { start: () => Promise<void>; stop: ()
   events: [],
   status: "idle",
   report: "",
+  ddDesignId: null,
   start: async () => {},
   stop: () => {},
 };

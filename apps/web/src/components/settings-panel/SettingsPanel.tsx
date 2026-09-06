@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   getLlmSettings,
+  saveLlmSettings,
   getProfiles,
   getActiveProfileId,
   setActiveProfileId,
@@ -105,6 +106,8 @@ export function SettingsPanel({ apiBaseUrl }: SettingsPanelProps) {
   const saveLlm = useCallback(() => {
     if (activeId) {
       updateProfile(activeId, { modelName: llmModel, apiKey: llmApiKey, baseUrl: llmBaseUrl });
+    } else {
+      saveLlmSettings({ modelName: llmModel, apiKey: llmApiKey, baseUrl: llmBaseUrl });
     }
   }, [activeId, llmModel, llmApiKey, llmBaseUrl]);
 
@@ -154,7 +157,7 @@ export function SettingsPanel({ apiBaseUrl }: SettingsPanelProps) {
   const testLlm = useCallback(async () => {
     if (!llmApiKey && !llmBaseUrl) {
       setLlmTestStatus("fail");
-      setLlmTestMsg("请先填写 API Key 或 Base URL");
+      setLlmTestMsg("Enter an API key or base URL first");
       return;
     }
     saveLlm();
@@ -173,14 +176,14 @@ export function SettingsPanel({ apiBaseUrl }: SettingsPanelProps) {
       const data = (await resp.json()) as { ok: boolean; error?: string };
       if (data.ok) {
         setLlmTestStatus("ok");
-        setLlmTestMsg("连接成功");
+        setLlmTestMsg("Connected");
       } else {
         setLlmTestStatus("fail");
         setLlmTestMsg(data.error ?? `HTTP ${resp.status}`);
       }
     } catch (err) {
       setLlmTestStatus("fail");
-      setLlmTestMsg(err instanceof Error ? err.message : "连接失败");
+      setLlmTestMsg(err instanceof Error ? err.message : "Connection failed");
     }
   }, [llmModel, llmApiKey, llmBaseUrl, saveLlm]);
 
@@ -191,24 +194,24 @@ export function SettingsPanel({ apiBaseUrl }: SettingsPanelProps) {
         className="settings-toggle"
         onClick={() => setOpen(!open)}
       >
-        设置
+        Settings
       </button>
       {open && (
         <div className="settings-dropdown">
-          <div className="settings-section-title">CAD 后端</div>
+          <div className="settings-section-title">CAD backend</div>
           <label className="settings-row">
-            <span className="settings-label">后端</span>
+            <span className="settings-label">Backend</span>
             <select
               value={backend}
               disabled={loading}
               onChange={(e) => void save({ cad_backend: e.target.value })}
             >
-              <option value="fake">Fake（模拟）</option>
+              <option value="fake">Preview only</option>
               <option value="openvsp">OpenVSP</option>
             </select>
           </label>
           <label className="settings-row">
-            <span className="settings-label">气动分析</span>
+            <span className="settings-label">Aerodynamic analysis</span>
             <input
               type="checkbox"
               checked={vspaero}
@@ -217,7 +220,7 @@ export function SettingsPanel({ apiBaseUrl }: SettingsPanelProps) {
             />
           </label>
 
-          <div className="settings-section-title settings-section-spaced">LLM 配置</div>
+          <div className="settings-section-title settings-section-spaced">Model connection</div>
 
           {/* Profile selector */}
           <div className="settings-row settings-profile-row">
@@ -226,7 +229,7 @@ export function SettingsPanel({ apiBaseUrl }: SettingsPanelProps) {
               onChange={(e) => handleSelectProfile(e.target.value)}
               className="settings-profile-select"
             >
-              <option value="">（默认）</option>
+              <option value="">Server default</option>
               {profiles.map((p) => (
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}
@@ -235,7 +238,7 @@ export function SettingsPanel({ apiBaseUrl }: SettingsPanelProps) {
               type="button"
               onClick={() => setShowAddForm(!showAddForm)}
               className="toolbar-button"
-              title="添加配置"
+              title="Add profile"
             >
               +
             </button>
@@ -244,7 +247,7 @@ export function SettingsPanel({ apiBaseUrl }: SettingsPanelProps) {
                 type="button"
                 onClick={handleRemoveProfile}
                 className="toolbar-button toolbar-button-danger"
-                title="删除当前配置"
+                title="Remove profile"
               >
                 &times;
               </button>
@@ -258,7 +261,7 @@ export function SettingsPanel({ apiBaseUrl }: SettingsPanelProps) {
                 type="text"
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
-                placeholder="配置名称"
+                placeholder="Profile name"
                 className="settings-field-input"
                 onKeyDown={(e) => { if (e.key === "Enter") handleAddProfile(); }}
               />
@@ -268,7 +271,7 @@ export function SettingsPanel({ apiBaseUrl }: SettingsPanelProps) {
                 disabled={!newName.trim()}
                 className="toolbar-button"
               >
-                保存
+                Save
               </button>
             </div>
           )}
@@ -289,13 +292,13 @@ export function SettingsPanel({ apiBaseUrl }: SettingsPanelProps) {
 
           {/* LLM fields */}
           <label className="settings-row">
-            <span className="settings-label">模型</span>
+            <span className="settings-label">Model</span>
             <input
               type="text"
               value={llmModel}
               onChange={(e) => setLlmModel(e.target.value)}
               onBlur={saveLlm}
-              placeholder="留空使用默认"
+              placeholder="Use server default"
               className="settings-inline-field"
             />
           </label>
@@ -306,7 +309,7 @@ export function SettingsPanel({ apiBaseUrl }: SettingsPanelProps) {
               value={llmApiKey}
               onChange={(e) => setLlmApiKey(e.target.value)}
               onBlur={saveLlm}
-              placeholder="留空使用默认"
+              placeholder="Use server default"
               className="settings-inline-field"
             />
           </label>
@@ -317,7 +320,7 @@ export function SettingsPanel({ apiBaseUrl }: SettingsPanelProps) {
               value={llmBaseUrl}
               onChange={(e) => setLlmBaseUrl(e.target.value)}
               onBlur={saveLlm}
-              placeholder="留空使用默认"
+              placeholder="Use server default"
               className="settings-inline-field"
             />
           </label>
@@ -333,7 +336,7 @@ export function SettingsPanel({ apiBaseUrl }: SettingsPanelProps) {
               disabled={llmTestStatus === "testing"}
               onClick={() => void testLlm()}
             >
-              {llmTestStatus === "testing" ? "测试中…" : "测试连接"}
+              {llmTestStatus === "testing" ? "Testing…" : "Test connection"}
             </button>
           </div>
         </div>

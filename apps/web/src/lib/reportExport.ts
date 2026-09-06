@@ -2,7 +2,7 @@ import type {
   DesignRuleEntry,
   PerformanceEstimateEntry,
   VspaeroAnalysisEntry,
-} from "@/app/page";
+} from "@/app/aerospec/page";
 
 export type DesignReportSpecEcho = Record<string, unknown>;
 

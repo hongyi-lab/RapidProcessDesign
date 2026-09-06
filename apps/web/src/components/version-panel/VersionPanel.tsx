@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import type { DesignRuleEntry, PerformanceEstimateEntry, VspaeroAnalysisEntry } from "@/app/page";
+import type { DesignRuleEntry, PerformanceEstimateEntry, VspaeroAnalysisEntry } from "@/app/aerospec/page";
 import { VersionCompare } from "./VersionCompare";
 import { AddToCompareButton } from "@/components/compare/AddToCompareButton";
 import type { CompareItem, CompareMetrics } from "@/components/compare/types";

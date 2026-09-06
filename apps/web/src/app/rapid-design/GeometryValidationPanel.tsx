@@ -39,15 +39,15 @@ type SensitivityAnalysis = {
 
 const VIEW_OPTIONS: ReadonlyArray<{ id: GeometryView; label: string }> = [
   { id: "3d", label: "3D" },
-  { id: "top", label: "顶视" },
-  { id: "side", label: "侧视" },
-  { id: "front", label: "前视" },
+  { id: "top", label: "Top" },
+  { id: "side", label: "Side" },
+  { id: "front", label: "Front" },
 ];
 
 const SCALE_OPTIONS: ReadonlyArray<{ id: GeometryScaleMode; label: string }> = [
-  { id: "auto", label: "自动适配" },
-  { id: "world", label: "统一米制" },
-  { id: "normalized", label: "同机身长" },
+  { id: "auto", label: "Fit view" },
+  { id: "world", label: "Same scale" },
+  { id: "normalized", label: "Same body length" },
 ];
 
 async function requestAnalysis(
@@ -69,7 +69,7 @@ async function requestAnalysis(
     )),
     signal,
   });
-  if (!response.ok) throw await errorFromResponse(response, "视觉对比分析失败");
+  if (!response.ok) throw await errorFromResponse(response, "Could not load configuration comparison");
   return (await response.json()) as AnalyzeEnvelope;
 }
 
@@ -155,7 +155,7 @@ export function GeometryValidationPanel({
       .catch((reason: unknown) => {
         if ((reason as { name?: string }).name === "AbortError") return;
         setPresetLoading(false);
-        setPresetError(reason instanceof Error ? reason.message : "视觉对比分析失败");
+        setPresetError(reason instanceof Error ? reason.message : "Could not load configuration comparison");
       });
     return () => controller.abort();
   }, [apiBaseUrl, geometryCondition, manifest]);
@@ -191,7 +191,7 @@ export function GeometryValidationPanel({
       .catch((reason: unknown) => {
         if ((reason as { name?: string }).name === "AbortError") return;
         setSensitivityLoading(false);
-        setSensitivityError(reason instanceof Error ? reason.message : "参数敏感性分析失败");
+        setSensitivityError(reason instanceof Error ? reason.message : "Could not load parameter study");
       });
     return () => controller.abort();
   }, [apiBaseUrl, geometryCondition, manifest, presetId, sensitivityDefinition]);
@@ -216,11 +216,11 @@ export function GeometryValidationPanel({
       <header className={styles.header}>
         <div>
           <span>ROUND 5 · VISUAL VALIDATION</span>
-          <h2 id="round5-comparison-title">三类构型联动比较</h2>
-          <p>三个画布共享视角；统一米制模式锁定相同画幅，机长归一模式只比较轮廓。</p>
+          <h2 id="round5-comparison-title">Compare configurations</h2>
+          <p>Compare aircraft at the same scale or normalize body length to compare shape.</p>
         </div>
         <div className={styles.toolbarStack}>
-          <div className={styles.toolbar} role="toolbar" aria-label="对比视角">
+          <div className={styles.toolbar} role="toolbar" aria-label="Comparison view">
             {VIEW_OPTIONS.map((option) => (
               <button
                 key={option.id}
@@ -232,7 +232,7 @@ export function GeometryValidationPanel({
               </button>
             ))}
           </div>
-          <div className={styles.toolbar} role="toolbar" aria-label="对比尺度">
+          <div className={styles.toolbar} role="toolbar" aria-label="Comparison scale">
             {SCALE_OPTIONS.map((option) => (
               <button
                 key={option.id}
@@ -259,7 +259,7 @@ export function GeometryValidationPanel({
                 <span>
                   {analysis
                     ? `${formatNumber(analysis.geometry_metrics.fuselage_length_m, 1)} m L · ${formatNumber(analysis.geometry_metrics.span_m, 1)} m b`
-                    : "正在生成…"}
+                    : "Generating…"}
                 </span>
               </div>
               <ParametricAircraftPreview
@@ -285,12 +285,12 @@ export function GeometryValidationPanel({
         <div className={styles.sensitivityHeading}>
           <div>
             <span>PARAMETER SENSITIVITY · MIN / DEFAULT / MAX</span>
-            <h3 id="round5-sensitivity-title">几何参数敏感性</h3>
+            <h3 id="round5-sensitivity-title">Parameter study</h3>
           </div>
           <label>
-            <span>选择参数</span>
+            <span>Parameter</span>
             <select
-              aria-label="参数敏感性选择"
+              aria-label="Parameter study selection"
               value={sensitivityDefinition?.key ?? ""}
               onChange={(event) => setSensitivityKey(event.target.value)}
             >
@@ -303,7 +303,7 @@ export function GeometryValidationPanel({
           </label>
         </div>
         <p className={styles.sensitivityNote}>
-          当前显示 {sensitivityDefinition?.label ?? "—"}；三幅图固定为同一米制画幅，所有 manifest 几何参数均可逐项检查。
+          Showing {sensitivityDefinition?.label ?? "—"}at minimum, default and maximum values, all at the same scale.
         </p>
         {sensitivityError ? <p className={styles.error} role="alert">{sensitivityError}</p> : null}
         <div className={styles.previewGrid} aria-busy={sensitivityLoading}>

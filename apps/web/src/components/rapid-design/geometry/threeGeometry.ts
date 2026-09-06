@@ -4,10 +4,10 @@ import { buildGeometrySurfaces, type SurfaceMeshData } from "./geometrySurfaces.
 import type { GeometryComponent, GeometryState } from "./types";
 
 const CURRENT_COLORS: Readonly<Record<GeometryComponent["kind"], number>> = {
-  loft_body: 0x8da4b5,
-  lifting_surface: 0x2f78a8,
-  nacelle: 0x5f7484,
-  propeller: 0x263946,
+  loft_body: 0x9ba8b0,
+  lifting_surface: 0x7b8b98,
+  nacelle: 0x6d7c86,
+  propeller: 0x35424c,
 };
 
 export type DisposedResourceCounts = {

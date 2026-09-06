@@ -1,6 +1,6 @@
 "use client";
 
-import type { AeroSweepPoint } from "@/app/page";
+import type { AeroSweepPoint } from "@/app/aerospec/page";
 import { computeSweepGeometry } from "./aeroSweepGeometry";
 
 const CHART_WIDTH = 260;

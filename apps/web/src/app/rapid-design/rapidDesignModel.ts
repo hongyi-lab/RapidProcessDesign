@@ -431,39 +431,39 @@ export type GeometryMetricRow = {
 };
 
 export const OPTIMIZE_METRICS = [
-  ["takeoff_mass_kg", "起飞质量", "kg"],
-  ["achieved_range_km", "预计航程", "km"],
-  ["lift_to_drag", "巡航 L/D", ""],
-  ["fuel_mass_kg", "燃油质量", "kg"],
+  ["takeoff_mass_kg", "Takeoff mass", "kg"],
+  ["achieved_range_km", "Estimated range", "km"],
+  ["lift_to_drag", "Cruise L/D", ""],
+  ["fuel_mass_kg", "Fuel mass", "kg"],
 ] as const;
 
 export const STAGE_LABELS: Record<string, string> = {
-  queued: "等待计算",
-  initializing_surrogate: "载入代理模型",
-  optimizing: "搜索可行设计",
-  evaluating: "评估候选方案",
-  completed: "计算完成",
-  no_feasible_candidates: "未找到满足 Demo 约束的候选",
-  no_valid_candidates: "没有有效候选评价",
-  cancelling: "正在停止",
-  cancelled: "已停止",
-  interrupted: "服务重启 · 任务已中断",
-  failed: "计算失败",
+  queued: "Queued",
+  initializing_surrogate: "Loading model",
+  optimizing: "Searching concepts",
+  evaluating: "Evaluating concepts",
+  completed: "Complete",
+  no_feasible_candidates: "No concepts meet requirements",
+  no_valid_candidates: "No valid concepts found",
+  cancelling: "Stopping",
+  cancelled: "Stopped",
+  interrupted: "Interrupted by restart",
+  failed: "Calculation failed",
 };
 
 const METRIC_PRESENTATION: Record<string, Omit<GeometryMetricRow, "key" | "value">> = {
-  reference_area_m2: { label: "参考面积", unit: "m²", digits: 2 },
-  wing_area_m2: { label: "机翼面积", unit: "m²", digits: 2 },
-  span_m: { label: "全翼展", unit: "m", digits: 2 },
-  semi_span_m: { label: "半翼展", unit: "m", digits: 2 },
-  aspect_ratio: { label: "展弦比", unit: "", digits: 2 },
-  mean_aerodynamic_chord_m: { label: "平均气动弦", unit: "m", digits: 2 },
-  wetted_area_m2: { label: "湿表面积", unit: "m²", digits: 2 },
-  taper_ratio: { label: "梢根比", unit: "", digits: 3 },
-  volume_proxy_m3: { label: "容积代理量", unit: "m³", digits: 2 },
-  fuselage_length_m: { label: "机身长度", unit: "m", digits: 2 },
-  fuselage_max_width_m: { label: "机身最大宽度", unit: "m", digits: 2 },
-  fuselage_max_height_m: { label: "机身最大高度", unit: "m", digits: 2 },
+  reference_area_m2: { label: "Reference area", unit: "m²", digits: 2 },
+  wing_area_m2: { label: "Wing area", unit: "m²", digits: 2 },
+  span_m: { label: "Wing span", unit: "m", digits: 2 },
+  semi_span_m: { label: "Half span", unit: "m", digits: 2 },
+  aspect_ratio: { label: "Aspect ratio", unit: "", digits: 2 },
+  mean_aerodynamic_chord_m: { label: "Mean aerodynamic chord", unit: "m", digits: 2 },
+  wetted_area_m2: { label: "Wetted area", unit: "m²", digits: 2 },
+  taper_ratio: { label: "Taper ratio", unit: "", digits: 3 },
+  volume_proxy_m3: { label: "Volume estimate", unit: "m³", digits: 2 },
+  fuselage_length_m: { label: "Body length", unit: "m", digits: 2 },
+  fuselage_max_width_m: { label: "Body width", unit: "m", digits: 2 },
+  fuselage_max_height_m: { label: "Body height", unit: "m", digits: 2 },
 };
 
 const METRIC_ORDER = [
@@ -590,13 +590,13 @@ export function parameterGroups(
 
 export function groupLabel(group: string): string {
   const labels: Record<string, string> = {
-    geometry: "几何参数",
-    flight_condition: "分析工况",
-    planform: "平面形参数",
-    fuselage: "机身参数",
-    wing: "主翼参数",
-    tail: "尾翼参数",
-    propulsion: "推进布局",
+    geometry: "Geometry",
+    flight_condition: "Flight conditions",
+    planform: "Planform",
+    fuselage: "Fuselage",
+    wing: "Wing",
+    tail: "Tail",
+    propulsion: "Propulsion",
   };
   return labels[group] ?? humanizeKey(group);
 }
@@ -636,11 +636,11 @@ export function geometryMetricRows(metrics: Record<string, number>): GeometryMet
 
 export function parseFamiliesResponse(payload: unknown): FamilyManifest[] {
   if (!payload || typeof payload !== "object" || !("families" in payload)) {
-    throw new Error("Family manifest 响应格式无效");
+    throw new Error("Invalid aircraft configuration response");
   }
   const families = (payload as Partial<FamiliesResponse>).families;
   if (!Array.isArray(families) || families.length === 0) {
-    throw new Error("没有可用的 aircraft family");
+    throw new Error("No aircraft configurations are available");
   }
   for (const manifest of families) {
     if (
@@ -651,7 +651,7 @@ export function parseFamiliesResponse(payload: unknown): FamilyManifest[] {
       || !Array.isArray(manifest.condition_parameters)
       || !Array.isArray(manifest.presets)
     ) {
-      throw new Error("Family manifest 缺少必要字段");
+      throw new Error("Aircraft configuration is missing required fields");
     }
   }
   return families;
@@ -659,33 +659,33 @@ export function parseFamiliesResponse(payload: unknown): FamilyManifest[] {
 
 function objectValue(value: unknown, label: string): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
-    throw new Error(`${label} 格式无效`);
+    throw new Error(`${label} has an invalid format`);
   }
   return value as Record<string, unknown>;
 }
 
 function stringValue(value: unknown, label: string): string {
   if (typeof value !== "string" || value.length === 0) {
-    throw new Error(`${label} 缺少必要字段`);
+    throw new Error(`${label} is missing required fields`);
   }
   return value;
 }
 
 function numberValue(value: unknown, label: string): number {
   if (typeof value !== "number" || !Number.isFinite(value)) {
-    throw new Error(`${label} 必须是有限数值`);
+    throw new Error(`${label} must be a finite number`);
   }
   return value;
 }
 
 function booleanValue(value: unknown, label: string): boolean {
-  if (typeof value !== "boolean") throw new Error(`${label} 必须是布尔值`);
+  if (typeof value !== "boolean") throw new Error(`${label} must be a boolean`);
   return value;
 }
 
 function stringArray(value: unknown, label: string): string[] {
   if (!Array.isArray(value) || value.some((item) => typeof item !== "string")) {
-    throw new Error(`${label} 格式无效`);
+    throw new Error(`${label} has an invalid format`);
   }
   return [...value];
 }
@@ -694,28 +694,28 @@ function numericRecord(value: unknown, label: string): Record<string, number> {
   const record = objectValue(value, label);
   const entries = Object.entries(record);
   if (entries.some(([, item]) => typeof item !== "number" || !Number.isFinite(item))) {
-    throw new Error(`${label} 只能包含有限数值`);
+    throw new Error(`${label} must contain only finite numbers`);
   }
   return Object.fromEntries(entries) as Record<string, number>;
 }
 
 function parseCoverage(value: unknown): DemoMetricCoverage {
   const record = objectValue(value, "metric_coverage");
-  if (!Array.isArray(record.metrics)) throw new Error("metric_coverage.metrics 格式无效");
+  if (!Array.isArray(record.metrics)) throw new Error("metric_coverage.metrics has an invalid format");
   const statuses: DemoCoverageStatus[] = ["connected", "partial", "not_connected"];
   return {
     metrics: record.metrics.map((raw, index) => {
       const item = objectValue(raw, `metric_coverage.metrics[${index}]`);
       const status = stringValue(item.status, `metric_coverage.metrics[${index}].status`);
       if (!statuses.includes(status as DemoCoverageStatus)) {
-        throw new Error(`metric_coverage.metrics[${index}].status 无效`);
+        throw new Error(`metric_coverage.metrics[${index}].status is invalid`);
       }
       const usedInScore = booleanValue(
         item.used_in_score,
         `metric_coverage.metrics[${index}].used_in_score`,
       );
       if (status === "not_connected" && usedInScore) {
-        throw new Error("未接入指标不能参与 Demo 排名");
+        throw new Error("Unconnected metrics cannot affect ranking");
       }
       return {
         key: stringValue(item.key, `metric_coverage.metrics[${index}].key`),
@@ -731,12 +731,12 @@ function parseCoverage(value: unknown): DemoMetricCoverage {
 }
 
 function parseInputDefinitions(value: unknown): InputDefinition[] {
-  if (!Array.isArray(value)) throw new Error("Demo inputs 格式无效");
+  if (!Array.isArray(value)) throw new Error("Demo inputs has an invalid format");
   return value.map((raw, index) => {
     const item = objectValue(raw, `inputs[${index}]`);
     const kind = stringValue(item.kind, `inputs[${index}].kind`);
     if (kind !== "requirement" && kind !== "constraint") {
-      throw new Error(`inputs[${index}].kind 无效`);
+      throw new Error(`inputs[${index}].kind is invalid`);
     }
     return {
       key: stringValue(item.key, `inputs[${index}].key`),
@@ -752,7 +752,7 @@ function parseInputDefinitions(value: unknown): InputDefinition[] {
 }
 
 function parseDemoVariables(value: unknown, label: string): DemoVariableDefinition[] {
-  if (!Array.isArray(value) || value.length === 0) throw new Error(`${label} 格式无效`);
+  if (!Array.isArray(value) || value.length === 0) throw new Error(`${label} has an invalid format`);
   return value.map((raw, index) => {
     const item = objectValue(raw, `${label}[${index}]`);
     return {
@@ -771,7 +771,7 @@ function parseDemoVariables(value: unknown, label: string): DemoVariableDefiniti
 
 export function parseDemoConfig(payload: unknown): DemoProfileConfig {
   const record = objectValue(payload, "Demo config");
-  if (record.mode !== "demo_only") throw new Error("Demo config mode 必须为 demo_only");
+  if (record.mode !== "demo_only") throw new Error("Demo config mode must be demo_only");
   return {
     schema_version: stringValue(record.schema_version, "schema_version"),
     profile_id: stringValue(record.profile_id, "profile_id"),
@@ -806,9 +806,9 @@ export function parseDemoJob(payload: unknown): DemoJob {
   const record = objectValue(payload, "Demo job");
   const status = stringValue(record.status, "Demo job status");
   if (!DEMO_JOB_STATUSES.includes(status as DemoJob["status"])) {
-    throw new Error("Demo job status 无效");
+    throw new Error("Demo job status is invalid");
   }
-  if (record.mode !== "demo") throw new Error("Demo job mode 必须为 demo");
+  if (record.mode !== "demo") throw new Error("Demo job mode must be demo");
   return {
     id: stringValue(record.id, "Demo job id"),
     status: status as DemoJob["status"],
@@ -828,7 +828,7 @@ export function parseDemoJob(payload: unknown): DemoJob {
 
 export function parseDemoJobList(payload: unknown): DemoJobList {
   const record = objectValue(payload, "Demo job list");
-  if (!Array.isArray(record.jobs)) throw new Error("Demo job list.jobs 格式无效");
+  if (!Array.isArray(record.jobs)) throw new Error("Demo job list.jobs has an invalid format");
   const recovery = objectValue(record.recovery, "Demo job list.recovery");
   return {
     jobs: record.jobs.map(parseDemoJob),
@@ -858,7 +858,7 @@ function parseCruiseConsistency(
   const record = objectValue(value, label);
   const status = stringValue(record.status, `${label}.status`);
   if (status !== "supported" && status !== "unsupported") {
-    throw new Error(`${label}.status 无效`);
+    throw new Error(`${label}.status is invalid`);
   }
   const reference = objectValue(record.reference_state, `${label}.reference_state`);
   const support = objectValue(record.polar_support, `${label}.polar_support`);
@@ -867,7 +867,7 @@ function parseCruiseConsistency(
   if (record.matched_working_point !== null && record.matched_working_point !== undefined) {
     const point = objectValue(record.matched_working_point, `${label}.matched_working_point`);
     if (!Array.isArray(point.bracket_indices)) {
-      throw new Error(`${label}.matched_working_point.bracket_indices 格式无效`);
+      throw new Error(`${label}.matched_working_point.bracket_indices has an invalid format`);
     }
     matched = {
       alpha_deg: numberValue(point.alpha_deg, `${label}.matched_working_point.alpha_deg`),
@@ -886,7 +886,7 @@ function parseCruiseConsistency(
     `${label}.enters_range_estimate`,
   );
   if (entersScore || entersRange) {
-    throw new Error(`${label} 诊断不得静默进入评分或航程估算`);
+    throw new Error(`${label} diagnostics cannot affect the score or range estimate`);
   }
   return {
     status,
@@ -948,10 +948,10 @@ function parseDemoCandidate(value: unknown, index: number): DemoCandidate {
   const record = objectValue(value, `candidates[${index}]`);
   const score = objectValue(record.score_breakdown, `candidates[${index}].score_breakdown`);
   if (!Array.isArray(score.terms)) {
-    throw new Error(`candidates[${index}].score_breakdown.terms 格式无效`);
+    throw new Error(`candidates[${index}].score_breakdown.terms has an invalid format`);
   }
   if (!Array.isArray(record.constraints)) {
-    throw new Error(`candidates[${index}].constraints 格式无效`);
+    throw new Error(`candidates[${index}].constraints has an invalid format`);
   }
   const geometry = objectValue(record.geometry_state, `candidates[${index}].geometry_state`);
   if (
@@ -959,7 +959,7 @@ function parseDemoCandidate(value: unknown, index: number): DemoCandidate {
     || typeof geometry.geometry_version !== "string"
     || !Array.isArray(geometry.components)
   ) {
-    throw new Error(`candidates[${index}].geometry_state 缺少必要字段`);
+    throw new Error(`candidates[${index}].geometry_state is missing required fields`);
   }
   const analysisSummary = numericRecord(
     record.analysis_summary,
@@ -967,7 +967,7 @@ function parseDemoCandidate(value: unknown, index: number): DemoCandidate {
   );
   const domain = objectValue(record.domain_status, `candidates[${index}].domain_status`);
   if (!Array.isArray(domain.checks)) {
-    throw new Error(`candidates[${index}].domain_status.checks 格式无效`);
+    throw new Error(`candidates[${index}].domain_status.checks has an invalid format`);
   }
   const rank = numberValue(record.rank, `candidates[${index}].rank`);
   const feasible = booleanValue(record.feasible, `candidates[${index}].feasible`);
@@ -1028,13 +1028,13 @@ function parseDemoCandidate(value: unknown, index: number): DemoCandidate {
         };
       })();
   if (qualification.demo_constraints_satisfied !== feasible) {
-    throw new Error(`candidates[${index}] qualification 与 feasible 不一致`);
+    throw new Error(`candidates[${index}] qualification does not match feasibility`);
   }
   if (qualification.geometry_valid !== (geometry.geometry_status === "valid")) {
-    throw new Error(`candidates[${index}] qualification 与 GeometryState 不一致`);
+    throw new Error(`candidates[${index}] qualification does not match geometry`);
   }
   if (!selection.selected) {
-    throw new Error(`candidates[${index}] 返回候选必须标记为 selected`);
+    throw new Error(`candidates[${index}] returned concepts must be marked as selected`);
   }
   return {
     rank,
@@ -1120,9 +1120,9 @@ function parseSelectionSummary(
   const record = objectValue(value, "selection");
   const outcome = stringValue(record.outcome, "selection.outcome");
   if (outcome !== "complete" && outcome !== "partial" && outcome !== "none") {
-    throw new Error("selection.outcome 无效");
+    throw new Error("selection.outcome is invalid");
   }
-  if (!Array.isArray(record.decisions)) throw new Error("selection.decisions 格式无效");
+  if (!Array.isArray(record.decisions)) throw new Error("selection.decisions has an invalid format");
   return {
     requested_count: numberValue(record.requested_count, "selection.requested_count"),
     returned_count: numberValue(record.returned_count, "selection.returned_count"),
@@ -1186,26 +1186,26 @@ function parseSelectionSummary(
 
 export function parseDemoSearchResult(payload: unknown): DemoSearchResult {
   const record = objectValue(payload, "Demo result");
-  if (record.mode !== "demo") throw new Error("Demo result mode 必须为 demo");
+  if (record.mode !== "demo") throw new Error("Demo result mode must be demo");
   if (
     record.status !== "feasible"
     && record.status !== "no_feasible_solution_found"
     && record.status !== "no_valid_candidates"
   ) {
-    throw new Error("Demo result status 无效");
+    throw new Error("Demo result status is invalid");
   }
   const profile = objectValue(record.profile, "Demo result profile");
   const ranking = objectValue(record.ranking_rule, "Demo result ranking_rule");
   const diversity = objectValue(ranking.diversity, "Demo result ranking_rule.diversity");
   const search = objectValue(record.search, "Demo result search");
-  if (!Array.isArray(record.candidates)) throw new Error("Demo result candidates 格式无效");
+  if (!Array.isArray(record.candidates)) throw new Error("Demo result candidates has an invalid format");
   if (record.candidates.length === 0 && record.status !== "no_valid_candidates") {
-    throw new Error("Demo result 没有候选方案");
+    throw new Error("No concepts in the search result");
   }
   if (record.candidates.length > 0 && record.status === "no_valid_candidates") {
-    throw new Error("no_valid_candidates 结果不得包含候选方案");
+    throw new Error("no_valid_candidates results cannot contain concepts");
   }
-  if (!Array.isArray(search.records)) throw new Error("Demo result search.records 格式无效");
+  if (!Array.isArray(search.records)) throw new Error("Demo result search.records has an invalid format");
   const candidates = record.candidates.map(parseDemoCandidate);
   const result: DemoSearchResult = {
     schema_version: stringValue(record.schema_version, "schema_version"),
@@ -1261,10 +1261,10 @@ export function parseDemoSearchResult(payload: unknown): DemoSearchResult {
     || candidate.geometry_state.family_id !== result.family_id
     || demoInputsMismatch(candidate.condition, result.condition)
   ))) {
-    throw new Error("Demo 候选与结果 family/preset/condition 不一致");
+    throw new Error("Concept identity does not match the search result");
   }
   if (result.selection.returned_count !== result.candidates.length) {
-    throw new Error("Demo selection returned_count 与候选数量不一致");
+    throw new Error("Returned count does not match concepts");
   }
   if (
     (result.status === "feasible" && !result.candidates.some((candidate) => candidate.feasible))
@@ -1273,7 +1273,7 @@ export function parseDemoSearchResult(payload: unknown): DemoSearchResult {
       && result.candidates.some((candidate) => candidate.feasible)
     )
   ) {
-    throw new Error("Demo result status 与逐项候选可行性不一致");
+    throw new Error("Result status does not match concept feasibility");
   }
   return result;
 }
@@ -1333,7 +1333,7 @@ export function demoAnalyzeHandoff(
   candidate: DemoCandidate,
 ): DemoAnalyzeHandoff {
   if (!result.candidates.some((item) => item.candidate_id === candidate.candidate_id)) {
-    throw new Error("候选方案不属于当前 Demo 结果");
+    throw new Error("This concept does not belong to the current result");
   }
   return {
     familyId: candidate.family_id,

@@ -108,8 +108,8 @@ test("Analyze payload remains family-neutral and preserves snake_case manifest k
 
 test("manifest parser rejects missing collections and accepts full family lists", () => {
   assert.deepEqual(parseFamiliesResponse({ families: [MANIFEST] }), [MANIFEST]);
-  assert.throws(() => parseFamiliesResponse({ families: [] }), /没有可用/);
-  assert.throws(() => parseFamiliesResponse({ families: [{ family_id: "broken" }] }), /缺少必要字段/);
+  assert.throws(() => parseFamiliesResponse({ families: [] }), /No aircraft configurations/);
+  assert.throws(() => parseFamiliesResponse({ families: [{ family_id: "broken" }] }), /missing required fields/);
 });
 
 test("the workbench prefers conventional_v2 for its richer preset entry point", () => {
@@ -280,7 +280,7 @@ test("Demo config parser keeps the versioned profile and three-state metric cove
         metrics: [{ ...DEMO_COVERAGE.metrics[1], used_in_score: true }],
       },
     }),
-    /未接入指标不能参与/,
+    /Unconnected metrics cannot affect ranking/,
   );
 });
 
@@ -444,7 +444,7 @@ test("Demo parser distinguishes no valid candidates from no feasible candidates"
       status: "no_feasible_solution_found",
       candidates: [],
     }),
-    /没有候选方案/,
+    /No concepts in the search result/,
   );
 });
 

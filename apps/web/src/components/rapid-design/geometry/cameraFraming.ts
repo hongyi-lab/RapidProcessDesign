@@ -1,4 +1,44 @@
 import type { GeometryState, GeometryScaleMode } from "./types";
+import { buildGeometrySurfaces } from "./geometrySurfaces.ts";
+
+export type GeometryFrame = { min: [number, number, number]; max: [number, number, number] };
+export const PREVIEW_DIRECTION = [-1.25, -1.25, 0.9] as const;
+
+/** One physical envelope keeps candidate cameras at exactly the same scale. */
+export function sharedGeometryFrame(states: readonly GeometryState[]): GeometryFrame | undefined {
+  if (!states.length) return undefined;
+  const min: [number, number, number] = [Infinity, Infinity, Infinity];
+  const max: [number, number, number] = [-Infinity, -Infinity, -Infinity];
+  for (const state of states) {
+    for (const surface of buildGeometrySurfaces(state)) {
+      for (let index = 0; index < surface.positions.length; index += 3) {
+        for (const axis of [0, 1, 2] as const) {
+          min[axis] = Math.min(min[axis], surface.positions[index + axis]);
+          max[axis] = Math.max(max[axis], surface.positions[index + axis]);
+        }
+      }
+    }
+  }
+  return [...min, ...max].every(Number.isFinite) ? { min, max } : undefined;
+}
+
+/** Fit all eight box corners in both screen axes, including their camera depth. */
+export function perspectiveFitDistance(size: readonly number[], aspect: number, fovDegrees = 34): number {
+  const length = Math.hypot(...PREVIEW_DIRECTION);
+  const direction = PREVIEW_DIRECTION.map((value) => value / length);
+  const horizontalLength = Math.hypot(direction[0], direction[1]);
+  const right = [-direction[1] / horizontalLength, direction[0] / horizontalLength, 0];
+  const up = [-direction[2] * right[1], direction[2] * right[0], direction[0] * right[1] - direction[1] * right[0]];
+  const tanV = Math.tan(fovDegrees * Math.PI / 360);
+  const tanH = tanV * Math.max(0.05, aspect);
+  let distance = 0.01;
+  for (const x of [-1, 1]) for (const y of [-1, 1]) for (const z of [-1, 1]) {
+    const corner = [x * size[0] / 2, y * size[1] / 2, z * size[2] / 2];
+    const dot = (axis: number[]) => corner.reduce((sum, value, index) => sum + value * axis[index], 0);
+    distance = Math.max(distance, dot(direction) + Math.abs(dot(right)) / tanH, dot(direction) + Math.abs(dot(up)) / tanV);
+  }
+  return distance * 1.16;
+}
 
 const MINIMUM_SIZE = 1e-4;
 

@@ -13,7 +13,7 @@ test("root layout uses an offline-safe Inter system stack and DESIGN tokens", ()
 
   assert.doesNotMatch(layout, /next\/font\/google/);
   assert.match(css, /--font-inter:\s*"Inter"/);
-  assert.match(layout, /<html lang="zh-CN">/);
+  assert.match(layout, /<html lang="en">/);
 
   assert.match(css, /--bg-base:\s*#08090a;/);
   assert.match(css, /--accent:\s*#7170ff;/);
@@ -26,7 +26,7 @@ test("root layout uses an offline-safe Inter system stack and DESIGN tokens", ()
 });
 
 test("workspace settings and metrics use semantic UI classes", () => {
-  const page = source("app/page.tsx");
+  const page = source("app/aerospec/page.tsx");
   const settings = source("components/settings-panel/SettingsPanel.tsx");
   const metrics = source("components/metrics/DesignMetricsCard.tsx");
   const css = source("app/globals.css");

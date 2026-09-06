@@ -40,7 +40,7 @@ export function PolarChart({
   const allPoints = [...currentPoints, ...baselinePoints];
 
   if (currentPoints.length < 2) {
-    return <div className={styles.chartEmpty}>等待极曲线数据</div>;
+    return <div className={styles.chartEmpty}>Waiting for aerodynamic data</div>;
   }
 
   let minimumX = Math.min(...allPoints.map((point) => point.x));
@@ -78,7 +78,7 @@ export function PolarChart({
         className={styles.polarChart}
         viewBox={`0 0 ${width} ${height}`}
         role="img"
-        aria-label={`${title} 随迎角变化`}
+        aria-label={`${title} by angle of attack`}
       >
         {yTicks.map((tick) => (
           <g key={`y-${tick}`}>
@@ -124,7 +124,7 @@ export function PolarChart({
 
 export function ConvergenceChart({ points }: { points: ConvergencePoint[] }) {
   if (points.length < 2) {
-    return <div className={styles.chartEmpty}>开始优化后显示质量收敛过程</div>;
+    return <div className={styles.chartEmpty}>Run the optimizer to view convergence</div>;
   }
   const width = 520;
   const height = 126;
@@ -142,7 +142,7 @@ export function ConvergenceChart({ points }: { points: ConvergencePoint[] }) {
     .join(" ");
   return (
     <div className={styles.convergenceChart}>
-      <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label="起飞质量收敛曲线">
+      <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Takeoff mass convergence">
         <line
           x1={padding}
           x2={width - padding}

@@ -1,0 +1,10 @@
+.page { min-height: 100vh; background: #f8fafb; color: #243643; --text: #243643; --text-dim: #53636f; --text-muted: #73818b; --bg-panel: #fff; --bg-elevated: #f5f7f9; --bg-surface: #fff; --bg-hover: #f0f4f7; --border-default: #dce3e8; --border-strong: #a6b6c3; --accent: #536f84; --shadow-panel: 0 8px 32px #24364312; color-scheme: light; }
+.page header { display: flex; align-items: center; justify-content: space-between; padding: 16px 28px; border-bottom: 1px solid #e2e7eb; background: white; }
+.page a { color: #3d596e; text-decoration: none; font-size: 12px; }
+.page section { max-width: 520px; margin: 110px auto 0; padding: 24px; text-align: center; }
+.icon { display: inline-grid; place-items: center; width: 48px; height: 48px; border: 1px solid #d9e2e8; border-radius: 12px; color: #728997; background: #fff; font-size: 16px; }
+.page h1 { font-size: 26px; font-weight: 600; letter-spacing: -.5px; margin-top: 24px; }
+.page p { color: #6b7c89; line-height: 1.8; font-size: 14px; margin: 15px 0 26px; }
+.page .primary { display: inline-block; padding: 12px 20px; background: #2f485a; color: #fff; border-radius: 6px; }
+.page small { display: block; color: #88949d; font-size: 11px; margin-top: 16px; }
+@media(max-width: 600px) { .page section { margin-top: 50px; } }

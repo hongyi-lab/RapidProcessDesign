@@ -6,7 +6,7 @@ import {
   buildDesignReportMarkdown,
   buildSpecTable,
 } from "./reportExport.ts";
-import type { VspaeroAnalysisEntry } from "@/app/page";
+import type { VspaeroAnalysisEntry } from "@/app/aerospec/page";
 
 const specEcho = {
   aircraft: { name: { value: "Delta_Recon_9" }, layout: { value: "conventional" } },
