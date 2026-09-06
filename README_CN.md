@@ -19,7 +19,13 @@
 
 [English](./README.md) | 中文
 
-[Rapid Design](#rapid-design-任务驱动设计) · [AeroSpec 上游](https://github.com/zweien/aero-spec-agent) · [查看演示](#快速开始)
+[在线体验](https://rapidprocessdesign.onrender.com/) · [Rapid Design](#rapid-design-任务驱动设计) · [AeroSpec 上游](https://github.com/zweien/aero-spec-agent)
+
+**[打开飞机设计演示 →](https://rapidprocessdesign.onrender.com/)**
+
+无需安装或登录：调整任务输入、生成飞机方案、检查几何形状，并下载 STEP/STL 文件。免费服务器闲置后可能需要约一分钟启动；演示历史为临时保存，请下载需要保留的文件。
+
+在线演示使用 [`codex/round8-simple-design-flow` 分支](https://github.com/hongyi-lab/RapidProcessDesign/tree/codex/round8-simple-design-flow)的代码。
 
 </div>
 

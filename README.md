@@ -19,7 +19,13 @@ Describe an aircraft in plain language — get parametric CAD models, aerodynami
 
 English | [中文](./README_CN.md)
 
-[Rapid Design](#rapid-design-workflow) · [Upstream AeroSpec](https://github.com/zweien/aero-spec-agent) · [View Demo](#quick-start)
+[Try the online demo](https://rapidprocessdesign.onrender.com/) · [Rapid Design](#rapid-design-workflow) · [Upstream AeroSpec](https://github.com/zweien/aero-spec-agent)
+
+**[Open the aircraft design demo →](https://rapidprocessdesign.onrender.com/)**
+
+No installation or login. Adjust mission inputs, generate aircraft concepts, inspect geometry, and download STEP/STL files. The free server may take about a minute to wake up after inactivity; download files you want to keep because demo history is temporary.
+
+The live demo runs from the [`codex/round8-simple-design-flow` branch](https://github.com/hongyi-lab/RapidProcessDesign/tree/codex/round8-simple-design-flow).
 
 </div>
 
