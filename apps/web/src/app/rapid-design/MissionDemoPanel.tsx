@@ -1073,7 +1073,9 @@ export function MissionDemoPanel({
             >
               <span>
                 <strong id="mission-demo-recovery-title">Saved runs</strong>
-                <small>Reopen an earlier result</small>
+                <small>{process.env.NEXT_PUBLIC_RAPID_PUBLIC_DEMO === "true"
+                  ? "This browser · temporary storage"
+                  : "Reopen an earlier result"}</small>
               </span>
               <b aria-hidden="true">{recoveryOpen ? "−" : "+"}</b>
             </button>
@@ -1082,6 +1084,9 @@ export function MissionDemoPanel({
                 <div className={styles.recoveryPolicy}>
                   <span>{recoveryPolicy?.completed_queryable === false ? "Saved results unavailable" : "Completed results are available"}</span>
                   <span>Interrupted runs must be restarted</span>
+                  {process.env.NEXT_PUBLIC_RAPID_PUBLIC_DEMO === "true" && (
+                    <span>Download files to keep them. Demo history may reset when the server sleeps.</span>
+                  )}
                 </div>
                 {recentLoading && <p>Loading saved runs…</p>}
                 {recentError && (

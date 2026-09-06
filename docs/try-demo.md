@@ -53,4 +53,6 @@ The GitHub repository is public, so anyone can download and run it. There is cur
 
 A browser-only public experience needs a deployment that runs both the web interface and Python analysis service. GitHub Pages alone hosts static files and cannot run the current Python service. See the [GitHub Pages documentation](https://docs.github.com/en/pages/getting-started-with-github-pages/what-is-github-pages).
 
+To publish that experience, follow the [single-service Render deployment guide](deploy-render.md). The repository includes a Dockerfile and a Free-plan configuration; a live URL still needs to be deployed and verified in the owner's Render account.
+
 中文：体验最新版请下载上面的开发分支，安装 Python 和 Node.js 后按对应系统的步骤启动。Design、Analyze 和文件导出无需 API 密钥。仓库目前提供源码与本地运行方式，尚无免安装的在线体验网址。

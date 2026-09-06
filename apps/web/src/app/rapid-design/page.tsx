@@ -524,7 +524,7 @@ export default function RapidDesignPage() {
               ? "Design"
               : activeTab === "analyze" ? "Analysis" : "Legacy demo"}
           </span>
-          <span>Local workspace</span>
+          <span>{process.env.NEXT_PUBLIC_RAPID_PUBLIC_DEMO === "true" ? "Online demo" : "Local workspace"}</span>
         </div>
       </header>
 
@@ -542,7 +542,7 @@ export default function RapidDesignPage() {
           data-active={activeTab === "analyze"}
           aria-current={activeTab === "analyze" ? "page" : undefined}
           onClick={() => setActiveTab("analyze")}>Analyze</button>
-        <details ref={advancedMenuRef} className={styles.advancedMenu}>
+        {process.env.NEXT_PUBLIC_RAPID_PUBLIC_DEMO !== "true" && <details ref={advancedMenuRef} className={styles.advancedMenu}>
           <summary>More tools</summary>
           <div>
             <Link href="/aerospec"><strong>AI workspace</strong><small>Requires a model connection</small></Link>
@@ -558,7 +558,7 @@ export default function RapidDesignPage() {
               <small>Original optimization workflow</small>
             </button>
           </div>
-        </details>
+        </details>}
       </nav>
 
       {activeTab === "analyze" && (

@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: rapid-process-design
+    runtime: docker
+    plan: free
+    region: singapore
+    branch: codex/round8-simple-design-flow
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    autoDeployTrigger: "off"

@@ -1,0 +1,7 @@
+# Only the public Design/Analyze entry point; no AI key or CAD installation needed.
+fastapi==0.141.1
+uvicorn==0.52.4
+pydantic==2.13.5
+PyYAML==6.0.3
+numpy==2.5.2
+scipy==1.18.1

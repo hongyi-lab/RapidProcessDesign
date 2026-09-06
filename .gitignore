@@ -5,6 +5,7 @@ __pycache__/
 storage/
 node_modules/
 .next/
+.next-*/
 dist/
 *.tsbuildinfo
 .gstack/

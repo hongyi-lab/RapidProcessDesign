@@ -1,0 +1,24 @@
+# Only application source enters the cloud image. Local data and credentials stay out.
+**
+!Dockerfile
+!requirements-demo.txt
+!apps/
+!apps/web/
+!apps/web/**
+!services/
+!services/**
+!configs/
+!configs/rapid_design/
+!configs/rapid_design/**
+!scripts/
+!scripts/serve-demo.py
+**/node_modules
+**/.next
+**/.next-*
+**/__pycache__
+**/*.pyc
+**/*.test.ts
+**/*.tsbuildinfo
+**/.env
+**/.env.*
+**/.playwright-cli

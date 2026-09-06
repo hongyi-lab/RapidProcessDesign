@@ -29,6 +29,8 @@ English | [中文](./README_CN.md)
 
 **Try the latest demo:** use the [`codex/round8-simple-design-flow` branch](https://github.com/hongyi-lab/RapidProcessDesign/tree/codex/round8-simple-design-flow) and follow the [Windows / macOS / Linux setup guide](docs/try-demo.md). Design, Analyze, and STEP/STL export need no API key. There is currently no hosted public demo URL.
 
+**Publish an online demo:** the [Render deployment guide](docs/deploy-render.md) packages the web interface and Python analysis into one Free Web Service. Visitors can generate aircraft and download STEP/STL in their browser.
+
 The `/rapid-design` workspace is a family-neutral whole-aircraft concept workbench. Its Analyze path currently registers `conventional_v2` and `bwb_v1`; each family publishes presets and parameter definitions, decodes them into one canonical `GeometryState`, and uses the same loft-based 3D renderer and analysis envelope.
 
 - Distinct aircraft presets: `conventional_v2` includes long-endurance, fast-cruise reconnaissance, and payload-utility geometries; `bwb_v1` remains available in the same page.
