@@ -257,14 +257,26 @@ export type DemoCruiseConsistency = {
     ld: number;
     method: string;
     bracket_indices: number[];
+    elevator_deg: number | null;
+    cm: number | null;
   } | null;
   comparison: {
     max_ld: number;
     ld_at_reference_state: number | null;
     range_model_ld: number;
   };
-  enters_score: false;
-  enters_range_estimate: false;
+  enters_score: boolean;
+  enters_range_estimate: boolean;
+  checks: {
+    trim: boolean;
+    static_margin: boolean;
+    power: boolean;
+    minimum_static_margin: number;
+    required_static_margin: number;
+    shaft_power_available_kw: number;
+    shaft_power_required_kw: number;
+  } | null;
+  assumptions: Record<string, number> | null;
   scope: string;
 };
 
@@ -878,6 +890,8 @@ function parseCruiseConsistency(
       bracket_indices: point.bracket_indices.map((item, index) => (
         numberValue(item, `${label}.matched_working_point.bracket_indices[${index}]`)
       )),
+      elevator_deg: optionalFiniteNumber(point.elevator_deg, `${label}.matched_working_point.elevator_deg`),
+      cm: optionalFiniteNumber(point.cm, `${label}.matched_working_point.cm`),
     };
   }
   const entersScore = booleanValue(record.enters_score, `${label}.enters_score`);
@@ -885,9 +899,23 @@ function parseCruiseConsistency(
     record.enters_range_estimate,
     `${label}.enters_range_estimate`,
   );
-  if (entersScore || entersRange) {
-    throw new Error(`${label} diagnostics cannot affect the score or range estimate`);
+  if (entersScore !== entersRange) {
+    throw new Error(`${label} cruise score and range integration must agree`);
   }
+  let checks: DemoCruiseConsistency["checks"] = null;
+  if (record.checks !== undefined && record.checks !== null) {
+    const source = objectValue(record.checks, `${label}.checks`);
+    checks = {
+      trim: booleanValue(source.trim, `${label}.checks.trim`),
+      static_margin: booleanValue(source.static_margin, `${label}.checks.static_margin`),
+      power: booleanValue(source.power, `${label}.checks.power`),
+      minimum_static_margin: numberValue(source.minimum_static_margin, `${label}.checks.minimum_static_margin`),
+      required_static_margin: numberValue(source.required_static_margin, `${label}.checks.required_static_margin`),
+      shaft_power_available_kw: numberValue(source.shaft_power_available_kw, `${label}.checks.shaft_power_available_kw`),
+      shaft_power_required_kw: numberValue(source.shaft_power_required_kw, `${label}.checks.shaft_power_required_kw`),
+    };
+  }
+  if (entersScore && !checks) throw new Error(`${label} integrated cruise requires checks`);
   return {
     status,
     reason_code: stringValue(record.reason_code, `${label}.reason_code`),
@@ -938,8 +966,10 @@ function parseCruiseConsistency(
         `${label}.comparison.range_model_ld`,
       ),
     },
-    enters_score: false,
-    enters_range_estimate: false,
+    enters_score: entersScore,
+    enters_range_estimate: entersRange,
+    checks,
+    assumptions: record.assumptions == null ? null : numericRecord(record.assumptions, `${label}.assumptions`),
     scope: stringValue(record.scope, `${label}.scope`),
   };
 }

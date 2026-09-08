@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 from collections.abc import Callable
-from math import isfinite, log, sqrt
+from math import isfinite, sqrt
 from random import Random
 from time import perf_counter
 from typing import Any
@@ -20,12 +20,12 @@ from services.api.app.services.rapid_design.config_loader import (
     mission_demo_profile_hash,
     validated_mission_demo_inputs,
 )
-from services.api.app.services.rapid_design.evaluator import isa_density_and_viscosity
+from services.api.app.services.rapid_design.cruise import evaluate_cruise
 from services.api.app.services.rapid_design.families.registry import FamilyRegistry, registry
 
 GRAVITY_M_S2 = 9.80665
-DEMO_MODEL_ID = "mission-demo-transparent-mass-breguet"
-DEMO_MODEL_VERSION = "1.1.0"
+DEMO_MODEL_ID = "mission-demo-trimmed-propeller-cruise"
+DEMO_MODEL_VERSION = "2.0.0"
 
 ProgressCallback = Callable[[int, int, dict[str, object]], None]
 CancelCheck = Callable[[], bool]
@@ -236,117 +236,6 @@ def _geometry_fingerprint(
     )
 
 
-def _cruise_consistency_diagnostic(
-    *,
-    takeoff_mass_kg: float,
-    reference_area_m2: float,
-    condition: BwbAnalysisCondition,
-    polar: dict[str, list[float]],
-    max_ld: float,
-) -> dict[str, object]:
-    """Match the Demo takeoff state to the sampled polar without extrapolation."""
-
-    density_kg_m3, _viscosity_pa_s = isa_density_and_viscosity(
-        condition.altitude_m
-    )
-    speed_m_s = condition.speed_kmh / 3.6
-    dynamic_pressure_pa = 0.5 * density_kg_m3 * speed_m_s**2
-    required_cl = (
-        takeoff_mass_kg
-        * GRAVITY_M_S2
-        / (dynamic_pressure_pa * reference_area_m2)
-    )
-    alphas = [float(value) for value in polar["alpha_deg"]]
-    cls = [float(value) for value in polar["cl"]]
-    cds = [float(value) for value in polar["cd"]]
-    if not cls or not (len(alphas) == len(cls) == len(cds)):
-        raise ValueError("Analyze polar is empty or has inconsistent arrays")
-    if not all(isfinite(value) for value in [*alphas, *cls, *cds]):
-        raise ValueError("Analyze polar contains non-finite values")
-
-    minimum_cl = min(cls)
-    maximum_cl = max(cls)
-    matched: dict[str, object] | None = None
-    tolerance = 1e-12
-    if minimum_cl - tolerance <= required_cl <= maximum_cl + tolerance:
-        for index, sampled_cl in enumerate(cls):
-            if abs(required_cl - sampled_cl) <= tolerance:
-                sampled_cd = cds[index]
-                if sampled_cd <= 0.0:
-                    raise ValueError("Analyze polar contains non-positive drag")
-                matched = {
-                    "alpha_deg": _rounded(alphas[index], 6),
-                    "cl": _rounded(required_cl),
-                    "cd": _rounded(sampled_cd),
-                    "ld": _rounded(required_cl / sampled_cd),
-                    "method": "exact_sample",
-                    "bracket_indices": [index, index],
-                }
-                break
-        if matched is None:
-            for index in range(len(cls) - 1):
-                left_cl = cls[index]
-                right_cl = cls[index + 1]
-                if not (
-                    min(left_cl, right_cl) <= required_cl <= max(left_cl, right_cl)
-                ):
-                    continue
-                delta_cl = right_cl - left_cl
-                if abs(delta_cl) <= tolerance:
-                    continue
-                fraction = (required_cl - left_cl) / delta_cl
-                alpha_deg = alphas[index] + fraction * (
-                    alphas[index + 1] - alphas[index]
-                )
-                cd = cds[index] + fraction * (cds[index + 1] - cds[index])
-                if cd <= 0.0:
-                    raise ValueError("Analyze polar interpolation produced non-positive drag")
-                matched = {
-                    "alpha_deg": _rounded(alpha_deg, 6),
-                    "cl": _rounded(required_cl),
-                    "cd": _rounded(cd),
-                    "ld": _rounded(required_cl / cd),
-                    "method": "linear_interpolation_in_sampled_cl_bracket",
-                    "bracket_indices": [index, index + 1],
-                }
-                break
-
-    matched_ld = None if matched is None else matched["ld"]
-    return {
-        "status": "supported" if matched is not None else "unsupported",
-        "reason_code": "matched" if matched is not None else "lift_not_supported",
-        "reference_state": {
-            "mass_basis": "mission_demo_takeoff_mass",
-            "mass_kg": _rounded(takeoff_mass_kg),
-            "altitude_m": _rounded(condition.altitude_m),
-            "speed_kmh": _rounded(condition.speed_kmh),
-            "density_kg_m3": _rounded(density_kg_m3),
-            "dynamic_pressure_pa": _rounded(dynamic_pressure_pa),
-            "reference_area_m2": _rounded(reference_area_m2),
-        },
-        "required_cl": _rounded(required_cl),
-        "polar_support": {
-            "min_cl": _rounded(minimum_cl),
-            "max_cl": _rounded(maximum_cl),
-            "alpha_min_deg": _rounded(min(alphas), 6),
-            "alpha_max_deg": _rounded(max(alphas), 6),
-            "sample_count": len(cls),
-        },
-        "matched_working_point": matched,
-        "comparison": {
-            "max_ld": _rounded(max_ld),
-            "ld_at_reference_state": matched_ld,
-            "range_model_ld": _rounded(max_ld),
-        },
-        "enters_score": False,
-        "enters_range_estimate": False,
-        "scope": (
-            "Lift-demand consistency at the Demo takeoff-mass reference state only; "
-            "not trim, stability, propulsion matching or mission integration."
-        ),
-    }
-
-
 def _constraint(
     *,
     name: str,
@@ -419,7 +308,10 @@ def _evaluate_candidate(
         model.systems_base_mass_kg
         + model.systems_payload_fraction * payload_mass
     )
-    propulsion_mass = model.propulsion_mass_per_unit_kg * propulsion_count
+    propulsion_mass = (
+        model.propulsion_mass_per_unit_kg
+        + inputs.get("shaft_power_per_engine_kw", 180.0) / model.propulsion_specific_power_kw_kg
+    ) * propulsion_count
     empty_without_gear = (
         wing_mass + wetted_mass + span_mass + systems_mass + propulsion_mass
     )
@@ -430,17 +322,17 @@ def _evaluate_candidate(
     empty_mass = empty_without_gear + landing_gear_mass
     usable_fuel = fuel_mass * (1.0 - model.reserve_fuel_fraction)
     final_mass = max(takeoff_mass - usable_fuel, empty_mass + payload_mass)
-    speed_m_s = inputs["cruise_speed_kmh"] / 3.6
-    achieved_range_km = (
-        speed_m_s
-        / model.equivalent_tsfc_per_second
-        * lift_to_drag
-        * log(takeoff_mass / final_mass)
-        / 1000.0
+    cruise_consistency, cruise_metrics = evaluate_cruise(
+        geometry_state=geometry_state, condition=condition, model=model, inputs=inputs,
+        takeoff_mass_kg=takeoff_mass, final_mass_kg=final_mass,
+        propulsion_count=propulsion_count, polar=polar, max_ld=lift_to_drag,
     )
+    achieved_range_km = cruise_metrics["achieved_range_km"]
+    cruise_ld = cruise_metrics["minimum_cruise_lift_to_drag"]
     domain_value = 1.0 if analysis_payload["domain_status"]["status"] == "in_domain" else 0.0
 
     metrics = {
+        **cruise_metrics,
         "reference_area_m2": _rounded(reference_area),
         "span_m": _rounded(span),
         "aspect_ratio": _rounded(float(geometry_metrics["aspect_ratio"])),
@@ -478,9 +370,9 @@ def _evaluate_candidate(
         ),
         _constraint(
             name="lift_to_drag",
-            label="Target lift-to-drag ratio",
-            metric_key="analysis.max_ld",
-            actual=lift_to_drag,
+            label="Minimum cruise lift-to-drag ratio",
+            metric_key="mission.cruise_lift_to_drag",
+            actual=cruise_ld,
             limit=inputs["target_lift_to_drag"],
             unit="-",
             operator=">=",
@@ -504,6 +396,21 @@ def _evaluate_candidate(
             operator="<=",
         ),
         _constraint(
+            name="cruise_trim", label="Cruise trim and model confidence",
+            metric_key="mission.cruise_trim", actual=cruise_metrics["cruise_trim_supported"],
+            limit=1.0, unit="state", operator=">=",
+        ),
+        _constraint(
+            name="static_margin", label="Longitudinal static margin",
+            metric_key="mission.static_margin", actual=cruise_metrics["minimum_static_margin"],
+            limit=model.minimum_static_margin, unit="MAC", operator=">=",
+        ),
+        _constraint(
+            name="shaft_power", label="Continuous shaft power",
+            metric_key="mission.shaft_power", actual=cruise_metrics["shaft_power_required_kw"],
+            limit=cruise_metrics["shaft_power_available_kw"], unit="kW", operator="<=",
+        ),
+        _constraint(
             name="analysis_domain",
             label="Analyze declared domain",
             metric_key="mission.analysis_domain",
@@ -519,6 +426,9 @@ def _evaluate_candidate(
         "takeoff_mass": max(inputs["max_takeoff_mass_kg"], 1.0),
         "fuel_mass": max(inputs["max_fuel_mass_kg"], 1.0),
         "analysis_domain": 1.0,
+        "cruise_trim": 1.0,
+        "static_margin": max(model.minimum_static_margin, 0.05),
+        "shaft_power": max(cruise_metrics["shaft_power_available_kw"], 1.0),
     }
     violation_terms = []
     constraint_violation = 0.0
@@ -569,7 +479,10 @@ def _evaluate_candidate(
     warnings.extend(
         [
             profile.disclaimer,
-            "Tail and propulsion geometry have only the partial connections declared in metric_coverage.",
+            (
+                "CG, elevator hinge, shaft-power rating, efficiency, fuel consumption and "
+                "engine mass scaling are assumptions; no measured engine or propeller map is used."
+            ),
         ]
     )
     candidate_identifier = _candidate_id(
@@ -583,13 +496,8 @@ def _evaluate_candidate(
         design=design,
         geometry_state=geometry_state,
     )
-    cruise_consistency = _cruise_consistency_diagnostic(
-        takeoff_mass_kg=takeoff_mass,
-        reference_area_m2=reference_area,
-        condition=condition,
-        polar=polar,
-        max_ld=lift_to_drag,
-    )
+    if cruise_consistency["status"] != "supported":
+        warnings.append(f"No cruise range estimate: {cruise_consistency['reason_code']}.")
     feasible = all(bool(constraint["satisfied"]) for constraint in constraints)
     return {
         "candidate_id": candidate_identifier,
@@ -1073,7 +981,8 @@ def search_mission_demo(
                 "flight condition and provenance metadata excluded"
             ),
             "cruise_consistency_scope": (
-                "diagnostic only; existing max-L/D range estimate and score are unchanged"
+                "trim, static margin and shaft power enter feasibility; range integrates fuel flow "
+                "at three trimmed cruise masses, never peak L/D"
             ),
             "search_profile_hash": profile_hash,
             "uses_formal_optimization_spec": False,

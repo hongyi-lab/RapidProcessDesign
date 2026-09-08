@@ -419,6 +419,36 @@ test("Demo parser accepts a partial variable-count result and keeps qualificatio
   assert.equal(parsed.search.elapsed_ms, 42.5);
 });
 
+test("Demo parser accepts integrated cruise and keeps failed power checks visible", () => {
+  const cruise = {
+    status: "unsupported", reason_code: "insufficient_power",
+    reference_state: { mass_basis: "mission_demo_takeoff_mass", mass_kg: 1100,
+      altitude_m: 2000, speed_kmh: 220, density_kg_m3: 1, dynamic_pressure_pa: 1800,
+      reference_area_m2: 22 },
+    required_cl: 0.27,
+    polar_support: { min_cl: -0.1, max_cl: 1.2, alpha_min_deg: -4, alpha_max_deg: 12, sample_count: 25 },
+    matched_working_point: { alpha_deg: 1, cl: 0.27, cd: 0.02, cm: 0,
+      elevator_deg: -2, ld: 13.5, method: "bounded_neuralfoil_aerosandbox_trim", bracket_indices: [] },
+    comparison: { max_ld: 30, ld_at_reference_state: 13.5, range_model_ld: 0 },
+    enters_score: true, enters_range_estimate: true,
+    checks: { trim: true, static_margin: true, power: false, minimum_static_margin: 0.15,
+      required_static_margin: 0.05, shaft_power_available_kw: 20, shaft_power_required_kw: 40 },
+    assumptions: { cg_percent_mac: 25, propeller_efficiency: 0.8, bsfc_kg_per_kwh: 0.3 },
+    scope: "trimmed cruise",
+  };
+  const payload = { ...DEMO_RESULT_PAYLOAD, status: "no_feasible_solution_found", candidates: [
+    { ...DEMO_RESULT_PAYLOAD.candidates[0], cruise_consistency: cruise },
+  ] };
+  const parsed = parseDemoSearchResult(payload).candidates[0].cruise_consistency;
+  assert.equal(parsed?.enters_score, true);
+  assert.equal(parsed?.checks?.power, false);
+  assert.equal(parsed?.matched_working_point?.elevator_deg, -2);
+  assert.equal(parsed?.assumptions?.cg_percent_mac, 25);
+  assert.throws(() => parseDemoSearchResult({ ...payload, candidates: [
+    { ...payload.candidates[0], cruise_consistency: { ...cruise, checks: null } },
+  ] }), /requires checks/);
+});
+
 test("Demo parser distinguishes no valid candidates from no feasible candidates", () => {
   const parsed = parseDemoSearchResult({
     ...DEMO_RESULT_PAYLOAD,

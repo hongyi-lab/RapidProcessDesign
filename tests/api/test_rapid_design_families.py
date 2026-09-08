@@ -483,7 +483,7 @@ def test_conventional_manifest_documents_archetype_and_public_ratio_basis(
     client: TestClient,
 ):
     manifest = client.get("/api/rapid-design/families/conventional_v2").json()
-    assert manifest["version"] == "0.3.0"
+    assert manifest["version"] == "0.4.0"
     for preset in manifest["presets"]:
         assert preset["archetype_id"]
         reference = preset["reference_basis"]

@@ -10,9 +10,11 @@ Rapid Design 工作流直接调用 **NeuralFoil 0.3.3** 的公开预训练权重
 - 论文: Peter Sharpe and R. John Hansman, *NeuralFoil: An Airfoil Aerodynamics Analysis Tool Using Physics-Informed Machine Learning* (2025), <https://arxiv.org/abs/2503.16323>
 - Python 包版本: `neuralfoil==0.3.3`
 - 许可证: **MIT License**
-- 在本项目中的边界: 仅替代二维翼型气动查询；整机诱导阻力、机身阻力、质量和航程仍由项目中明确可读的低阶模型计算
+- 在本项目中的边界: NeuralFoil 提供二维翼型查询，AeroSandbox 负责三维部件组合；质量、推进和巡航假设见 `docs/physics-upgrade.md`。
 
-NeuralFoil 通过 **AeroSandbox 4.2.10**（MIT）提供部分翼型几何处理能力。优化器使用 **SciPy** 的 differential evolution；SciPy 遵循 BSD 风格许可证。完整许可证以各安装包所附文本为准。
+当前 conventional_v2 使用 **AeroSandbox 4.2.10**（MIT）的 AeroBuildup，将 NeuralFoil 翼型预测组合为机翼、尾翼、机身和短舱的气动力与力矩。Mission Demo 使用固定预算候选搜索和巡航配平；旧版工作流另使用 SciPy differential evolution。SciPy 遵循 BSD 风格许可证。
+
+AeroSandbox 的传递依赖 **CasADi 3.8.0** 标注 LGPL-3.0-or-later。公开镜像通过标准 pip 安装未经修改的库及其随包许可证；源码在 <https://github.com/casadi/casadi>。下面 2026-05-25 的扫描清单是历史记录，不代表当前完整依赖集合。完整许可证以各安装包所附文本为准。
 
 ## Optional External Dependency: OpenVSP
 
@@ -65,7 +67,7 @@ NeuralFoil 通过 **AeroSandbox 4.2.10**（MIT）提供部分翼型几何处理�
 - 非商业 (Non-Commercial / CC-NC) 许可证
 - 共享源码 (Shared Source) 限制性许可证
 
-唯一涉及的 copyleft 许可证为 CairoSVG 的 **LGPL-3.0-or-later**，详见上文说明。
+当时扫描记录的 copyleft 库为 CairoSVG；当前 AeroSandbox 环境还包含上文所列 CasADi，请以当前安装包清单为准。
 
 ## Distribution Notice
 

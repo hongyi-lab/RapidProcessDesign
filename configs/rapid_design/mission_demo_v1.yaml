@@ -1,14 +1,14 @@
 schema_version: "1.0"
 profile_id: mission_demo_v1
-profile_version: "1.0.0"
+profile_version: "2.0.0"
 mode: demo_only
 formal_status: pending_teacher_decision
 title: Mission Demo Search
 description: >-
   Deterministic concept-search profile for one fixed conventional_v2 preset.
   Every evaluation uses the current family registry, canonical GeometryState and
-  conceptual Analyze response before applying transparent demo-only sizing and
-  mission equations.
+  NeuralFoil/AeroSandbox Analyze response before coefficient-based sizing and
+  trimmed propeller cruise integration. All engineering assumptions require calibration.
 disclaimer: >-
   DEMO / NOT FORMAL / UNAPPROVED ASSUMPTIONS. Search bounds, objective,
   penalties, mass coefficients, range coefficients, seed and budget are
@@ -26,7 +26,10 @@ inputs:
   - {key: cruise_altitude_m, label: Cruise altitude, unit: m, minimum: 0, maximum: 11000, step: 100, default: 2000, kind: requirement}
   - {key: max_fuel_mass_kg, label: Maximum fuel mass, unit: kg, minimum: 25, maximum: 900, step: 5, default: 400, kind: constraint}
   - {key: max_takeoff_mass_kg, label: Maximum takeoff mass, unit: kg, minimum: 300, maximum: 5000, step: 50, default: 1600, kind: constraint}
-  - {key: target_lift_to_drag, label: Target lift-to-drag ratio, unit: "-", minimum: 5, maximum: 40, step: 0.5, default: 16, kind: constraint}
+  - {key: target_lift_to_drag, label: Minimum cruise lift-to-drag ratio, unit: "-", minimum: 5, maximum: 40, step: 0.5, default: 16, kind: constraint}
+
+  - {key: shaft_power_per_engine_kw, label: Assumed sea-level power per engine, unit: kW, minimum: 20, maximum: 600, step: 10, default: 180, kind: constraint}
+  - {key: cg_percent_mac, label: Assumed CG position, unit: "% MAC", minimum: 5, maximum: 60, step: 1, default: 25, kind: constraint}
 
 geometry_variables:
   - {key: fuselage_length_m, label: Fuselage length, unit: m, minimum: 6, maximum: 20, step: 0.1}
@@ -37,6 +40,8 @@ geometry_variables:
   - {key: wing_taper_ratio, label: Wing taper ratio, unit: "-", minimum: 0.20, maximum: 0.60, step: 0.01}
   - {key: wing_thickness_ratio, label: Wing thickness ratio, unit: "-", minimum: 0.08, maximum: 0.18, step: 0.005}
   - {key: tail_scale, label: Tail size scale, unit: "-", minimum: 0.65, maximum: 1.40, step: 0.01}
+
+  - {key: wing_twist_tip_deg, label: Wing tip twist, unit: deg, minimum: -6, maximum: 2, step: 0.25}
 
 sizing_variables:
   - key: fuel_mass_kg
@@ -66,29 +71,41 @@ mission_model:
   propulsion_mass_per_unit_kg: 52
   landing_gear_fraction: 0.035
   reserve_fuel_fraction: 0.15
-  equivalent_tsfc_per_second: 0.00017
+  # Illustrative engine/propeller assumptions, not an identified engine map.
+  propulsion_specific_power_kw_kg: 2.5
+  propeller_efficiency: 0.80
+  bsfc_kg_per_kwh: 0.30
+  continuous_power_fraction: 0.85
+  power_lapse_exponent: 1.0
+  elevator_limit_deg: 25
+  minimum_static_margin: 0.05
 
 metric_coverage:
   metrics:
     - {key: geometry.reference_area_m2, label: Reference area, unit: m2, status: connected, source: registry.analyze geometry_metrics, reason: Used by the transparent wing mass estimate and by the current Analyze model., used_in_score: true}
     - {key: geometry.span_m, label: Wing span, unit: m, status: connected, source: registry.analyze geometry_metrics, reason: Used by the transparent span mass term and by the current Analyze model., used_in_score: true}
-    - {key: geometry.aspect_ratio, label: Wing aspect ratio, unit: "-", status: connected, source: registry.analyze geometry_metrics, reason: Native span and area enter the current finite-wing Analyze model., used_in_score: true}
-    - {key: geometry.wetted_area_m2, label: Wetted area proxy, unit: m2, status: partial, source: registry.analyze geometry_metrics, reason: "Includes body, wing and tail proxies but not complete propulsion or interference wetted area.", used_in_score: true}
-    - {key: design.wing_sweep_deg, label: Wing sweep, unit: deg, status: connected, source: native ConventionalV2Design through registry.analyze, reason: "Enters the current conceptual lift slope, drag and lift-limit equations.", used_in_score: true}
-    - {key: design.wing_taper_ratio, label: Wing taper ratio, unit: "-", status: connected, source: native ConventionalV2Design through registry.analyze, reason: Enters canonical planform geometry and the current induced-drag correction., used_in_score: true}
-    - {key: design.wing_thickness_ratio, label: Wing thickness ratio, unit: "-", status: connected, source: native ConventionalV2Design through registry.analyze, reason: Enters canonical sections and the current profile-drag and lift-limit corrections., used_in_score: true}
-    - {key: design.fuselage_scale, label: Fuselage length and fineness, unit: mixed, status: partial, source: native ConventionalV2Design through registry.analyze, reason: Enters body dimensions and a wetted-area mass and drag proxy only., used_in_score: true}
-    - {key: design.tail_scale, label: Tail size scale, unit: "-", status: partial, source: native ConventionalV2Design through registry.analyze, reason: Enters canonical tail size and total wetted-area proxies but not trim or stability., used_in_score: true}
-    - {key: analysis.max_ld, label: Maximum lift-to-drag ratio, unit: "-", status: partial, source: registry.analyze summary, reason: "Conceptual whole-aircraft polar; tail, propulsion and airfoil integration remain limited.", used_in_score: true}
-    - {key: sizing.fuel_mass_kg, label: Fuel mass, unit: kg, status: connected, source: demo sizing variable, reason: "Enters takeoff mass, reserve fuel and Breguet-style range.", used_in_score: true}
+    - {key: geometry.aspect_ratio, label: Wing aspect ratio, unit: '-', status: connected, source: NeuralFoil/AeroSandbox and trimmed cruise model, reason: Finite-wing effects use the actual section planform., used_in_score: true}
+    - {key: geometry.wetted_area_m2, label: Wetted area proxy, unit: m2, status: partial, source: registry.analyze geometry_metrics, reason: 'Includes body, wing and tail proxies but not complete propulsion or interference wetted area.', used_in_score: true}
+    - {key: design.wing_sweep_deg, label: Wing sweep, unit: deg, status: connected, source: NeuralFoil/AeroSandbox and trimmed cruise model, reason: Actual section leading edges enter AeroSandbox AeroBuildup., used_in_score: true}
+    - {key: design.wing_taper_ratio, label: Wing taper ratio, unit: '-', status: connected, source: NeuralFoil/AeroSandbox and trimmed cruise model, reason: Actual section chords enter finite-wing and section analysis., used_in_score: true}
+    - {key: design.wing_thickness_ratio, label: Wing thickness ratio, unit: '-', status: connected, source: NeuralFoil/AeroSandbox and trimmed cruise model, reason: Canonical thickness and camber define the NeuralFoil input profile., used_in_score: true}
+    - {key: design.fuselage_scale, label: Fuselage length and fineness, unit: mixed, status: partial, source: NeuralFoil/AeroSandbox and trimmed cruise model, reason: Body stations enter AeroBuildup forces and moments; mass remains empirical., used_in_score: true}
+    - {key: design.tail_scale, label: Tail size scale, unit: '-', status: connected, source: NeuralFoil/AeroSandbox and trimmed cruise model, reason: 'Tail sections affect forces, pitch moments, trim drag and static margin.', used_in_score: true}
+    - {key: analysis.max_ld, label: Maximum lift-to-drag ratio, unit: '-', status: connected, source: NeuralFoil/AeroSandbox and trimmed cruise model, reason: 'Neutral-elevator polar peak is for reference, not cruise range or scoring.', used_in_score: false}
+    - {key: sizing.fuel_mass_kg, label: Fuel mass, unit: kg, status: connected, source: NeuralFoil/AeroSandbox and trimmed cruise model, reason: 'Fuel changes mass, required lift, trimmed drag, fuel flow and reserve.', used_in_score: true}
     - {key: mission.takeoff_mass_kg, label: Conceptual takeoff mass, unit: kg, status: connected, source: demo mission model, reason: Transparent coefficient-based mass estimate., used_in_score: true}
-    - {key: mission.achieved_range_km, label: Conceptual range, unit: km, status: connected, source: demo mission model, reason: Transparent Breguet-style range estimate., used_in_score: true}
+    - {key: mission.achieved_range_km, label: Conceptual range, unit: km, status: connected, source: NeuralFoil/AeroSandbox and trimmed cruise model, reason: Integrates fuel flow at three trimmed cruise masses; unavailable for unsupported cruise., used_in_score: true}
     - {key: mission.analysis_domain, label: Analyze declared domain, unit: state, status: connected, source: registry.analyze domain_status, reason: Out-of-domain evaluations receive an explicit constraint violation., used_in_score: true}
-    - {key: tail.wetted_area_proxy, label: Tail aerodynamic and mass connection, unit: m2, status: partial, source: registry.analyze total wetted area, reason: Tail size contributes only through aggregate low-order wetted-area effects., used_in_score: true}
-    - {key: propulsion.count_mass, label: Propulsion count mass, unit: count, status: partial, source: canonical GeometryState propeller symmetry, reason: Physical propeller count contributes a fixed demo mass only; no thrust matching is performed., used_in_score: true}
-    - {key: airfoil.section_camber, label: Spanwise airfoil camber, unit: chord, status: not_connected, source: unavailable, reason: Conventional Analyze does not consume section airfoil IDs or camber fields., used_in_score: false}
-    - {key: tail.trim_and_stability, label: Tail trim and stability, unit: "-", status: not_connected, source: unavailable, reason: "V-tail and T-tail position or cant are not evaluated for trim, control or static margin.", used_in_score: false}
-    - {key: propulsion.matching, label: Propulsion matching, unit: "-", status: not_connected, source: unavailable, reason: "Propeller, nacelle and pylon geometry is not coupled to thrust, power or interference models.", used_in_score: false}
-    - {key: structure.stress_and_buckling, label: Structural stress and buckling, unit: "-", status: not_connected, source: unavailable, reason: No structural load or sizing solver is connected., used_in_score: false}
-    - {key: performance.field, label: Takeoff and landing performance, unit: "-", status: not_connected, source: unavailable, reason: No field-performance model is connected., used_in_score: false}
-    - {key: acoustics.noise, label: Noise, unit: "-", status: not_connected, source: unavailable, reason: No acoustic model is connected., used_in_score: false}
+    - {key: tail.wetted_area_proxy, label: Tail aerodynamic and mass connection, unit: m2, status: partial, source: NeuralFoil/AeroSandbox and trimmed cruise model, reason: Tail mass remains a wetted-area proxy; aerodynamic forces are evaluated separately., used_in_score: true}
+    - {key: propulsion.count_mass, label: Propulsion count mass, unit: count, status: partial, source: NeuralFoil/AeroSandbox and trimmed cruise model, reason: Engine count and assumed rated power affect mass; scaling requires calibration., used_in_score: true}
+    - {key: airfoil.section_camber, label: Spanwise airfoil camber, unit: chord, status: connected, source: NeuralFoil/AeroSandbox and trimmed cruise model, reason: Actual canonical section camber/thickness enter pretrained NeuralFoil., used_in_score: true}
+    - {key: tail.trim_and_stability, label: Tail trim and stability, unit: '-', status: partial, source: NeuralFoil/AeroSandbox and trimmed cruise model, reason: Steady pitch trim and static margin at fixed CG; no wake-resolved or dynamic analysis., used_in_score: true}
+    - {key: propulsion.matching, label: Propulsion matching, unit: '-', status: partial, source: NeuralFoil/AeroSandbox and trimmed cruise model, reason: Cruise power demand is checked against a density-lapsed assumed rating; no engine/propeller map., used_in_score: true}
+    - {key: structure.stress_and_buckling, label: Structural stress and buckling, unit: '-', status: not_connected, source: unavailable, reason: No structural load or sizing solver is connected., used_in_score: false}
+    - {key: performance.field, label: Takeoff and landing performance, unit: '-', status: not_connected, source: unavailable, reason: No field-performance model is connected., used_in_score: false}
+    - {key: acoustics.noise, label: Noise, unit: '-', status: not_connected, source: unavailable, reason: No acoustic model is connected., used_in_score: false}
+    - {key: design.wing_twist_tip_deg, label: Wing tip twist, unit: deg, status: connected, source: trimmed cruise model, reason: Canonical section twist enters the local angle of attack., used_in_score: true}
+    - {key: mission.cruise_lift_to_drag, label: Minimum cruise L/D, unit: '-', status: connected, source: trimmed cruise model, reason: 'Minimum over start, midpoint and end fuel-mass trim states.', used_in_score: true}
+    - {key: mission.cruise_trim, label: Cruise trim and confidence, unit: state, status: connected, source: trimmed cruise model, reason: Requires L=W and Cm=0 within control and confidence limits., used_in_score: true}
+    - {key: mission.static_margin, label: Longitudinal static margin, unit: MAC, status: connected, source: trimmed cruise model, reason: Fixed-control pitch derivative at the assumed CG; 5% MAC minimum., used_in_score: true}
+    - {key: mission.shaft_power, label: Cruise shaft power, unit: kW, status: connected, source: trimmed cruise model, reason: Required power must not exceed available continuous power at altitude., used_in_score: true}

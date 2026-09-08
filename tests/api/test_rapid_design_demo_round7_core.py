@@ -74,7 +74,7 @@ def test_geometry_fingerprint_excludes_condition_and_sizing_but_tracks_geometry(
     assert baseline["geometry_fingerprint"] != changed_geometry["geometry_fingerprint"]
 
 
-def test_cruise_consistency_reports_matched_ld_without_changing_range_ld():
+def test_cruise_consistency_uses_trimmed_midpoint_ld_for_range_display():
     profile = _fast_profile()
     candidate = evaluate_mission_demo_candidate(
         profile=profile,
@@ -100,11 +100,9 @@ def test_cruise_consistency_reports_matched_ld_without_changing_range_ld():
     assert diagnostic["comparison"]["max_ld"] == candidate["analysis_summary"][
         "max_ld"
     ]
-    assert diagnostic["comparison"]["range_model_ld"] == candidate[
-        "analysis_summary"
-    ]["max_ld"]
-    assert diagnostic["enters_score"] is False
-    assert diagnostic["enters_range_estimate"] is False
+    assert diagnostic["comparison"]["range_model_ld"] == candidate["metrics"]["cruise_lift_to_drag"]
+    assert diagnostic["enters_score"] is True
+    assert diagnostic["enters_range_estimate"] is True
 
 
 def test_cruise_consistency_refuses_to_extrapolate_when_lift_is_unsupported():
@@ -129,9 +127,8 @@ def test_cruise_consistency_refuses_to_extrapolate_when_lift_is_unsupported():
     assert diagnostic["reason_code"] == "lift_not_supported"
     assert diagnostic["matched_working_point"] is None
     assert diagnostic["comparison"]["ld_at_reference_state"] is None
-    assert diagnostic["comparison"]["range_model_ld"] == candidate[
-        "analysis_summary"
-    ]["max_ld"]
+    assert diagnostic["comparison"]["range_model_ld"] == 0.0
+    assert candidate["metrics"]["achieved_range_km"] == 0.0
 
 
 def test_fixed_candidate_helper_allows_new_input_bound_to_create_fuel_violation():

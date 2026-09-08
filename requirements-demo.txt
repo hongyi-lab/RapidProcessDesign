@@ -5,3 +5,5 @@ pydantic==2.13.5
 PyYAML==6.0.3
 numpy==2.5.2
 scipy==1.18.1
+neuralfoil==0.3.3
+aerosandbox==4.2.10

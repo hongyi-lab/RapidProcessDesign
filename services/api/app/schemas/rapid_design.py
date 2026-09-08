@@ -110,6 +110,7 @@ MISSION_DEMO_NATIVE_GEOMETRY_KEYS = frozenset(
         "wing_sweep_deg",
         "wing_taper_ratio",
         "wing_thickness_ratio",
+        "wing_twist_tip_deg",
         "tail_scale",
     }
 )
@@ -169,9 +170,17 @@ class MissionDemoMissionModel(BaseModel):
     systems_base_mass_kg: float = Field(ge=0)
     systems_payload_fraction: float = Field(ge=0)
     propulsion_mass_per_unit_kg: float = Field(ge=0)
+    propulsion_specific_power_kw_kg: float = Field(default=2.5, gt=0)
     landing_gear_fraction: float = Field(ge=0, lt=1)
     reserve_fuel_fraction: float = Field(ge=0, lt=1)
-    equivalent_tsfc_per_second: float = Field(gt=0)
+    # Read older profiles; the propeller mission calculation no longer uses TSFC.
+    equivalent_tsfc_per_second: float | None = Field(default=None, gt=0)
+    propeller_efficiency: float = Field(default=0.80, gt=0, le=1)
+    bsfc_kg_per_kwh: float = Field(default=0.30, gt=0)
+    continuous_power_fraction: float = Field(default=0.85, gt=0, le=1)
+    power_lapse_exponent: float = Field(default=1.0, ge=0, le=2)
+    elevator_limit_deg: float = Field(default=25.0, gt=0, le=30)
+    minimum_static_margin: float = Field(default=0.05, ge=0, le=0.3)
 
     @model_validator(mode="after")
     def alpha_sweep_is_increasing(self) -> "MissionDemoMissionModel":
@@ -253,9 +262,11 @@ class MissionDemoProfile(BaseModel):
         input_keys = [item.key for item in self.inputs]
         if len(input_keys) != len(set(input_keys)):
             raise ValueError("mission demo input keys must be unique")
-        if set(input_keys) != MISSION_DEMO_REQUIRED_INPUT_KEYS:
+        optional_inputs = {"shaft_power_per_engine_kw", "cg_percent_mac"}
+        if (not MISSION_DEMO_REQUIRED_INPUT_KEYS.issubset(input_keys)
+                or set(input_keys) - MISSION_DEMO_REQUIRED_INPUT_KEYS - optional_inputs):
             missing = sorted(MISSION_DEMO_REQUIRED_INPUT_KEYS - set(input_keys))
-            unexpected = sorted(set(input_keys) - MISSION_DEMO_REQUIRED_INPUT_KEYS)
+            unexpected = sorted(set(input_keys) - MISSION_DEMO_REQUIRED_INPUT_KEYS - optional_inputs)
             details = []
             if missing:
                 details.append(f"missing: {', '.join(missing)}")
@@ -681,9 +692,26 @@ class GeometryState(BaseModel):
 class RapidAircraftPolar(BwbAircraftPolar):
     """Family-neutral name for the common longitudinal polar contract."""
 
+    cm: list[float] = Field(default_factory=list)
+    confidence: list[float] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def optional_arrays_match(self) -> "RapidAircraftPolar":
+        for values in (self.cm, self.confidence):
+            if values and len(values) != len(self.alpha_deg):
+                raise ValueError("moment/confidence arrays must match the polar")
+        return self
+
 
 class RapidAnalysisSummary(BwbAnalysisSummary):
     """Current common conceptual-analysis summary."""
+
+    cm_at_zero_alpha: float = 0.0
+    cm_alpha_per_rad: float = 0.0
+    minimum_confidence: float = 0.0
+    reference_x_m: float = 0.0
+    reference_z_m: float = 0.0
+    reference_chord_m: float = 0.0
 
 
 class RapidAnalysisPayload(BaseModel):
@@ -704,6 +732,8 @@ class RapidAnalysisProvenance(BaseModel):
     scope: str
     uses_external_weights: bool
     uses_mit_assets: bool
+    software_versions: dict[str, str] = Field(default_factory=dict)
+    model_size: str | None = None
 
 
 class RapidAnalyzeResponse(BaseModel):
@@ -723,8 +753,8 @@ class RapidAnalyzeResponse(BaseModel):
     # Temporary aliases keep the released BWB client and regression suite
     # functional during the Round-4 frontend migration.
     geometry: dict[str, float]
-    polar: BwbAircraftPolar
-    summary: BwbAnalysisSummary
+    polar: RapidAircraftPolar
+    summary: RapidAnalysisSummary
 
 
 class RapidParameterDefinition(BaseModel):

@@ -78,7 +78,7 @@ def _wait_for_terminal(
     client: TestClient,
     job_id: str,
     *,
-    timeout_s: float = 5.0,
+    timeout_s: float = 30.0,
 ) -> dict:
     deadline = time.monotonic() + timeout_s
     while time.monotonic() < deadline:
@@ -106,7 +106,7 @@ def test_mission_demo_profile_is_versioned_native_and_isolated_from_legacy():
 
     assert MISSION_DEMO_PROFILE_PATH != DEFAULT_CONFIG_PATH
     assert profile.profile_id == "mission_demo_v1"
-    assert profile.profile_version == "1.0.0"
+    assert profile.profile_version == "2.0.0"
     assert profile.mode == "demo_only"
     assert profile.formal_status == "pending_teacher_decision"
     assert profile.supported_family_ids == ["conventional_v2"]

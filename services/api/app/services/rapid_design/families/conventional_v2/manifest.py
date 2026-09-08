@@ -56,7 +56,7 @@ def conventional_v2_manifest() -> RapidFamilyManifest:
             "family_id": "conventional_v2",
             "display_name": "Conventional V2",
             "description": "Multi-section conventional aircraft concept geometry.",
-            "version": "0.3.0",
+            "version": "0.4.0",
             "default_preset_id": "long_endurance_uav",
             "presets": [
                 {
@@ -97,9 +97,9 @@ def conventional_v2_manifest() -> RapidFamilyManifest:
             ],
             "capabilities": {"geometry": True, "analyze": True, "optimize": False},
             "analysis": {
-                "model_id": "clean-room-conventional-conceptual",
+                "model_id": "neuralfoil-aerosandbox-buildup",
                 "fidelity": "conceptual_low_order",
-                "description": "Transparent low-order trend model for interactive comparison only.",
+                "description": "Pretrained NeuralFoil sections with AeroSandbox component buildup; requires aircraft validation.",
             },
             "optimization_status": "pending_teacher_decision",
         }

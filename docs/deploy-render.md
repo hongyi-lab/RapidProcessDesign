@@ -75,3 +75,11 @@ docker run --rm -p 10000:10000 -e RAPID_SECURE_COOKIES=false rapid-process-desig
 Open `http://localhost:10000`. The cookie override is for local HTTP only; the
 cloud image defaults to Secure cookies for Render HTTPS. No local storage,
 environment files, credentials, or generated models are included in the image.
+
+## Physics model update
+
+The current conventional model installs NeuralFoil 0.3.3 and AeroSandbox 4.2.10
+from `requirements-demo.txt`. They run locally on the server CPU without an API
+key; dependencies and pretrained weights are installed at image build time.
+Generate a new run after deploying to use trimmed cruise and power checks.
+See the [model assumptions and verification](physics-upgrade.md).

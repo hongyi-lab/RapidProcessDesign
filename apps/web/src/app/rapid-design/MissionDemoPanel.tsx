@@ -52,7 +52,7 @@ const POLL_INTERVAL_MS = 850;
 const METRIC_LABELS: Record<string, { label: string; unit: string; digits: number }> = {
   takeoff_mass_kg: { label: "Takeoff mass", unit: "kg", digits: 1 },
   achieved_range_km: { label: "Estimated range", unit: "km", digits: 0 },
-  max_lift_to_drag: { label: "Peak L/D", unit: "", digits: 2 },
+  cruise_lift_to_drag: { label: "Cruise L/D", unit: "", digits: 2 },
   fuel_mass_kg: { label: "Fuel mass", unit: "kg", digits: 1 },
 };
 
@@ -70,7 +70,9 @@ const INPUT_LABELS: Record<string, string> = {
   cruise_altitude_m: "Cruise altitude",
   max_fuel_mass_kg: "Fuel limit",
   max_takeoff_mass_kg: "Takeoff mass limit",
-  target_lift_to_drag: "Target L/D",
+  target_lift_to_drag: "Minimum cruise L/D",
+  shaft_power_per_engine_kw: "Sea-level power per engine",
+  cg_percent_mac: "CG position",
 };
 
 const TASK_PRESENTATION: Record<string, { label: string; description: string }> = {
@@ -263,6 +265,17 @@ function CruiseConsistencyPanel({ candidate }: { candidate: DemoCandidate }) {
   }
   const supported = diagnostic.status === "supported";
   const point = diagnostic.matched_working_point;
+  const integrated = diagnostic.enters_range_estimate;
+  const checks = diagnostic.checks;
+  const reasons: Record<string, string> = {
+    matched: "Cruise checks passed",
+    lift_not_supported: "Required lift cannot be trimmed",
+    trim_not_supported: "Elevator authority is insufficient",
+    low_model_confidence: "Outside reliable model coverage",
+    stall_branch: "Outside the supported lift branch",
+    static_margin_not_supported: "Insufficient longitudinal stability",
+    insufficient_power: "Insufficient power at cruise altitude",
+  };
   return (
     <section
       className={styles.cruisePanel}
@@ -271,7 +284,7 @@ function CruiseConsistencyPanel({ candidate }: { candidate: DemoCandidate }) {
     >
       <div className={styles.sectionHeading}>
         <h5>Cruise consistency</h5>
-        <strong>{supported ? "SUPPORTED" : "UNSUPPORTED · LIFT_NOT_SUPPORTED"}</strong>
+        <strong>{reasons[diagnostic.reason_code] ?? "Cruise unsupported"}</strong>
       </div>
       <dl>
         <div>
@@ -289,7 +302,7 @@ function CruiseConsistencyPanel({ candidate }: { candidate: DemoCandidate }) {
           <dd>{formatNumber(diagnostic.required_cl, 3)}</dd>
         </div>
         <div>
-          <dt>Supported CL range</dt>
+          <dt>Neutral-elevator polar CL range</dt>
           <dd>{formatNumber(diagnostic.polar_support.min_cl, 3)} – {formatNumber(diagnostic.polar_support.max_cl, 3)}</dd>
         </div>
         <div>
@@ -297,20 +310,27 @@ function CruiseConsistencyPanel({ candidate }: { candidate: DemoCandidate }) {
           <dd>{point ? formatNumber(point.ld, 2) : "Outside model range"}</dd>
         </div>
         <div>
-          <dt>Peak L/D used for range estimate</dt>
+          <dt>{integrated ? "Cruise midpoint L/D" : "Peak L/D used by saved model"}</dt>
           <dd>
-            {formatNumber(diagnostic.comparison.max_ld, 2)} / {formatNumber(diagnostic.comparison.range_model_ld, 2)}
+            {supported ? formatNumber(diagnostic.comparison.range_model_ld, 2) : "Unavailable"}
           </dd>
         </div>
       </dl>
-      {!supported && (
-        <p>
-          The required lift at takeoff mass is outside the sampled polar. No cruise operating point can be matched.
-        </p>
+      {checks && (
+        <dl>
+          <div><dt>Pitch trim</dt><dd>{checks.trim ? "Passed" : "Not met"}</dd></div>
+          <div><dt>Elevator at start of cruise</dt><dd>{point?.elevator_deg != null ? `${formatNumber(point.elevator_deg, 2)}°` : "Unavailable"}</dd></div>
+          <div><dt>Minimum static margin</dt><dd>{formatNumber(checks.minimum_static_margin * 100, 1)}% MAC</dd></div>
+          <div><dt>Required / available shaft power</dt><dd>{formatNumber(checks.shaft_power_required_kw, 1)} / {formatNumber(checks.shaft_power_available_kw, 1)} kW</dd></div>
+          <div><dt>Assumed CG</dt><dd>{formatNumber(diagnostic.assumptions?.cg_percent_mac, 0)}% MAC</dd></div>
+          <div><dt>Assumed propeller efficiency / BSFC</dt><dd>{formatNumber((diagnostic.assumptions?.propeller_efficiency ?? 0) * 100, 0)}% / {formatNumber(diagnostic.assumptions?.bsfc_kg_per_kwh, 2)} kg/kWh</dd></div>
+        </dl>
       )}
-      <p>
-        Uses demo takeoff mass. This diagnostic does not affect the score or range estimate, and does not validate trim, stability or propulsion.
-      </p>
+      {!supported && <p>No supported cruise range is available. Adjust the requirements or the power and CG assumptions.</p>}
+      <p>{integrated
+        ? "Range integrates fuel burn at three trimmed cruise masses. Trim, static margin, model confidence and available power affect feasibility. CG is assumed fixed; engine and propeller data still need calibration."
+        : "Saved result from the earlier model: this lift diagnostic did not affect range or score. Generate a new run to use the updated cruise model."}</p>
+
     </section>
   );
 }
@@ -371,10 +391,12 @@ function CandidateCard({
       <dl className={styles.metricGrid}>
         {Object.entries(METRIC_LABELS).map(([key, presentation]) => (
           <div key={key}>
-            <dt>{presentation.label}</dt>
+            <dt>{key === "cruise_lift_to_drag" && candidate.metrics[key] === undefined ? "Peak L/D (saved)" : presentation.label}</dt>
             <dd>
-              {formatNumber(candidate.metrics[key], presentation.digits)}
-              {presentation.unit && <small>{presentation.unit}</small>}
+              {key === "achieved_range_km" && candidate.metrics.cruise_supported === 0
+                ? "Unavailable"
+                : formatNumber(candidate.metrics[key] ?? (key === "cruise_lift_to_drag" ? candidate.metrics.max_lift_to_drag : undefined), presentation.digits)}
+              {presentation.unit && !(key === "achieved_range_km" && candidate.metrics.cruise_supported === 0) && <small>{presentation.unit}</small>}
             </dd>
           </div>
         ))}
@@ -386,7 +408,7 @@ function CandidateCard({
           <p>Individual constraints are unavailable.</p>
         ) : (
           <ul>
-            {candidate.constraints.slice(0, 5).map((constraint, index) => (
+            {candidate.constraints.map((constraint, index) => (
               <li key={`${constraint.key ?? constraint.name ?? index}`} data-pass={constraint.satisfied !== false}>
                 <span>{constraintTitle(constraint, index)}</span>
                 <strong>{constraint.satisfied === false ? "Not met" : "Met"}</strong>
@@ -447,7 +469,7 @@ function CandidateCard({
               <p>Individual constraints are unavailable.</p>
             ) : (
               <ul>
-                {candidate.constraints.slice(0, 5).map((constraint, index) => (
+                {candidate.constraints.map((constraint, index) => (
                   <li key={`${constraint.key ?? constraint.name ?? index}`} data-pass={constraint.satisfied !== false}>
                     <span>{constraintTitle(constraint, index)}</span>
                     <strong>{constraintValue(constraint)}</strong>
@@ -1025,9 +1047,10 @@ export function MissionDemoPanel({
           </fieldset>
 
           <details className={styles.advancedConstraints}>
-            <summary>Advanced limits</summary>
+            <summary>Advanced limits & assumptions</summary>
             <fieldset disabled={!config || running || submitting}>
-              <legend>Defaults are ready to use</legend>
+              <legend>Design assumptions</legend>
+              <p>Power is a sea-level rating per engine; available continuous power reduces with air density. CG is fixed throughout cruise.</p>
               {groupedInputs.constraint.map((definition) => (
                 <DemoNumericControl
                   key={definition.key}
@@ -1274,9 +1297,9 @@ export function MissionDemoPanel({
                             <small>{candidate.feasible ? "Requirements met" : "Requirements not met"}</small>
                           </span>
                           <span className={styles.choiceMetrics}>
-                            <small>{formatNumber(candidate.metrics.achieved_range_km, 0)} km</small>
+                            <small>{candidate.metrics.cruise_supported === 0 ? "Cruise unsupported" : `${formatNumber(candidate.metrics.achieved_range_km, 0)} km`}</small>
                             <small>{formatNumber(candidate.metrics.takeoff_mass_kg, 0)} kg</small>
-                            <small>L/D {formatNumber(candidate.metrics.max_lift_to_drag, 1)}</small>
+                            <small>L/D {formatNumber(candidate.metrics.cruise_lift_to_drag ?? candidate.metrics.max_lift_to_drag, 1)}</small>
                             <small>Fuel {formatNumber(candidate.metrics.fuel_mass_kg, 0)} kg</small>
                           </span>
                         </button>
