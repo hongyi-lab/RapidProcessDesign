@@ -1,0 +1,109 @@
+{
+  "checked_at": "2026-09-09T08:49:49.512405+00:00",
+  "scope": "standalone demonstration verification, not physical validation",
+  "numeric_tests": {
+    "status": "passed",
+    "count": 8,
+    "log": "test_convergence_and_conservation_are_recomputed (test_engine.EngineeringDemoTests.test_convergence_and_conservation_are_recomputed) ... ok\ntest_failed_candidates_never_become_valid_metrics (test_engine.EngineeringDemoTests.test_failed_candidates_never_become_valid_metrics) ... ok\ntest_invalid_inputs_are_rejected (test_engine.EngineeringDemoTests.test_invalid_inputs_are_rejected) ... ok\ntest_manual_design_change_exposes_mass_strength_tradeoff (test_engine.EngineeringDemoTests.test_manual_design_change_exposes_mass_strength_tradeoff) ... ok\ntest_mass_and_cg_follow_fuel_centroid (test_engine.EngineeringDemoTests.test_mass_and_cg_follow_fuel_centroid) ... ok\ntest_mission_step_refinement_and_fuel_monotonicity (test_engine.EngineeringDemoTests.test_mission_step_refinement_and_fuel_monotonicity) ... ok\ntest_standard_atmosphere_sea_level (test_engine.EngineeringDemoTests.test_standard_atmosphere_sea_level) ... ok\ntest_uniform_beam_matches_analytic_solution_and_refines (test_engine.EngineeringDemoTests.test_uniform_beam_matches_analytic_solution_and_refines) ... ok\n\n----------------------------------------------------------------------\nRan 8 tests in 0.074s\n\nOK\n"
+  },
+  "three_dimensional_geometry": {
+    "status": "passed",
+    "checks": [
+      "finite vertices and normals",
+      "full span",
+      "section maximum thickness",
+      "closed topology",
+      "outward winding",
+      "volume agreement below 0.1%"
+    ],
+    "cases": [
+      {
+        "span_m": 8,
+        "mesh_volume_m3": 2.0058816499754917,
+        "engine_volume_m3": 2.0061913088000005,
+        "relative_volume_error": 0.00015435159306620427,
+        "vertices": 11640,
+        "triangles": 23276,
+        "closed_edges": true
+      },
+      {
+        "span_m": 12,
+        "mesh_volume_m3": 5.183166830728224,
+        "engine_volume_m3": 5.183966995200001,
+        "relative_volume_error": 0.00015435369718175274,
+        "vertices": 11640,
+        "triangles": 23276,
+        "closed_edges": true
+      },
+      {
+        "span_m": 6,
+        "mesh_volume_m3": 0.8462313177284018,
+        "engine_volume_m3": 0.8463619584,
+        "relative_volume_error": 0.00015435555710130444,
+        "vertices": 11640,
+        "triangles": 23276,
+        "closed_edges": true
+      }
+    ]
+  },
+  "typescript": {
+    "command": "npx tsc --noEmit",
+    "status": "passed",
+    "evidence": "executed in this session after 3D implementation"
+  },
+  "production_build": {
+    "command": "npm run build",
+    "status": "passed",
+    "evidence": "executed in this session after 3D implementation"
+  },
+  "api": {
+    "http_status": 200,
+    "cors": "http://127.0.0.1:3981",
+    "solver_status": "demo_converged"
+  },
+  "ui": {
+    "http_status": 200,
+    "contains_app_title": true
+  },
+  "launcher": {
+    "start": "passed",
+    "stop": "passed; both local endpoints became unreachable",
+    "restart": "passed",
+    "note": "Process identity checked against demo directory; CIM termination used."
+  },
+  "browser_visual_and_interaction_acceptance": "not_performed",
+  "static_flow_figures": "rendered, opened, revised, re-rendered and reopened; details in main specification section 10",
+  "physics_validation": "not_performed",
+  "default_example": {
+    "mass_kg": 306.38180504279427,
+    "fuel_kg": 26.258881522794276,
+    "fuel_residual_kg": 9.264135682229835e-05,
+    "stress_MPa": 8.549003755739996
+  },
+  "sha256": {
+    "engine.py": "c693b1e7462f081518b937ae9fa426803c70c1cd2167cb84eed0c6a6415ac751",
+    "test_engine.py": "8ebb2d7fb7c606aed63e103d0e816f87b490d377e83ff9dc8ea8587d90a4a657",
+    "ui\\app\\geometry3d.ts": "98ea317dcd067252b5f4e433d348f15fabb394ddf57e739330cebc4873f96142",
+    "ui\\app\\viewer3d.tsx": "19cd0dfba4d636aafe4362f55d70b27d67f3dda29777dce3d4df0a32a967641f",
+    "ui\\app\\page.tsx": "3a72436feffa4fc802d2b30cd46592702489c482e580648fed7f6086627f8af0",
+    "Start-Demo.ps1": "a4f65b17c994a58ce9dd3046185db2409024ed14b45055f6c06d23e503d846c8",
+    "Stop-Demo.ps1": "32c33eabafe4e98bbe2e955235e21ec38ecbd61d90210813c8992264018e5135"
+  },
+  "repository_packaging": {
+    "checked_at": "2026-09-10T06:50:18.670351+00:00",
+    "path": "demos/bwb-flow",
+    "numeric_tests": {
+      "count": 8,
+      "status": "passed"
+    },
+    "powershell_syntax": "Start-Demo.ps1 and Stop-Demo.ps1 parsed without errors",
+    "repository_root_resolution": "passed",
+    "demo_readme_local_links": "passed",
+    "unchanged_frontend_file_count": 80,
+    "frontend_build": "not repeated; frontend code and dependency lock identical to previously checked snapshot; two public SVGs only lose trailing whitespace",
+    "relocated_launcher_runtime": "not executed; original local demo remains separate",
+    "updated_launcher_sha256": "fbe810f9051e02f468f166c3e81e80ec7dae38f08b45ea888a118d92a813e899",
+    "pipeline_readability": "user requested revision after supplying a template; archived as-is",
+    "svg_packaging": "Removed trailing line whitespace from four SVG copies; whitespace-separated content tokens unchanged; no redraw or layout changes."
+  }
+}

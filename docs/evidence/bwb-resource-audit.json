@@ -1,0 +1,271 @@
+{
+  "scope": "Resource/schema and inference smoke checks only; no aircraft validation",
+  "reference_commit": "b516d4b3e2e5e34fbd5233eacdf15317a96dc2d9",
+  "reference_files_sha256": {
+    "README.md": "c70a50de2905934d0e1a5e3ab7c5edf5f502877a09fdd1ee7f6c41fc993f5608",
+    "data/README.md": "8cf6c70a74dcc80a05c39fbbbbe9ec80d8ae6f0bdc86717b11fd49f9f13f9b13",
+    "data/bwb_structures_dataset.csv": "fda66e3ca8712c4ea12af68eea66fb58dd569b1bfc51faeae87899a080aa613d",
+    "models/ld_surrogate/README.md": "7d6572bff375a8f37867b36b46d5f7b81c40be85d3d29a89937bb4caebf0d4df",
+    "models/ld_surrogate/predict_ld.py": "e0f631513d85cf117311545b19e0ea552f65fe8930268d37a02e6f47c063602c",
+    "models/ld_surrogate/flight_conversion.py": "f7a30d6caf06da8b166fac6ff625747c5567520f8d7aa3ed34a46cb06e2341b7",
+    "models/ld_surrogate/regressor.py": "cf1c44afbcc01aefaf11bedfe54a953643324686850c19d5a1c5104d9ae5ee38",
+    "models/ld_surrogate/aero_design_space.json": "7b4cc4fd36af103060a964b519b31353fe0e28f4dbd6b247c830806f8b9350bf",
+    "models/ld_surrogate/reg_full.json": "3eac7742b4cedc3fd0d0d0e7912d8986ad19ee3281d56c2b3010a9223ae69206",
+    "models/ld_surrogate/reg_feasible.json": "c1c7b58228413f417c3b0271268fed7632ce23b1431cfbc1f28a52a58186ba97",
+    "ntop_model/README.md": "8ed24a69db7cd8a7e441d10d5347789f608b6bb214329d95d7c4597f18493dd2"
+  },
+  "dataset": {
+    "shape": [
+      13720,
+      28
+    ],
+    "columns": [
+      "C2/C1",
+      "C3/C1",
+      "C4/C1",
+      "B1/C1",
+      "B2/C1",
+      "B3/C1",
+      "X3/C1",
+      "S1",
+      "S3",
+      "C1",
+      "Altitude",
+      "KCAS",
+      "AOA",
+      "Skin Thickness",
+      "Front Spar Chord %",
+      "Rear Spar Chord %",
+      "Spar Thickness",
+      "# of Ribs",
+      "Rib Thickness",
+      "Wingbox Cutout",
+      "# of Fuselage Ribs",
+      "# of Fuselage Spars",
+      "Fuselage Struct Thickness",
+      "Fuselage Struct Width",
+      "Aircraft Empty Weight",
+      "Payload Volume",
+      "Fuel Volume",
+      "Max Hotspot Stress"
+    ],
+    "all_numeric": true,
+    "all_finite": true,
+    "duplicate_rows": 15,
+    "duplicate_input_rows": 18,
+    "min_max": {
+      "C2/C1": [
+        0.5500307532027364,
+        0.8499637116678058
+      ],
+      "C3/C1": [
+        0.180004627648741,
+        0.2799989253468812
+      ],
+      "C4/C1": [
+        0.0600038407277315,
+        0.0899972346704453
+      ],
+      "B1/C1": [
+        0.1000038309022784,
+        0.1999926558695733
+      ],
+      "B2/C1": [
+        0.0500959428958594,
+        0.1999828134663403
+      ],
+      "B3/C1": [
+        0.3500088114291429,
+        0.6999506283551454
+      ],
+      "X3/C1": [
+        0.500023000780493,
+        0.6499778209254146
+      ],
+      "S1": [
+        40.0021848641336,
+        59.99921569600701
+      ],
+      "S3": [
+        20.00471994280815,
+        39.995278008282185
+      ],
+      "C1": [
+        2500.319786369801,
+        3999.733452685177
+      ],
+      "Altitude": [
+        0.0014928672462701,
+        17.999923523515463
+      ],
+      "KCAS": [
+        33.01891627907753,
+        249.95077240467072
+      ],
+      "AOA": [
+        -7.999197952449322,
+        15.999173119664192
+      ],
+      "Skin Thickness": [
+        0.0003003839256241,
+        0.0049935931650921
+      ],
+      "Front Spar Chord %": [
+        0.1800092588365077,
+        0.3499778221733868
+      ],
+      "Rear Spar Chord %": [
+        0.5500026293098927,
+        0.7499627461656928
+      ],
+      "Spar Thickness": [
+        0.0009760792098939,
+        0.0079967236347496
+      ],
+      "# of Ribs": [
+        3.0,
+        14.0
+      ],
+      "Rib Thickness": [
+        0.0015,
+        0.0149948105541989
+      ],
+      "Wingbox Cutout": [
+        0.01,
+        0.0499507723748684
+      ],
+      "# of Fuselage Ribs": [
+        3.0,
+        11.0
+      ],
+      "# of Fuselage Spars": [
+        3.0,
+        12.0
+      ],
+      "Fuselage Struct Thickness": [
+        0.0020001631060149,
+        0.0249890659041702
+      ],
+      "Fuselage Struct Width": [
+        0.0010376665256917,
+        0.0149888255093246
+      ],
+      "Aircraft Empty Weight": [
+        19.4861772,
+        1639.411037
+      ],
+      "Payload Volume": [
+        66001564.24,
+        2083191215.0
+      ],
+      "Fuel Volume": [
+        17179780.57,
+        899640929.1
+      ],
+      "Max Hotspot Stress": [
+        1.0116664835069444,
+        3913852.755992
+      ]
+    },
+    "stress_gt_335_MPa": 5611,
+    "stress_gt_335p3_MPa": 5607,
+    "stress_gt_1e4_MPa": 123,
+    "fuselage_rib_values": [
+      3,
+      5,
+      7,
+      9,
+      11
+    ],
+    "flight_warning_counts": {
+      "M_inf": 66,
+      "Altitude_kft": 3,
+      "KCAS_kt": 6
+    }
+  },
+  "checkpoint_metadata_reported_not_recomputed": {
+    "full": {
+      "data_tag": "full",
+      "metrics": {
+        "CL": {
+          "R2": 0.9986133989040155,
+          "MAE": 0.004433075401882359
+        },
+        "CD": {
+          "R2": 0.9932096603313839,
+          "MAE": 0.0011602261029899053
+        },
+        "LoD": {
+          "R2": 0.9890355809868127,
+          "MAE": 0.4825590289524459
+        }
+      },
+      "n": 9992
+    },
+    "feasible": {
+      "data_tag": "feasible",
+      "metrics": {
+        "CL": {
+          "R2": 0.9986827420268939,
+          "MAE": 0.004316134976485171
+        },
+        "CD": {
+          "R2": 0.9947782568003057,
+          "MAE": 0.000927671157896115
+        },
+        "LoD": {
+          "R2": 0.9936608066102891,
+          "MAE": 0.4044961327118925
+        }
+      },
+      "n": 3860
+    }
+  },
+  "executed": {
+    "single_example": {
+      "CL": 0.2031782846781992,
+      "CD": 0.016652316320171917,
+      "LD": 12.201202569763677,
+      "Re_L": 16325142.539704924,
+      "M_inf": 0.3597453619862515,
+      "warnings": []
+    },
+    "batch_abs_error_vs_single": 0.0,
+    "batch_match_at_1e_10_float_roundoff_tolerance": true,
+    "S3_60deg_outside_geometry_box": {
+      "CL": 0.16379288591934563,
+      "CD": 0.017014522966263226,
+      "LD": 9.626651669524781,
+      "Re_L": 16325142.539704924,
+      "M_inf": 0.3597453619862515,
+      "warnings": []
+    },
+    "alt18_kcas250_outside_flight_box": {
+      "CL": 0.20490104193194744,
+      "CD": 0.01661073272713255,
+      "LD": 12.335460770930045,
+      "Re_L": 21773290.172845513,
+      "M_inf": 0.5260390611941889,
+      "warnings": [
+        "KCAS_kt = 250 outside trained range [33.02, 249.95]",
+        "M_inf = 0.526039 outside trained range [0.05, 0.5]"
+      ]
+    },
+    "C1_4000_over_3000_Re_ratio": 1.3333333333333333,
+    "C1_only_changes_feature_indices": [
+      9
+    ],
+    "sea_level_CAS_equals_TAS_abs_error_ms": 3.258312489151649e-06
+  },
+  "not_executed": [
+    "held-out surrogate accuracy reproduction",
+    "CFD",
+    "FEA",
+    "nTop execution",
+    "trim",
+    "structural load mapping",
+    "coupled aircraft solve",
+    "mission integration",
+    "optimization"
+  ]
+}
