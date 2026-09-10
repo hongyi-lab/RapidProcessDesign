@@ -1,0 +1,700 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="1152pt" height="1368pt" viewBox="0 0 1152 1368" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <metadata>
+  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+   <cc:Work>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:date>2026-09-10T18:56:25.898575</dc:date>
+    <dc:format>image/svg+xml</dc:format>
+    <dc:creator>
+     <cc:Agent>
+      <dc:title>Matplotlib v3.11.1, https://matplotlib.org/</dc:title>
+     </cc:Agent>
+    </dc:creator>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <defs>
+  <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+  <g id="patch_1">
+   <path d="M 0 1368
+L 1152 1368
+L 1152 0
+L 0 0
+z
+" style="fill: #ffffff"/>
+  </g>
+  <g id="axes_1">
+   <g id="patch_2">
+    <path d="M 159.84 64.8
+L 970.56 64.8
+Q 979.2 64.8 979.2 73.44
+L 979.2 166.32
+Q 979.2 174.96 970.56 174.96
+L 159.84 174.96
+Q 151.2 174.96 151.2 166.32
+L 151.2 73.44
+Q 151.2 64.8 159.84 64.8
+z
+" clip-path="url(#p1b610ccbce)" style="fill: #eef4fa; stroke: #8096ad; stroke-width: 1.7; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_3">
+    <path d="M 565.2 174.96
+Q 565.2 185.701377 565.2 193.983079
+" clip-path="url(#p1b610ccbce)" style="fill: none; stroke: #4877a6; stroke-width: 2.2; stroke-linecap: round"/>
+    <path d="M 569.2 185.983079
+L 565.2 193.983079
+L 561.2 185.983079
+z
+" clip-path="url(#p1b610ccbce)" style="fill: #4877a6; stroke: #4877a6; stroke-width: 2.2; stroke-linecap: round"/>
+   </g>
+   <g id="patch_4">
+    <path d="M 159.84 199.44
+L 970.56 199.44
+Q 979.2 199.44 979.2 208.08
+L 979.2 300.96
+Q 979.2 309.6 970.56 309.6
+L 159.84 309.6
+Q 151.2 309.6 151.2 300.96
+L 151.2 208.08
+Q 151.2 199.44 159.84 199.44
+z
+" clip-path="url(#p1b610ccbce)" style="fill: #eef4fa; stroke: #8096ad; stroke-width: 1.7; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_5">
+    <path d="M 565.2 309.6
+Q 565.2 320.341377 565.2 328.623079
+" clip-path="url(#p1b610ccbce)" style="fill: none; stroke: #4877a6; stroke-width: 2.2; stroke-linecap: round"/>
+    <path d="M 569.2 320.623079
+L 565.2 328.623079
+L 561.2 320.623079
+z
+" clip-path="url(#p1b610ccbce)" style="fill: #4877a6; stroke: #4877a6; stroke-width: 2.2; stroke-linecap: round"/>
+   </g>
+   <g id="patch_6">
+    <path d="M 159.84 334.08
+L 970.56 334.08
+Q 979.2 334.08 979.2 342.72
+L 979.2 435.6
+Q 979.2 444.24 970.56 444.24
+L 159.84 444.24
+Q 151.2 444.24 151.2 435.6
+L 151.2 342.72
+Q 151.2 334.08 159.84 334.08
+z
+" clip-path="url(#p1b610ccbce)" style="fill: #eef4fa; stroke: #8096ad; stroke-width: 1.7; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_7">
+    <path d="M 565.2 444.24
+Q 565.2 454.981377 565.2 463.263079
+" clip-path="url(#p1b610ccbce)" style="fill: none; stroke: #4877a6; stroke-width: 2.2; stroke-linecap: round"/>
+    <path d="M 569.2 455.263079
+L 565.2 463.263079
+L 561.2 455.263079
+z
+" clip-path="url(#p1b610ccbce)" style="fill: #4877a6; stroke: #4877a6; stroke-width: 2.2; stroke-linecap: round"/>
+   </g>
+   <g id="patch_8">
+    <path d="M 159.84 468.72
+L 970.56 468.72
+Q 979.2 468.72 979.2 477.36
+L 979.2 570.24
+Q 979.2 578.88 970.56 578.88
+L 159.84 578.88
+Q 151.2 578.88 151.2 570.24
+L 151.2 477.36
+Q 151.2 468.72 159.84 468.72
+z
+" clip-path="url(#p1b610ccbce)" style="fill: #eef4fa; stroke: #8096ad; stroke-width: 1.7; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_9">
+    <path d="M 565.2 578.88
+Q 565.2 589.621377 565.2 597.903079
+" clip-path="url(#p1b610ccbce)" style="fill: none; stroke: #4877a6; stroke-width: 2.2; stroke-linecap: round"/>
+    <path d="M 569.2 589.903079
+L 565.2 597.903079
+L 561.2 589.903079
+z
+" clip-path="url(#p1b610ccbce)" style="fill: #4877a6; stroke: #4877a6; stroke-width: 2.2; stroke-linecap: round"/>
+   </g>
+   <g id="patch_10">
+    <path d="M 159.84 603.36
+L 970.56 603.36
+Q 979.2 603.36 979.2 612
+L 979.2 704.88
+Q 979.2 713.52 970.56 713.52
+L 159.84 713.52
+Q 151.2 713.52 151.2 704.88
+L 151.2 612
+Q 151.2 603.36 159.84 603.36
+z
+" clip-path="url(#p1b610ccbce)" style="fill: #eef4fa; stroke: #8096ad; stroke-width: 1.7; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_11">
+    <path d="M 565.2 713.52
+Q 565.2 724.261377 565.2 732.543079
+" clip-path="url(#p1b610ccbce)" style="fill: none; stroke: #4877a6; stroke-width: 2.2; stroke-linecap: round"/>
+    <path d="M 569.2 724.543079
+L 565.2 732.543079
+L 561.2 724.543079
+z
+" clip-path="url(#p1b610ccbce)" style="fill: #4877a6; stroke: #4877a6; stroke-width: 2.2; stroke-linecap: round"/>
+   </g>
+   <g id="patch_12">
+    <path d="M 159.84 738
+L 970.56 738
+Q 979.2 738 979.2 746.64
+L 979.2 839.52
+Q 979.2 848.16 970.56 848.16
+L 159.84 848.16
+Q 151.2 848.16 151.2 839.52
+L 151.2 746.64
+Q 151.2 738 159.84 738
+z
+" clip-path="url(#p1b610ccbce)" style="fill: #eef4fa; stroke: #8096ad; stroke-width: 1.7; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_13">
+    <path d="M 565.2 848.16
+Q 565.2 858.901377 565.2 867.183079
+" clip-path="url(#p1b610ccbce)" style="fill: none; stroke: #4877a6; stroke-width: 2.2; stroke-linecap: round"/>
+    <path d="M 569.2 859.183079
+L 565.2 867.183079
+L 561.2 859.183079
+z
+" clip-path="url(#p1b610ccbce)" style="fill: #4877a6; stroke: #4877a6; stroke-width: 2.2; stroke-linecap: round"/>
+   </g>
+   <g id="patch_14">
+    <path d="M 159.84 872.64
+L 970.56 872.64
+Q 979.2 872.64 979.2 881.28
+L 979.2 974.16
+Q 979.2 982.8 970.56 982.8
+L 159.84 982.8
+Q 151.2 982.8 151.2 974.16
+L 151.2 881.28
+Q 151.2 872.64 159.84 872.64
+z
+" clip-path="url(#p1b610ccbce)" style="fill: #eef4fa; stroke: #8096ad; stroke-width: 1.7; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_15">
+    <path d="M 565.2 982.8
+Q 565.2 993.541377 565.2 1001.823079
+" clip-path="url(#p1b610ccbce)" style="fill: none; stroke: #4877a6; stroke-width: 2.2; stroke-linecap: round"/>
+    <path d="M 569.2 993.823079
+L 565.2 1001.823079
+L 561.2 993.823079
+z
+" clip-path="url(#p1b610ccbce)" style="fill: #4877a6; stroke: #4877a6; stroke-width: 2.2; stroke-linecap: round"/>
+   </g>
+   <g id="patch_16">
+    <path d="M 159.84 1007.28
+L 970.56 1007.28
+Q 979.2 1007.28 979.2 1015.92
+L 979.2 1108.8
+Q 979.2 1117.44 970.56 1117.44
+L 159.84 1117.44
+Q 151.2 1117.44 151.2 1108.8
+L 151.2 1015.92
+Q 151.2 1007.28 159.84 1007.28
+z
+" clip-path="url(#p1b610ccbce)" style="fill: #f3eff7; stroke: #86659c; stroke-width: 1.7; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_17">
+    <path d="M 565.2 1117.44
+Q 565.2 1128.181377 565.2 1136.463079
+" clip-path="url(#p1b610ccbce)" style="fill: none; stroke: #4877a6; stroke-width: 2.2; stroke-linecap: round"/>
+    <path d="M 569.2 1128.463079
+L 565.2 1136.463079
+L 561.2 1128.463079
+z
+" clip-path="url(#p1b610ccbce)" style="fill: #4877a6; stroke: #4877a6; stroke-width: 2.2; stroke-linecap: round"/>
+   </g>
+   <g id="patch_18">
+    <path d="M 159.84 1141.92
+L 970.56 1141.92
+Q 979.2 1141.92 979.2 1150.56
+L 979.2 1243.44
+Q 979.2 1252.08 970.56 1252.08
+L 159.84 1252.08
+Q 151.2 1252.08 151.2 1243.44
+L 151.2 1150.56
+Q 151.2 1141.92 159.84 1141.92
+z
+" clip-path="url(#p1b610ccbce)" style="fill: #f3f5f7; stroke: #8096ad; stroke-width: 1.7; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_19">
+    <path d="M 80.64 793.08
+Q 114.419136 793.08 145.738597 793.08
+" clip-path="url(#p1b610ccbce)" style="fill: none; stroke: #6f8d9d; stroke-width: 2.2; stroke-linecap: round"/>
+    <path d="M 137.738597 789.08
+L 145.738597 793.08
+L 137.738597 797.08
+z
+" clip-path="url(#p1b610ccbce)" style="fill: #6f8d9d; stroke: #6f8d9d; stroke-width: 2.2; stroke-linecap: round"/>
+   </g>
+   <g id="patch_20">
+    <path d="M 80.64 658.44
+Q 114.419136 658.44 145.738597 658.44
+" clip-path="url(#p1b610ccbce)" style="fill: none; stroke: #6f8d9d; stroke-width: 2.2; stroke-linecap: round"/>
+    <path d="M 137.738597 654.44
+L 145.738597 658.44
+L 137.738597 662.44
+z
+" clip-path="url(#p1b610ccbce)" style="fill: #6f8d9d; stroke: #6f8d9d; stroke-width: 2.2; stroke-linecap: round"/>
+   </g>
+   <g id="patch_21">
+    <path d="M 1022.4 389.16
+Q 1002.298975 389.16 984.657624 389.16
+" clip-path="url(#p1b610ccbce)" style="fill: none; stroke-dasharray: 11,8.8; stroke-dashoffset: 0; stroke: #4877a6; stroke-width: 2.2; stroke-linecap: round"/>
+    <path d="M 992.657624 393.16
+L 984.657624 389.16
+L 992.657624 385.16
+z
+" clip-path="url(#p1b610ccbce)" style="fill: #4877a6; stroke-dasharray: 11,8.8; stroke-dashoffset: 0; stroke: #4877a6; stroke-width: 2.2; stroke-linecap: round"/>
+   </g>
+   <g id="patch_22">
+    <path d="M 1101.6 254.52
+Q 1041.899744 254.52 984.659162 254.52
+" clip-path="url(#p1b610ccbce)" style="fill: none; stroke-dasharray: 11,8.8; stroke-dashoffset: 0; stroke: #86659c; stroke-width: 2.2; stroke-linecap: round"/>
+    <path d="M 992.659162 258.52
+L 984.659162 254.52
+L 992.659162 250.52
+z
+" clip-path="url(#p1b610ccbce)" style="fill: #86659c; stroke-dasharray: 11,8.8; stroke-dashoffset: 0; stroke: #86659c; stroke-width: 2.2; stroke-linecap: round"/>
+   </g>
+   <g id="line2d_1">
+    <path d="M 360 77.76
+L 360 162
+" clip-path="url(#p1b610ccbce)" style="fill: none; stroke: #cbd6e1; stroke-linecap: square"/>
+   </g>
+   <g id="line2d_2">
+    <path d="M 730.8 77.76
+L 730.8 162
+" clip-path="url(#p1b610ccbce)" style="fill: none; stroke: #cbd6e1; stroke-linecap: square"/>
+   </g>
+   <g id="line2d_3">
+    <path d="M 360 212.4
+L 360 296.64
+" clip-path="url(#p1b610ccbce)" style="fill: none; stroke: #cbd6e1; stroke-linecap: square"/>
+   </g>
+   <g id="line2d_4">
+    <path d="M 730.8 212.4
+L 730.8 296.64
+" clip-path="url(#p1b610ccbce)" style="fill: none; stroke: #cbd6e1; stroke-linecap: square"/>
+   </g>
+   <g id="line2d_5">
+    <path d="M 360 347.04
+L 360 431.28
+" clip-path="url(#p1b610ccbce)" style="fill: none; stroke: #cbd6e1; stroke-linecap: square"/>
+   </g>
+   <g id="line2d_6">
+    <path d="M 730.8 347.04
+L 730.8 431.28
+" clip-path="url(#p1b610ccbce)" style="fill: none; stroke: #cbd6e1; stroke-linecap: square"/>
+   </g>
+   <g id="line2d_7">
+    <path d="M 360 481.68
+L 360 565.92
+" clip-path="url(#p1b610ccbce)" style="fill: none; stroke: #cbd6e1; stroke-linecap: square"/>
+   </g>
+   <g id="line2d_8">
+    <path d="M 730.8 481.68
+L 730.8 565.92
+" clip-path="url(#p1b610ccbce)" style="fill: none; stroke: #cbd6e1; stroke-linecap: square"/>
+   </g>
+   <g id="line2d_9">
+    <path d="M 360 616.32
+L 360 700.56
+" clip-path="url(#p1b610ccbce)" style="fill: none; stroke: #cbd6e1; stroke-linecap: square"/>
+   </g>
+   <g id="line2d_10">
+    <path d="M 730.8 616.32
+L 730.8 700.56
+" clip-path="url(#p1b610ccbce)" style="fill: none; stroke: #cbd6e1; stroke-linecap: square"/>
+   </g>
+   <g id="line2d_11">
+    <path d="M 360 750.96
+L 360 835.2
+" clip-path="url(#p1b610ccbce)" style="fill: none; stroke: #cbd6e1; stroke-linecap: square"/>
+   </g>
+   <g id="line2d_12">
+    <path d="M 730.8 750.96
+L 730.8 835.2
+" clip-path="url(#p1b610ccbce)" style="fill: none; stroke: #cbd6e1; stroke-linecap: square"/>
+   </g>
+   <g id="line2d_13">
+    <path d="M 360 885.6
+L 360 969.84
+" clip-path="url(#p1b610ccbce)" style="fill: none; stroke: #cbd6e1; stroke-linecap: square"/>
+   </g>
+   <g id="line2d_14">
+    <path d="M 730.8 885.6
+L 730.8 969.84
+" clip-path="url(#p1b610ccbce)" style="fill: none; stroke: #cbd6e1; stroke-linecap: square"/>
+   </g>
+   <g id="line2d_15">
+    <path d="M 360 1020.24
+L 360 1104.48
+" clip-path="url(#p1b610ccbce)" style="fill: none; stroke: #cbd6e1; stroke-linecap: square"/>
+   </g>
+   <g id="line2d_16">
+    <path d="M 730.8 1020.24
+L 730.8 1104.48
+" clip-path="url(#p1b610ccbce)" style="fill: none; stroke: #cbd6e1; stroke-linecap: square"/>
+   </g>
+   <g id="line2d_17">
+    <path d="M 360 1154.88
+L 360 1239.12
+" clip-path="url(#p1b610ccbce)" style="fill: none; stroke: #cbd6e1; stroke-linecap: square"/>
+   </g>
+   <g id="line2d_18">
+    <path d="M 730.8 1154.88
+L 730.8 1239.12
+" clip-path="url(#p1b610ccbce)" style="fill: none; stroke: #cbd6e1; stroke-linecap: square"/>
+   </g>
+   <g id="line2d_19">
+    <path d="M 151.2 254.52
+L 80.64 254.52
+" clip-path="url(#p1b610ccbce)" style="fill: none; stroke: #6f8d9d; stroke-width: 2.2; stroke-linecap: square"/>
+   </g>
+   <g id="line2d_20">
+    <path d="M 80.64 254.52
+L 80.64 793.08
+" clip-path="url(#p1b610ccbce)" style="fill: none; stroke: #6f8d9d; stroke-width: 2.2; stroke-linecap: square"/>
+   </g>
+   <g id="line2d_21">
+    <defs>
+     <path id="md7685492cf" d="M 0 2.5
+C 0.663008 2.5 1.29895 2.236584 1.767767 1.767767
+C 2.236584 1.29895 2.5 0.663008 2.5 0
+C 2.5 -0.663008 2.236584 -1.29895 1.767767 -1.767767
+C 1.29895 -2.236584 0.663008 -2.5 0 -2.5
+C -0.663008 -2.5 -1.29895 -2.236584 -1.767767 -1.767767
+C -2.236584 -1.29895 -2.5 -0.663008 -2.5 0
+C -2.5 0.663008 -2.236584 1.29895 -1.767767 1.767767
+C -1.29895 2.236584 -0.663008 2.5 0 2.5
+z
+" style="stroke: #6f8d9d"/>
+    </defs>
+    <g clip-path="url(#p1b610ccbce)">
+     <use xlink:href="#md7685492cf" x="80.64" y="658.44" style="fill: #6f8d9d; stroke: #6f8d9d"/>
+    </g>
+   </g>
+   <g id="line2d_22">
+    <path d="M 979.2 523.8
+L 1022.4 523.8
+" clip-path="url(#p1b610ccbce)" style="fill: none; stroke-dasharray: 11,8.8; stroke-dashoffset: 0; stroke: #4877a6; stroke-width: 2.2"/>
+   </g>
+   <g id="line2d_23">
+    <path d="M 1022.4 523.8
+L 1022.4 389.16
+" clip-path="url(#p1b610ccbce)" style="fill: none; stroke-dasharray: 11,8.8; stroke-dashoffset: 0; stroke: #4877a6; stroke-width: 2.2"/>
+   </g>
+   <g id="line2d_24">
+    <path d="M 979.2 1062.36
+L 1101.6 1062.36
+" clip-path="url(#p1b610ccbce)" style="fill: none; stroke-dasharray: 11,8.8; stroke-dashoffset: 0; stroke: #86659c; stroke-width: 2.2"/>
+   </g>
+   <g id="line2d_25">
+    <path d="M 1101.6 1062.36
+L 1101.6 254.52
+" clip-path="url(#p1b610ccbce)" style="fill: none; stroke-dasharray: 11,8.8; stroke-dashoffset: 0; stroke: #86659c; stroke-width: 2.2"/>
+   </g>
+   <g id="text_1">
+    <text style="font-weight: 700; font-size: 21px; font-family: 'Microsoft YaHei'; text-anchor: middle; fill: #21354c" x="252.72" y="44.020781" transform="rotate(-0 252.72 44.020781)">计算步骤</text>
+   </g>
+   <g id="text_2">
+    <text style="font-weight: 700; font-size: 21px; font-family: 'Microsoft YaHei'; text-anchor: middle; fill: #21354c" x="545.04" y="44.020781" transform="rotate(-0 545.04 44.020781)">采用的方法</text>
+   </g>
+   <g id="text_3">
+    <text style="font-weight: 700; font-size: 21px; font-family: 'Microsoft YaHei'; text-anchor: middle; fill: #21354c" x="854.64" y="44.051953" transform="rotate(-0 854.64 44.051953)">输出 / 传递的结果</text>
+   </g>
+   <g id="text_4">
+    <text style="font-weight: 700; font-size: 15px; font-family: 'Microsoft YaHei'; text-anchor: middle; fill: #4877a6" x="177.12" y="94.978828" transform="rotate(-0 177.12 94.978828)">01</text>
+   </g>
+   <g id="text_5">
+    <text style="font-weight: 700; font-size: 21px; font-family: 'Microsoft YaHei'; text-anchor: middle; fill: #21354c" x="255.6" y="121.811953" transform="rotate(-0 255.6 121.811953)">任务与种子</text>
+   </g>
+   <g id="text_6">
+    <text style="font-size: 13px; font-family: 'Microsoft YaHei'; text-anchor: middle; fill: #62758a" x="255.6" y="154.702031" transform="rotate(-0 255.6 154.702031)">M01–M03</text>
+   </g>
+   <g id="text_7">
+    <text style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c" transform="translate(409.04 113.532227)">校验输入域；冻结任务、模型和范围</text>
+    <text style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c" transform="translate(382.266328 137.836914)">给定尺寸起步（M03：跳过自动尺寸反求）</text>
+   </g>
+   <g id="text_8">
+    <text style="font-size: 16.5px; font-family: 'Microsoft YaHei'; fill: #21354c" transform="translate(757.983516 113.718926)">任务 r：装载 / 距离 / 工况</text>
+    <text style="font-size: 16.5px; font-family: 'Microsoft YaHei'; fill: #21354c" transform="translate(756.952266 137.634902)">设计 x：翼展 / 壁厚 / 功率</text>
+   </g>
+   <g id="text_9">
+    <text style="font-weight: 700; font-size: 15px; font-family: 'Microsoft YaHei'; text-anchor: middle; fill: #4877a6" x="177.12" y="229.589531" transform="rotate(-0 177.12 229.589531)">02</text>
+   </g>
+   <g id="text_10">
+    <text style="font-weight: 700; font-size: 21px; font-family: 'Microsoft YaHei'; text-anchor: middle; fill: #21354c" x="255.6" y="256.399453" transform="rotate(-0 255.6 256.399453)">几何与硬件</text>
+   </g>
+   <g id="text_11">
+    <text style="font-size: 13px; font-family: 'Microsoft YaHei'; text-anchor: middle; fill: #62758a" x="255.6" y="288.583359" transform="rotate(-0 255.6 288.583359)">M04 / M09</text>
+   </g>
+   <g id="text_12">
+    <text style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c" transform="translate(409.04 248.129727)">三段梯形解析积分；薄壁截面线积分</text>
+    <text style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c" transform="translate(409.04 272.77043)">部件质量求和；硬件在内层保持固定</text>
+   </g>
+   <g id="text_13">
+    <text style="font-size: 16.5px; font-family: 'Microsoft YaHei'; fill: #21354c" transform="translate(751.249453 248.326699)">面积 / MAC / 容积 / 截面 EI</text>
+    <text style="font-size: 16.5px; font-family: 'Microsoft YaHei'; fill: #21354c" transform="translate(780.39 272.251699)">硬件质量与空间位置</text>
+   </g>
+   <g id="text_14">
+    <text style="font-weight: 700; font-size: 15px; font-family: 'Microsoft YaHei'; text-anchor: middle; fill: #4877a6" x="177.12" y="364.229531" transform="rotate(-0 177.12 364.229531)">03</text>
+   </g>
+   <g id="text_15">
+    <text style="font-weight: 700; font-size: 21px; font-family: 'Microsoft YaHei'; text-anchor: middle; fill: #21354c" x="255.6" y="391.101797" transform="rotate(-0 255.6 391.101797)">一次任务分析</text>
+   </g>
+   <g id="text_16">
+    <text style="font-size: 13px; font-family: 'Microsoft YaHei'; text-anchor: middle; fill: #62758a" x="255.6" y="423.24875" transform="rotate(-0 255.6 423.24875)">M05 / M06 / M09 / M10</text>
+   </g>
+   <g id="text_17">
+    <!-- 装油 $f_0$ → 质量求和 / 质量矩加权 CG -->
+    <g style="fill: #21354c" transform="translate(405.555 370.307266)">
+     <text>
+      <tspan x="0" y="-0.78125" style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c">装</tspan>
+      <tspan x="17" y="-0.78125" style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c">油</tspan>
+      <tspan x="34" y="-0.78125" style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c"> </tspan>
+      <tspan x="53.051123" y="-0.78125" style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c"> </tspan>
+      <tspan x="58.081396" y="-0.78125" style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c">→</tspan>
+      <tspan x="75.081396" y="-0.78125" style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c"> </tspan>
+      <tspan x="80.11167" y="-0.78125" style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c">质</tspan>
+      <tspan x="97.11167" y="-0.78125" style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c">量</tspan>
+      <tspan x="114.11167" y="-0.78125" style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c">求</tspan>
+      <tspan x="131.11167" y="-0.78125" style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c">和</tspan>
+      <tspan x="148.11167" y="-0.78125" style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c"> </tspan>
+      <tspan x="153.141943" y="-0.78125" style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c">/</tspan>
+      <tspan x="160.405127" y="-0.78125" style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c"> </tspan>
+      <tspan x="165.4354" y="-0.78125" style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c">质</tspan>
+      <tspan x="182.4354" y="-0.78125" style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c">量</tspan>
+      <tspan x="199.4354" y="-0.78125" style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c">矩</tspan>
+      <tspan x="216.4354" y="-0.78125" style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c">加</tspan>
+      <tspan x="233.4354" y="-0.78125" style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c">权</tspan>
+      <tspan x="250.4354" y="-0.78125" style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c"> </tspan>
+      <tspan x="255.465674" y="-0.78125" style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c">C</tspan>
+      <tspan x="266.837744" y="-0.78125" style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c">G</tspan>
+      <tspan x="39.030273" y="-0.78125" style="font-style: oblique; font-size: 17px; font-family: 'DejaVu Sans'; fill: #21354c">f</tspan>
+      <tspan x="45.015137" y="1.768742" style="font-size: 11.9px; font-family: 'DejaVu Sans'; fill: #21354c">0</tspan>
+     </text>
+    </g>
+    <text style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c" transform="translate(405.033047 395.136562)">ISA + 2×2 配平 + 阻力极曲线 / 功率</text>
+    <text style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c" transform="translate(381.978125 419.761328)">显式中点法积分燃耗：爬升 → 巡航 → 下降</text>
+   </g>
+   <g id="text_18">
+    <text style="font-size: 16.5px; font-family: 'Microsoft YaHei'; fill: #21354c" transform="translate(747.807656 382.989902)">迎角 α / 舵偏 δ / 升阻 / 功率</text>
+    <text style="font-size: 16.5px; font-family: 'Microsoft YaHei'; fill: #21354c" transform="translate(755.841094 406.907168)">任务耗油、质量与 CG 轨迹</text>
+   </g>
+   <g id="text_19">
+    <text style="font-weight: 700; font-size: 15px; font-family: 'Microsoft YaHei'; text-anchor: middle; fill: #4877a6" x="177.12" y="498.869531" transform="rotate(-0 177.12 498.869531)">04</text>
+   </g>
+   <g id="text_20">
+    <text style="font-weight: 700; font-size: 21px; font-family: 'Microsoft YaHei'; text-anchor: middle; fill: #21354c" x="255.6" y="525.741797" transform="rotate(-0 255.6 525.741797)">燃油闭合</text>
+   </g>
+   <g id="text_21">
+    <text style="font-size: 13px; font-family: 'Microsoft YaHei'; text-anchor: middle; fill: #62758a" x="255.6" y="558.622031" transform="rotate(-0 255.6 558.622031)">C01</text>
+   </g>
+   <g id="text_22">
+    <text style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c" transform="translate(474.32 505.118594)">R = 装油 − 总需油</text>
+    <text style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c" transform="translate(411.868906 529.776562)">总需油：耗油 + 储备油 + 不可用油</text>
+    <text style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c" transform="translate(407.478125 554.425234)">相邻有效点括区 → 二分 → 残差复核</text>
+   </g>
+   <g id="text_23">
+    <!-- 有效根：|R| ≤ $10^{-5}$ kg -->
+    <g style="fill: #21354c" transform="translate(769.4175 517.373379)">
+     <text>
+      <tspan x="0" y="-0.763625" style="font-size: 16.5px; font-family: 'Microsoft YaHei'; fill: #21354c">有</tspan>
+      <tspan x="16.5" y="-0.763625" style="font-size: 16.5px; font-family: 'Microsoft YaHei'; fill: #21354c">效</tspan>
+      <tspan x="33" y="-0.763625" style="font-size: 16.5px; font-family: 'Microsoft YaHei'; fill: #21354c">根</tspan>
+      <tspan x="49.5" y="-0.763625" style="font-size: 16.5px; font-family: 'Microsoft YaHei'; fill: #21354c">：</tspan>
+      <tspan x="66" y="-0.763625" style="font-size: 16.5px; font-family: 'Microsoft YaHei'; fill: #21354c">|</tspan>
+      <tspan x="70.439209" y="-0.763625" style="font-size: 16.5px; font-family: 'Microsoft YaHei'; fill: #21354c">R</tspan>
+      <tspan x="81.210938" y="-0.763625" style="font-size: 16.5px; font-family: 'Microsoft YaHei'; fill: #21354c">|</tspan>
+      <tspan x="85.650146" y="-0.763625" style="font-size: 16.5px; font-family: 'Microsoft YaHei'; fill: #21354c"> </tspan>
+      <tspan x="90.532471" y="-0.763625" style="font-size: 16.5px; font-family: 'Microsoft YaHei'; fill: #21354c">≤</tspan>
+      <tspan x="102.770508" y="-0.763625" style="font-size: 16.5px; font-family: 'Microsoft YaHei'; fill: #21354c"> </tspan>
+      <tspan x="146.283618" y="-0.763625" style="font-size: 16.5px; font-family: 'Microsoft YaHei'; fill: #21354c"> </tspan>
+      <tspan x="151.165942" y="-0.763625" style="font-size: 16.5px; font-family: 'Microsoft YaHei'; fill: #21354c">k</tspan>
+      <tspan x="160.149097" y="-0.763625" style="font-size: 16.5px; font-family: 'Microsoft YaHei'; fill: #21354c">g</tspan>
+      <tspan x="107.652832" y="-0.763625" style="font-size: 16.5px; font-family: 'DejaVu Sans'; fill: #21354c">1</tspan>
+      <tspan x="118.150635" y="-0.763625" style="font-size: 16.5px; font-family: 'DejaVu Sans'; fill: #21354c">0</tspan>
+      <tspan x="128.806348" y="-7.578125" style="font-size: 11.55px; font-family: 'DejaVu Sans'; fill: #21354c">−</tspan>
+      <tspan x="138.483984" y="-7.578125" style="font-size: 11.55px; font-family: 'DejaVu Sans'; fill: #21354c">5</tspan>
+     </text>
+    </g>
+    <text style="font-size: 16.5px; font-family: 'Microsoft YaHei'; fill: #21354c" transform="translate(752.730586 541.499473)">无括区 / 失败：未知 + 原因</text>
+   </g>
+   <g id="text_24">
+    <text style="font-size: 13px; font-family: 'Microsoft YaHei'; text-anchor: middle; fill: #4877a6" x="674.64" y="595.645625" transform="rotate(-0 674.64 595.645625)">仅有效根继续</text>
+   </g>
+   <g id="text_25">
+    <text style="font-weight: 700; font-size: 15px; font-family: 'Microsoft YaHei'; text-anchor: middle; fill: #4877a6" x="177.12" y="633.509531" transform="rotate(-0 177.12 633.509531)">05</text>
+   </g>
+   <g id="text_26">
+    <text style="font-weight: 700; font-size: 21px; font-family: 'Microsoft YaHei'; text-anchor: middle; fill: #21354c" x="255.6" y="660.370312" transform="rotate(-0 255.6 660.370312)">机动载荷</text>
+   </g>
+   <g id="text_27">
+    <text style="font-size: 13px; font-family: 'Microsoft YaHei'; text-anchor: middle; fill: #62758a" x="255.6" y="693.236641" transform="rotate(-0 255.6 693.236641)">M07</text>
+   </g>
+   <g id="text_28">
+    <text style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c" transform="translate(426.462344 652.141367)">按指定 n / 高度 / 速度重新配平</text>
+    <text style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c" transform="translate(423.204453 676.699727)">椭圆升力 − 结构质量的惯性卸载</text>
+   </g>
+   <g id="text_29">
+    <!-- 中点集中力 $F_i$ 与位置 $y_i$ -->
+    <g style="fill: #21354c" transform="translate(768.015 651.683379)">
+     <text>
+      <tspan x="0" y="-0.1875" style="font-size: 16.5px; font-family: 'Microsoft YaHei'; fill: #21354c">中</tspan>
+      <tspan x="16.5" y="-0.1875" style="font-size: 16.5px; font-family: 'Microsoft YaHei'; fill: #21354c">点</tspan>
+      <tspan x="33" y="-0.1875" style="font-size: 16.5px; font-family: 'Microsoft YaHei'; fill: #21354c">集</tspan>
+      <tspan x="49.5" y="-0.1875" style="font-size: 16.5px; font-family: 'Microsoft YaHei'; fill: #21354c">中</tspan>
+      <tspan x="66" y="-0.1875" style="font-size: 16.5px; font-family: 'Microsoft YaHei'; fill: #21354c">力</tspan>
+      <tspan x="82.5" y="-0.1875" style="font-size: 16.5px; font-family: 'Microsoft YaHei'; fill: #21354c"> </tspan>
+      <tspan x="100.533179" y="-0.1875" style="font-size: 16.5px; font-family: 'Microsoft YaHei'; fill: #21354c"> </tspan>
+      <tspan x="105.415503" y="-0.1875" style="font-size: 16.5px; font-family: 'Microsoft YaHei'; fill: #21354c">与</tspan>
+      <tspan x="121.915503" y="-0.1875" style="font-size: 16.5px; font-family: 'Microsoft YaHei'; fill: #21354c">位</tspan>
+      <tspan x="138.415503" y="-0.1875" style="font-size: 16.5px; font-family: 'Microsoft YaHei'; fill: #21354c">置</tspan>
+      <tspan x="154.915503" y="-0.1875" style="font-size: 16.5px; font-family: 'Microsoft YaHei'; fill: #21354c"> </tspan>
+      <tspan x="87.382324" y="-0.1875" style="font-style: oblique; font-size: 16.5px; font-family: 'DejaVu Sans'; fill: #21354c">F</tspan>
+      <tspan x="159.797827" y="-0.1875" style="font-style: oblique; font-size: 16.5px; font-family: 'DejaVu Sans'; fill: #21354c">y</tspan>
+      <tspan x="96.873047" y="2.287492" style="font-style: oblique; font-size: 11.55px; font-family: 'DejaVu Sans'; fill: #21354c">i</tspan>
+      <tspan x="169.562476" y="2.287492" style="font-style: oblique; font-size: 11.55px; font-family: 'DejaVu Sans'; fill: #21354c">i</tspan>
+     </text>
+    </g>
+    <text style="font-size: 16.5px; font-family: 'Microsoft YaHei'; fill: #21354c" transform="translate(775.111289 675.993809)">同一 LoadCase → 06</text>
+   </g>
+   <g id="text_30">
+    <text style="font-weight: 700; font-size: 15px; font-family: 'Microsoft YaHei'; text-anchor: middle; fill: #4877a6" x="177.12" y="768.149531" transform="rotate(-0 177.12 768.149531)">06</text>
+   </g>
+   <g id="text_31">
+    <text style="font-weight: 700; font-size: 21px; font-family: 'Microsoft YaHei'; text-anchor: middle; fill: #21354c" x="255.6" y="795.011953" transform="rotate(-0 255.6 795.011953)">外翼结构</text>
+   </g>
+   <g id="text_32">
+    <text style="font-size: 13px; font-family: 'Microsoft YaHei'; text-anchor: middle; fill: #62758a" x="255.6" y="827.876641" transform="rotate(-0 255.6 827.876641)">M08</text>
+   </g>
+   <g id="text_33">
+    <text style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c" transform="translate(428.125156 786.714961)">根部固支的 Euler–Bernoulli 梁</text>
+    <text style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c" transform="translate(405.527109 811.095352)">κ = M / (EI)；梯形积分求转角与挠度</text>
+   </g>
+   <g id="text_34">
+    <text style="font-size: 16.5px; font-family: 'Microsoft YaHei'; fill: #21354c" transform="translate(763.51875 786.943418)">应力 σ / 挠度 w / 根反力</text>
+    <text style="font-size: 16.5px; font-family: 'Microsoft YaHei'; fill: #21354c" transform="translate(780.39 810.827168)">覆盖范围：外翼弯曲</text>
+   </g>
+   <g id="text_35">
+    <text style="font-weight: 700; font-size: 15px; font-family: 'Microsoft YaHei'; text-anchor: middle; fill: #4877a6" x="177.12" y="902.789531" transform="rotate(-0 177.12 902.789531)">07</text>
+   </g>
+   <g id="text_36">
+    <text style="font-weight: 700; font-size: 21px; font-family: 'Microsoft YaHei'; text-anchor: middle; fill: #21354c" x="255.6" y="929.743828" transform="rotate(-0 255.6 929.743828)">目标与约束</text>
+   </g>
+   <g id="text_37">
+    <text style="font-size: 13px; font-family: 'Microsoft YaHei'; text-anchor: middle; fill: #62758a" x="255.6" y="962.624297" transform="rotate(-0 255.6 962.624297)">M11</text>
+   </g>
+   <g id="text_38">
+    <text style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c" transform="translate(443.04 921.372227)">汇总任务、容量与结构结果</text>
+    <!-- 真实目标 f(x)；有符号约束 $g_i$ ≤ 0 -->
+    <g style="fill: #21354c" transform="translate(418.475 945.391367)">
+     <text>
+      <tspan x="0" y="-0.765625" style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c">真</tspan>
+      <tspan x="17" y="-0.765625" style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c">实</tspan>
+      <tspan x="34" y="-0.765625" style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c">目</tspan>
+      <tspan x="51" y="-0.765625" style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c">标</tspan>
+      <tspan x="68" y="-0.765625" style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c"> </tspan>
+      <tspan x="73.030273" y="-0.765625" style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c">f</tspan>
+      <tspan x="78.923828" y="-0.765625" style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c">(</tspan>
+      <tspan x="84.601562" y="-0.765625" style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c">x</tspan>
+      <tspan x="93.217773" y="-0.765625" style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c">)</tspan>
+      <tspan x="98.895508" y="-0.765625" style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c">；</tspan>
+      <tspan x="115.895508" y="-0.765625" style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c">有</tspan>
+      <tspan x="132.895508" y="-0.765625" style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c">符</tspan>
+      <tspan x="149.895508" y="-0.765625" style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c">号</tspan>
+      <tspan x="166.895508" y="-0.765625" style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c">约</tspan>
+      <tspan x="183.895508" y="-0.765625" style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c">束</tspan>
+      <tspan x="200.895508" y="-0.765625" style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c"> </tspan>
+      <tspan x="220.487842" y="-0.765625" style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c"> </tspan>
+      <tspan x="225.518115" y="-0.765625" style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c">≤</tspan>
+      <tspan x="238.127002" y="-0.765625" style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c"> </tspan>
+      <tspan x="243.157275" y="-0.765625" style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c">0</tspan>
+      <tspan x="205.925781" y="-0.765625" style="font-style: oblique; font-size: 17px; font-family: 'DejaVu Sans'; fill: #21354c">g</tspan>
+      <tspan x="216.716797" y="1.784367" style="font-style: oblique; font-size: 11.9px; font-family: 'DejaVu Sans'; fill: #21354c">i</tspan>
+     </text>
+    </g>
+   </g>
+   <g id="text_39">
+    <text style="font-size: 16.5px; font-family: 'Microsoft YaHei'; fill: #21354c" transform="translate(788.325469 921.583418)">可行 / 违约 / 未知</text>
+    <text style="font-size: 16.5px; font-family: 'Microsoft YaHei'; fill: #21354c" transform="translate(780.39 945.418184)">各项余量及对应工况</text>
+   </g>
+   <g id="text_40">
+    <text style="font-weight: 700; font-size: 15px; font-family: 'Microsoft YaHei'; text-anchor: middle; fill: #4877a6" x="177.12" y="1037.429531" transform="rotate(-0 177.12 1037.429531)">08</text>
+   </g>
+   <g id="text_41">
+    <text style="font-weight: 700; font-size: 21px; font-family: 'Microsoft YaHei'; text-anchor: middle; fill: #21354c" x="255.6" y="1064.301797" transform="rotate(-0 255.6 1064.301797)">有限范围搜索</text>
+   </g>
+   <g id="text_42">
+    <text style="font-size: 13px; font-family: 'Microsoft YaHei'; text-anchor: middle; fill: #62758a" x="255.6" y="1097.182031" transform="rotate(-0 255.6 1097.182031)">O01</text>
+   </g>
+   <g id="text_43">
+    <text style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c" transform="translate(440.204453 1043.670625)">小网格对照 + 坐标模式搜索</text>
+    <text style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c" transform="translate(417.54 1068.336562)">可行点比目标；违约点比违反程度</text>
+    <text style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c" transform="translate(408.877969 1092.936094)">无改善减半步长；按步长 / 预算停止</text>
+   </g>
+   <g id="text_44">
+    <text style="font-size: 16.5px; font-family: 'Microsoft YaHei'; fill: #21354c" transform="translate(759.208125 1056.198926)">未结束：更新设计 x → 02</text>
+    <text style="font-size: 16.5px; font-family: 'Microsoft YaHei'; fill: #21354c" transform="translate(755.64 1080.082676)">结束：从已评价候选中选择</text>
+   </g>
+   <g id="text_45">
+    <text style="font-weight: 700; font-size: 15px; font-family: 'Microsoft YaHei'; text-anchor: middle; fill: #4877a6" x="177.12" y="1172.069531" transform="rotate(-0 177.12 1172.069531)">09</text>
+   </g>
+   <g id="text_46">
+    <text style="font-weight: 700; font-size: 21px; font-family: 'Microsoft YaHei'; text-anchor: middle; fill: #21354c" x="255.6" y="1198.941797" transform="rotate(-0 255.6 1198.941797)">候选与依据</text>
+   </g>
+   <g id="text_47">
+    <text style="font-size: 13px; font-family: 'Microsoft YaHei'; text-anchor: middle; fill: #62758a" x="255.6" y="1231.501094" transform="rotate(-0 255.6 1231.501094)">M12：独立证据待补</text>
+   </g>
+   <g id="text_48">
+    <text style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c" transform="translate(443.04 1178.318594)">已评估可行点中选最小目标</text>
+    <text style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c" transform="translate(409.04 1202.927422)">无可行点：报告搜索范围与失败原因</text>
+    <text style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #21354c" transform="translate(409.04 1227.593359)">记录最紧约束、模型依据和边界命中</text>
+   </g>
+   <g id="text_49">
+    <text style="font-size: 16.5px; font-family: 'Microsoft YaHei'; fill: #21354c" transform="translate(788.64 1190.814434)">当前模型下的候选</text>
+    <text style="font-size: 16.5px; font-family: 'Microsoft YaHei'; fill: #21354c" transform="translate(754.931016 1214.747168)">独立 CFD / FEA / 试验待做</text>
+   </g>
+   <g id="text_50">
+    <text style="font-size: 16px; font-family: 'Microsoft YaHei'; fill: #6f8d9d" transform="translate(55.25875 611.9525) rotate(-90)">固定几何 / 硬件直接供给</text>
+   </g>
+   <g id="text_51">
+    <text style="font-size: 13px; font-family: 'Microsoft YaHei'; text-anchor: middle; fill: #6f8d9d" x="110.88" y="643.538828" transform="rotate(-0 110.88 643.538828)">质量分布</text>
+   </g>
+   <g id="text_52">
+    <text style="font-size: 13px; font-family: 'Microsoft YaHei'; text-anchor: middle; fill: #6f8d9d" x="110.88" y="778.177812" transform="rotate(-0 110.88 778.177812)">截面 EI</text>
+   </g>
+   <g id="text_53">
+    <text style="font-size: 15px; font-family: 'Microsoft YaHei'; fill: #4877a6" transform="translate(1007.484141 508.98) rotate(-90)">内层：只改装油</text>
+   </g>
+   <g id="text_54">
+    <text style="font-size: 17px; font-family: 'Microsoft YaHei'; fill: #86659c" transform="translate(1084.258984 827.087969) rotate(-90)">外层：更新设计 x（几何 / 厚度 / 安装功率）</text>
+   </g>
+   <g id="text_55">
+    <text style="font-size: 16px; font-family: 'Microsoft YaHei'; text-anchor: middle; fill: #956b33" x="572.4" y="1289.33" transform="rotate(-0 572.4 1289.33)">任一步缺模型或求解失败 → 07「未知 + 原因」；不虚构目标值。</text>
+   </g>
+   <g id="text_56">
+    <text style="font-size: 16px; font-family: 'Microsoft YaHei'; text-anchor: middle; fill: #62758a" x="572.4" y="1323.90625" transform="rotate(-0 572.4 1323.90625)">当前主链：低阶工程模型；MIT 资源目前仅支持独立 CL / CD 系数分析。</text>
+   </g>
+   <g id="text_57">
+    <text style="font-size: 15px; font-family: 'Microsoft YaHei'; text-anchor: middle; fill: #62758a" x="572.4" y="1352.393437" transform="rotate(-0 572.4 1352.393437)">独立复核若否定结果：修订模型 / 任务并重跑；当前候选不等于已验证飞机。</text>
+   </g>
+  </g>
+ </g>
+ <defs>
+  <clipPath id="p1b610ccbce">
+   <rect x="0" y="0" width="1152" height="1368"/>
+  </clipPath>
+ </defs>
+</svg>
