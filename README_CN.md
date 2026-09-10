@@ -1,3 +1,13 @@
+## 本分支本轮入口：BWB 独立工作台 review-v2
+
+**请从[本地 BWB 演示与复现说明](demos/bwb-flow/README_CN.md)开始。** 首次在 `demos/bwb-flow/ui` 执行 `npm ci`；Windows 随后双击 [`demos/bwb-flow/Start-Demo.cmd`](demos/bwb-flow/Start-Demo.cmd)，打开 [3981 本地工作台](http://127.0.0.1:3981/)。需要 Python 3.11+、Node 22.13+，计算服务使用 8842 端口。
+
+本轮已加入可追溯的低阶候选分析、固定任务的有限范围优化、与计算共享几何的三维视图；另有真实 MIT 原生系数分析模式，需外部资源与 NumPy。MIT wrapper 尚不能独立提供完整配平及分布载荷，优化选出的仍是简化模型下的候选，独立飞机验证和经验 UQ 尚未完成。详见[工程说明](docs/bwb-engineering-pipeline.md)与[模型证据](demos/bwb-flow/docs/models-evidence.md)。
+
+下面保留原平台介绍、旧实现和原有链接。原在线站点与 3900 应用是另一入口，不展示本轮的 BWB 工作台。
+
+---
+
 <div align="center">
 
 # Rapid Process Design

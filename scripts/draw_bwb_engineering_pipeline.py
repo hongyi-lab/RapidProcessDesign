@@ -1,153 +1,154 @@
-"""Editable 1600 x 900 engineering diagrams. Requires matplotlib.
+"""Two editable diagrams of the executed BWB analysis/search, with layout checks.
 
-Run from any directory. This draws the specification, not measured aircraft results.
-SVG text remains editable; node coordinates below are screen pixels.
+Regular-weight body text and short labels follow the user's TPAMI-style example.
+Run --font 'DejaVu Serif' --output ... to check a fallback font independently.
 """
 from pathlib import Path
 import argparse
-
+import json
+import math
 import matplotlib
-matplotlib.use("Agg")
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from matplotlib.patches import FancyBboxPatch, FancyArrowPatch, Circle
+from matplotlib.patches import FancyBboxPatch, FancyArrowPatch, Polygon
 
-ROOT = Path(__file__).resolve().parents[1]
-INK, BLUE, ORANGE, MUTED = "#172b3a", "#206b94", "#b75b1c", "#536775"
-plt.rcParams.update({"font.family": "serif", "font.serif": ["Times New Roman", "DejaVu Serif"],
-                     "font.weight": "bold", "svg.fonttype": "none", "font.size": 16})
-
-
-def canvas():
-    fig = plt.figure(figsize=(16, 9), dpi=100, facecolor="white")
-    ax = fig.add_axes([0, 0, 1, 1])
-    ax.set(xlim=(0, 1600), ylim=(900, 0))
-    ax.axis("off")
-    return fig, ax
+ROOT=Path(__file__).resolve().parents[1]
+BLUE='#496e9d'; INK='#203247'; PURPLE='#8b7ca5'; MUTED='#657486'
+ARTISTS=[]; NODES=[]; EDGES=[]
 
 
-def label(ax, x, y, text, size=16, color=MUTED, **kw):
-    return ax.text(x, y, text, fontsize=size, color=color, ha="center", va="center", **kw)
+def canvas(font):
+    ARTISTS.clear(); NODES.clear(); EDGES.clear()
+    plt.rcParams.update({'font.family':'serif','font.serif':[font,'DejaVu Serif'],
+                         'font.weight':'normal','svg.fonttype':'none','font.size':22,
+                         'pdf.fonttype':42})
+    fig=plt.figure(figsize=(16,9),dpi=100,facecolor='white')
+    ax=fig.add_axes([0,0,1,1]);ax.set(xlim=(0,1600),ylim=(900,0));ax.axis('off')
+    return fig,ax
 
 
-def box(ax, x, y, w, h, module, title, subtitle="", fill="#f2f6f9", edge=INK):
-    ax.add_patch(FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0,rounding_size=10",
-                              facecolor=fill, edgecolor=edge, linewidth=1.5, zorder=3))
-    ax.text(x+18, y+22, module, fontsize=14, color=edge, ha="left", va="center", zorder=4)
-    label(ax, x+w/2, y+h/2+4 if subtitle else y+h/2+10, title, 19, INK, zorder=4)
-    if subtitle:
-        label(ax, x+w/2, y+h-21, subtitle, 15, MUTED, zorder=4)
+def text(ax,x,y,label,size=22,color=INK,weight='normal',bounds=None):
+    artist=ax.text(x,y,label,ha='center',va='center',fontsize=size,color=color,
+                   weight=weight,linespacing=1.25)
+    ARTISTS.append((artist,bounds or (3,3,1594,894)))
+    return artist
 
 
-def line(ax, points, color=INK, dashed=False, end=True, width=2.1):
-    xs, ys = zip(*points)
-    ax.plot(xs, ys, color=color, lw=width, linestyle=(0, (5, 4)) if dashed else "-",
-            solid_capstyle="round", zorder=2)
-    if end:
-        ax.add_patch(FancyArrowPatch(points[-2], points[-1], arrowstyle="-|>",
-                                    mutation_scale=16, color=color, lw=width,
-                                    linestyle="-", zorder=2))
+def panel(ax,x,y,w,h,title):
+    ax.add_patch(FancyBboxPatch((x,y),w,h,boxstyle='round,pad=0,rounding_size=13',
+                 linewidth=1.5,edgecolor='#a7a0b6',facecolor='#faf9fc',linestyle=(0,(6,4))))
+    text(ax,x+w/2,y+38,title,24,weight='bold',bounds=(x+15,y+10,w-30,58))
 
 
-def dot(ax, x, y, color=INK):
-    ax.add_patch(Circle((x, y), 3.8, color=color, zorder=3))
+def node(ax,x,y,w,h,label,kind='run',small=None):
+    fill,edge,style=('#eaf0f8',BLUE,'-') if kind=='run' else ('#f4f3f5','#9b9ba4',(0,(5,4)))
+    if kind=='reference': fill,edge,style='#f1ecf8',PURPLE,(0,(2,3))
+    ax.add_patch(FancyBboxPatch((x,y),w,h,boxstyle='round,pad=0,rounding_size=10',
+                 linewidth=1.8,edgecolor=edge,facecolor=fill,linestyle=style))
+    text(ax,x+w/2,y+h*.43 if small else y+h/2,label,23,bounds=(x+12,y+10,w-24,h-20 if not small else h*.65))
+    if small: text(ax,x+w/2,y+h*.82,small,18,MUTED,bounds=(x+10,y+h*.66,w-20,h*.33))
+    NODES.append((x,y,w,h))
 
 
-def save(fig, name, out):
-    out.mkdir(parents=True, exist_ok=True)
-    for ext in ("svg", "png"):
-        fig.savefig(out / f"{name}.{ext}", dpi=100, facecolor="white")
+def arrow(ax,points,kind='data',label=None,label_at=None):
+    color=BLUE if kind=='iterate' else '#9b9ba4' if kind=='future' else '#6d88ab'
+    dash=(0,(5,4)) if kind!='data' else '-'
+    for a,b in zip(points[:-2],points[1:-1]):
+        ax.plot([a[0],b[0]],[a[1],b[1]],color=color,lw=2.1,linestyle=dash)
+    ax.add_patch(FancyArrowPatch(points[-2],points[-1],arrowstyle='-|>',mutation_scale=20,
+                                 lw=2.1,color=color,linestyle=dash,shrinkA=0,shrinkB=4))
+    EDGES.append((points,kind))
+    if label: text(ax,*label_at,label,18,color)
+
+
+def save(fig,name,out,font):
+    out.mkdir(parents=True,exist_ok=True);fig.canvas.draw();renderer=fig.canvas.get_renderer()
+    problems=[]
+    for artist,(x,y,w,h) in ARTISTS:
+        bb=artist.get_window_extent(renderer)
+        actual=(bb.x0,900-bb.y1,bb.width,bb.height)
+        if actual[0]<x-1 or actual[1]<y-1 or actual[0]+actual[2]>x+w+1 or actual[1]+actual[3]>y+h+1:
+            problems.append({'text':artist.get_text(),'actual':actual,'container':[x,y,w,h]})
+    crossings=[]; text_crossings=[]
+    for points,kind in EDGES:
+        for a,b in zip(points,points[1:]):
+            for x,y,w,h in NODES:
+                # Interior samples exclude legal start/end ports on node boundaries.
+                for i in range(1,100):
+                    p=(a[0]+(b[0]-a[0])*i/100,a[1]+(b[1]-a[1])*i/100)
+                    if x+3<p[0]<x+w-3 and y+3<p[1]<y+h-3:
+                        crossings.append({'edge':[a,b],'node':[x,y,w,h]});break
+            for artist,_ in ARTISTS:
+                bb=artist.get_window_extent(renderer)
+                x,y,w,h=bb.x0,900-bb.y1,bb.width,bb.height
+                for i in range(1,100):
+                    p=(a[0]+(b[0]-a[0])*i/100,a[1]+(b[1]-a[1])*i/100)
+                    if x<p[0]<x+w and y<p[1]<y+h:
+                        text_crossings.append({'edge':[a,b],'text':artist.get_text()});break
+    report={'font':font,'canvas':[1600,900],'bounded_text_count':len(ARTISTS),
+            'text_overflow':problems,'edge_through_node':crossings,'edge_through_text':text_crossings,'minimum_body_pt':18,
+            'status':'passed' if not problems and not crossings and not text_crossings else 'failed'}
+    (out/(name+'-layout.json')).write_text(json.dumps(report,indent=2),encoding='utf-8')
+    fig.savefig(out/(name+'.png'),dpi=100)
+    fig.savefig(out/(name+'.svg'))
+    svg=out/(name+'.svg');svg.write_text('\n'.join(s.rstrip() for s in svg.read_text(encoding='utf-8').splitlines())+'\n',encoding='utf-8')
     plt.close(fig)
+    if problems or crossings or text_crossings: raise RuntimeError(f'{name}: layout failed, see JSON')
 
 
-def main_diagram(out):
-    fig, ax = canvas()
-    top = [(60, "M01", "Mission requirements", "profile / payload"),
-           (460, "M02", "Design problem", "variables / constraints"),
-           (860, "M03", "Preliminary sizing", "initial design / state"),
-           (1260, "M04", "Geometry & layout", "shape / usable space")]
-    for x, mid, title, sub in top:
-        box(ax, x, 60, 280, 110, mid, title, sub)
-    for x in (340, 740, 1140):
-        line(ax, [(x, 115), (x+120, 115)])
-    ax.add_patch(FancyBboxPatch((65, 285), 1470, 355, boxstyle="round,pad=0,rounding_size=16",
-                              fc="#fafcfd", ec="#a0bacb", lw=1.5, zorder=0))
-    label(ax, 790, 309, "INNER ANALYSIS  |  fixed design x", 18, BLUE)
-    for x, mid, title, sub in [(105, "M05–M06", "Flight state & trim", "conditions / forces / moments"),
-                              (635, "M07–M08", "Loads & structure", "distributed loads / response"),
-                              (1165, "M09–M10", "Mass, CG & mission", "fuel / propulsion / performance")]:
-        box(ax, x, 350, 330, 110, mid, title, sub)
-    line(ax, [(1400, 170), (1400, 250), (270, 250), (270, 350)])
-    label(ax, 820, 232, "fixed geometry, layout and model inputs", 16)
-    line(ax, [(435, 405), (635, 405)])
-    line(ax, [(965, 405), (1165, 405)])
-    box(ax, 635, 515, 330, 88, "C01", "Residuals acceptable?", fill="#e5f1f8", edge=BLUE)
-    line(ax, [(1330, 460), (1330, 558), (965, 558)])
-    line(ax, [(635, 558), (270, 558), (270, 460)], BLUE, True)
-    label(ax, 420, 536, "no: update state y", 17, BLUE)
-    box(ax, 105, 710, 330, 100, "O01", "Update design x", "teacher decisions pending", fill="#fff1e5", edge=ORANGE)
-    box(ax, 635, 710, 330, 100, "M11", "Objectives & constraints", "valid, converged analysis")
-    box(ax, 1165, 710, 330, 100, "M12", "Independent review", "selected candidate / evidence")
-    line(ax, [(800, 603), (800, 710)], BLUE)
-    label(ax, 930, 672, "yes + valid", 16, BLUE)
-    line(ax, [(635, 760), (435, 760)], ORANGE, True)
-    line(ax, [(965, 760), (1165, 760)])
-    line(ax, [(105, 760), (30, 760), (30, 25), (1400, 25), (1400, 60)], ORANGE, True)
-    label(ax, 550, 43, "OUTER DESIGN LOOP", 15, ORANGE)
-    label(ax, 800, 858, "Proposed architecture  •  Missing / out-of-range / failed analyses return status only", 16, MUTED)
-    save(fig, "bwb-engineering-pipeline", out)
+def overview(out,font):
+    fig,ax=canvas(font)
+    panel(ax,55,55,1490,425,'A. Fixed-task design search')
+    node(ax,95,175,260,165,'Task + seed',small='M03 skipped')
+    node(ax,440,175,320,165,'Decode geometry\n& hardware',small='M04 / M09')
+    node(ax,845,175,290,165,'Analyze\nfixed design',small='C01 / M05–M10')
+    node(ax,1220,175,285,165,'Search\n& compare',small='O01 / M11')
+    for a,b in [(355,440),(760,845),(1135,1220)]: arrow(ax,[(a,258),(b,258)])
+    arrow(ax,[(1360,340),(1360,422),(600,422),(600,340)],'iterate','update design x',(965,392))
+    panel(ax,55,535,1490,260,'B. Candidate and evidence')
+    node(ax,95,625,370,125,'Model support\n+ tightest constraint')
+    node(ax,575,625,365,125,'Selected candidate\n+ search limits')
+    node(ax,1050,625,455,125,'Independent check','future',small='No CFD / FEA evidence yet')
+    arrow(ax,[(1450,340),(1450,505),(500,505),(500,648),(575,648)])
+    arrow(ax,[(575,688),(465,688)])
+    arrow(ax,[(940,688),(1050,688)],'future')
+    arrow(ax,[(1280,750),(1280,840),(25,840),(25,258),(95,258)],'future','if evidence disagrees: revise models / problem',(700,813))
+    text(ax,800,880,'Solid: executed low-order chain    Dashed blue: numerical update    Dashed gray: required evidence',17,MUTED)
+    save(fig,'bwb-engineering-pipeline',out,font)
 
 
-def detail_diagram(out):
-    fig, ax = canvas()
-    box(ax, 55, 350, 275, 115, "M04", "Geometry & layout", "fixed x / regions / positions")
-    for x, mid, title, sub in [(460, "M05", "Flight state", "atmosphere / q / Re / Mach"),
-                              (855, "M06", "Aero & trim", "forces / moments / controls"),
-                              (1250, "M07", "Load transfer", "aero + inertia / boundaries")]:
-        box(ax, x, 235, 285, 110, mid, title, sub)
-    for x, mid, title, sub in [(460, "M10", "Propulsion & mission", "fuel flow / mission integral"),
-                              (855, "M09", "Mass & CG", "component / tank ledger"),
-                              (1250, "M08", "Structure", "response / structural mass")]:
-        box(ax, x, 555, 285, 110, mid, title, sub)
-    # Geometry bus: separate from analysis-state feedback.
-    line(ax, [(192, 350), (192, 120), (1565, 120), (1565, 610), (1535, 610)])
-    line(ax, [(998, 120), (998, 235)])
-    dot(ax, 998, 120)
-    for port in (603, 1393):
-        line(ax, [(port, 120), (port, 235)])
-        dot(ax, port, 120)
-    label(ax, 860, 94, "shape / internal layout / reference geometry", 17)
-    line(ax, [(192, 465), (192, 735), (998, 735), (998, 665)])
-    line(ax, [(603, 735), (603, 665)])
-    dot(ax, 603, 735)
-    label(ax, 465, 765, "usable volumes / component positions", 17)
-    line(ax, [(745, 290), (855, 290)])
-    line(ax, [(1140, 290), (1250, 290)])
-    line(ax, [(1393, 345), (1393, 555)])
-    label(ax, 1453, 450, "loads", 16)
-    line(ax, [(1250, 610), (1140, 610)])
-    label(ax, 1195, 644, "mass", 16)
-    line(ax, [(855, 595), (745, 595)])
-    label(ax, 799, 575, "m, CG", 15)
-    line(ax, [(745, 638), (855, 638)], BLUE, True)
-    label(ax, 800, 672, "tank fuel", 15, BLUE)
-    # Coupling state feedback, with separate ports for each physical dependency.
-    line(ax, [(965, 555), (965, 345)], BLUE, True)
-    label(ax, 904, 445, "m, CG", 16, BLUE)
-    line(ax, [(1045, 555), (1045, 468), (1194, 468), (1194, 323), (1250, 323)], BLUE, True)
-    label(ax, 1123, 445, "inertia", 16, BLUE)
-    line(ax, [(855, 323), (800, 323), (800, 416), (603, 416), (603, 555)])
-    label(ax, 691, 392, "trim / drag", 17)
-    line(ax, [(460, 610), (398, 610), (398, 290), (460, 290)], BLUE, True)
-    label(ax, 373, 490, "next state", 16, BLUE, rotation=90)
-    label(ax, 800, 830, "Repeat at each mission / load case  •  C01 checks all residuals (Figure 1)", 17, BLUE)
-    label(ax, 800, 870, "Proposed rigid-aero / static-structure baseline  •  Model coverage is documented separately", 15, MUTED)
-    save(fig, "bwb-analysis-coupling", out)
+def detail(out,font):
+    fig,ax=canvas(font)
+    panel(ax,55,55,455,430,'A. Fixed hardware')
+    node(ax,95,150,375,150,'Geometry + sections\nMaterial + layout',small='M04')
+    node(ax,95,350,375,95,'Mass / CG ledger',small='M09 · hardware cached')
+    arrow(ax,[(282,300),(282,350)])
+    panel(ax,590,55,955,470,'B. Fuel closure at fixed design')
+    node(ax,635,155,350,120,'Fuel trial',small='validity kept per attempt')
+    node(ax,1145,155,350,120,'March mission',small='mass / CG → trim → burn')
+    node(ax,635,360,350,120,'Bracket / bisect',small='C01 · valid branch only')
+    node(ax,1145,360,350,120,'Residual + validity',small='M05 / M06 / M10')
+    arrow(ax,[(985,215),(1145,215)])
+    arrow(ax,[(1320,275),(1320,360)])
+    arrow(ax,[(1145,420),(985,420)],'iterate')
+    arrow(ax,[(810,360),(810,275)],'iterate')
+    arrow(ax,[(470,397),(550,397),(550,120),(1320,120),(1320,155)])
+    panel(ax,55,570,1490,260,'C. Loads and response')
+    node(ax,1050,660,445,120,'Midpoint LoadCase',small='M07 · force / case hash')
+    node(ax,580,660,350,120,'Outer-wing beam',small='M08 · same load hash')
+    node(ax,95,660,360,120,'Signed constraints',small='M11 → outer search')
+    arrow(ax,[(1320,480),(1320,660)],label='fuel root',label_at=(1420,550))
+    arrow(ax,[(1050,720),(930,720)])
+    arrow(ax,[(580,720),(455,720)])
+    arrow(ax,[(282,445),(282,545),(1015,545),(1015,690),(930,690)],label='sections / EI',label_at=(410,519))
+    arrow(ax,[(1015,630),(1200,630),(1200,660)],label='mass relief',label_at=(1130,601))
+    text(ax,800,880,'MIT: separate CL / CD analysis only · No implicit trim or load fallback · Independent validation absent',17,MUTED)
+    save(fig,'bwb-analysis-coupling',out,font)
 
 
-if __name__ == "__main__":
-    p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--output", type=Path, default=ROOT / "docs/figures")
-    args = p.parse_args()
-    main_diagram(args.output)
-    detail_diagram(args.output)
-    print(f"Wrote two SVG/PNG pairs to {args.output.resolve()}")
+if __name__=='__main__':
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--output',type=Path,default=ROOT/'docs/figures')
+    parser.add_argument('--font',default='Times New Roman')
+    args=parser.parse_args();overview(args.output,args.font);detail(args.output,args.font)
+    print(f'Two diagrams and text/edge checks written to {args.output}')

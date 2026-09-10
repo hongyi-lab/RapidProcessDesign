@@ -1,12 +1,13 @@
 import * as THREE from 'three';
+import type {Section} from './types';
 
 export type Station = {y: number; c: number; x: number};
 export const THICKNESS_RATIO = 0.14;
 
 // Integral from 0 to 1 is 0.6: the loft uses the engine's volume coefficient.
 // This is an illustrative symmetric section, not an aerodynamic airfoil model.
-export function sectionHeight(u: number, chord: number) {
-  return THICKNESS_RATIO * chord * 4*u*(1-u)*(1-0.5*(2*u-1)**2);
+export function sectionHeight(u: number, chord: number, thicknessRatio=THICKNESS_RATIO) {
+  return thicknessRatio * chord * 4*u*(1-u)*(1-0.5*(2*u-1)**2);
 }
 export function stationAt(stations: Station[], y: number): Station {
   const abs = Math.abs(y);
@@ -16,19 +17,19 @@ export function stationAt(stations: Station[], y: number): Station {
   return {y, c:a.c+f*(b.c-a.c), x:a.x+f*(b.x-a.x)};
 }
 // Engine axes (aft, right, up) map to Three.js (right, up, aft), in metres.
-export function surfacePoint(stations: Station[], y: number, u: number, side=1) {
+export function surfacePoint(stations: Station[], y: number, u: number, side=1, thicknessRatio=THICKNESS_RATIO) {
   const s=stationAt(stations,y);
-  return new THREE.Vector3(y, side*sectionHeight(u,s.c)/2, s.x+u*s.c);
+  return new THREE.Vector3(y, side*sectionHeight(u,s.c,thicknessRatio)/2, s.x+u*s.c);
 }
-export function buildSurface(stations: Station[], spanSteps=16, chordSteps=60) {
+export function buildSurface(stations: Station[], spanSteps=16, chordSteps=60, thicknessRatio=THICKNESS_RATIO) {
   const half:number[]=[0];
   for(let j=1;j<stations.length;j++) for(let i=1;i<=spanSteps;i++)
     half.push(stations[j-1].y+(stations[j].y-stations[j-1].y)*i/spanSteps);
   const ys=[...half.slice(1).reverse().map(v=>-v),...half];
   const positions:number[]=[], indices:number[]=[], ring=2*chordSteps;
   for(const y of ys) {
-    for(let i=0;i<=chordSteps;i++) positions.push(...surfacePoint(stations,y,i/chordSteps).toArray());
-    for(let i=chordSteps-1;i>=1;i--) positions.push(...surfacePoint(stations,y,i/chordSteps,-1).toArray());
+    for(let i=0;i<=chordSteps;i++) positions.push(...surfacePoint(stations,y,i/chordSteps,1,thicknessRatio).toArray());
+    for(let i=chordSteps-1;i>=1;i--) positions.push(...surfacePoint(stations,y,i/chordSteps,-1,thicknessRatio).toArray());
   }
   for(let j=0;j<ys.length-1;j++) for(let i=0;i<ring;i++) {
     const a=j*ring+i, d=j*ring+(i+1)%ring, b=a+ring, c=d+ring;
@@ -45,29 +46,24 @@ export function buildSurface(stations: Station[], spanSteps=16, chordSteps=60) {
   return mesh;
 }
 
-export function buildSkeleton(stations: Station[]) {
-  const group=new THREE.Group(), half=stations.at(-1)!.y;
-  const ribMat=new THREE.MeshStandardMaterial({color:0xb68548,metalness:.28,roughness:.5,side:THREE.DoubleSide});
-  const sparMat=new THREE.MeshStandardMaterial({color:0x467ba3,metalness:.3,roughness:.43,side:THREE.DoubleSide});
-  // Ribs are layout cues only; they are not an FE mesh or separately sized parts.
-  for(let i=-10;i<=10;i++) {
-    const y=i*half/10, s=stationAt(stations,y), pos:number[]=[], idx:number[]=[];
-    const n=40, count=2*n;
-    for(let k=0;k<count;k++) {
-      const u=k<=n?k/n:(2*n-k)/n, side=k<=n?1:-1;
-      const p=surfacePoint(stations,y,u,side);
-      pos.push(...p.toArray(),y,p.y*.66,s.x+s.c*.5+(p.z-s.x-s.c*.5)*.88);
+/** Display exactly the polygons used for EI. No decorative ribs or FE stress field. */
+export function buildSkeleton(sections: Section[]) {
+  const group=new THREE.Group();
+  if(sections.length<2)return group;
+  const ordered=[...sections].sort((a,b)=>a.y_m-b.y_m);
+  const shellMaterial=new THREE.MeshStandardMaterial({color:0x2d789e,metalness:.22,roughness:.5,side:THREE.DoubleSide,transparent:true,opacity:.64});
+  for(const sign of [-1,1]) {
+    const pos:number[]=[],idx:number[]=[],count=ordered[0].corners.length;
+    for(const section of ordered)for(const point of section.corners)pos.push(sign*section.y_m,point.z_m,point.x_m);
+    for(let i=0;i<ordered.length-1;i++)for(let j=0;j<count;j++){
+      const a=i*count+j,b=i*count+(j+1)%count,c=a+count,d=b+count;idx.push(a,b,d,a,d,c);
     }
-    for(let k=0;k<count;k++) {const a=2*k,b=2*((k+1)%count);idx.push(a,b,b+1,a,b+1,a+1);}
-    const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));geo.setIndex(idx);geo.computeVertexNormals();
-    group.add(new THREE.Mesh(geo,ribMat));
-  }
-  for(const u of [.2,.55]) {
-    const pos:number[]=[],idx:number[]=[];
-    const ys=[...stations.slice(1).reverse().map(s=>-s.y),...stations.map(s=>s.y)];
-    for(const y of ys) pos.push(...surfacePoint(stations,y,u).toArray(),...surfacePoint(stations,y,u,-1).toArray());
-    for(let i=0;i<ys.length-1;i++){const a=i*2;idx.push(a,a+2,a+3,a,a+3,a+1);}
-    const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));geo.setIndex(idx);geo.computeVertexNormals();group.add(new THREE.Mesh(geo,sparMat));
+    const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));geometry.setIndex(idx);geometry.computeVertexNormals();group.add(new THREE.Mesh(geometry,shellMaterial));
+    for(let i=0;i<ordered.length;i++){
+      const section=ordered[i],points=section.corners.map(p=>new THREE.Vector3(sign*section.y_m,p.z_m,p.x_m));
+      points.push(points[0].clone());
+      group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(points),new THREE.LineBasicMaterial({color:i===0?0xb86f27:0x286889})));
+    }
   }
   return group;
 }

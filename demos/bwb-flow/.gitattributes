@@ -1,0 +1,2 @@
+# Keep the engine/configuration byte fingerprint reproducible on Windows too.
+*.py text eol=lf

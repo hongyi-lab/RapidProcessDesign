@@ -15,7 +15,19 @@ $cliPath = Join-Path $demoRoot 'ui\node_modules\vinext\dist\cli.js'
 if (-not (Test-Path -LiteralPath $cliPath)) { throw 'Run npm ci inside ui first.' }
 $processes = @()
 $apiReady = $false
-try { $health=Invoke-RestMethod -Uri 'http://127.0.0.1:8842/health' -TimeoutSec 2; $apiReady=($health.service -eq 'bwb-flow-demo') } catch {}
+$apiHealth = $null
+try { $apiHealth=Invoke-RestMethod -Uri 'http://127.0.0.1:8842/health' -TimeoutSec 2 } catch {}
+if ($null -ne $apiHealth) {
+    if ($apiHealth.service -ne 'bwb-flow-demo' -or $apiHealth.version -ne 'review-v2') {
+        throw 'Port 8842 is serving a different BWB version or another application. Close the old demo with its own Stop-Demo.cmd, then start this review-v2 copy. No existing process was stopped.'
+    }
+    $apiReady = $true
+} else {
+    $portListener = Get-NetTCPConnection -State Listen -LocalPort 8842 -ErrorAction SilentlyContinue
+    if ($portListener) {
+        throw 'Port 8842 is occupied but its review-v2 health check did not succeed. Close the old demo with its own Stop-Demo.cmd or inspect that service, then retry. No existing process was stopped.'
+    }
+}
 if (-not $apiReady) {
     $api = Start-Process -FilePath $pythonPath -ArgumentList @('-X','utf8',('"'+(Join-Path $demoRoot 'server.py')+'"')) -WorkingDirectory $demoRoot -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $runDir 'api.out.log') -RedirectStandardError (Join-Path $runDir 'api.err.log')
     $processes += @{id=$api.Id;role='api'}
@@ -34,7 +46,7 @@ for ($attempt=0; $attempt -lt 25; $attempt++) {
     try {
         $health=Invoke-RestMethod -Uri 'http://127.0.0.1:8842/health' -TimeoutSec 2
         $response=Invoke-WebRequest -Uri 'http://127.0.0.1:3981/' -UseBasicParsing -TimeoutSec 3
-        if ($health.service -eq 'bwb-flow-demo' -and $response.StatusCode -eq 200 -and $response.Content -match 'BWB') { $ready=$true; break }
+        if ($health.service -eq 'bwb-flow-demo' -and $health.version -eq 'review-v2' -and $response.StatusCode -eq 200 -and $response.Content -match 'BWB') { $ready=$true; break }
     } catch {}
     Start-Sleep -Seconds 1
 }

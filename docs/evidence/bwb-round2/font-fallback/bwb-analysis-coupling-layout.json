@@ -1,0 +1,13 @@
+{
+  "font": "DejaVu Serif",
+  "canvas": [
+    1600,
+    900
+  ],
+  "bounded_text_count": 25,
+  "text_overflow": [],
+  "edge_through_node": [],
+  "edge_through_text": [],
+  "minimum_body_pt": 18,
+  "status": "passed"
+}

@@ -82,7 +82,8 @@ class EngineeringDemoTests(unittest.TestCase):
                          ({'cruise_km':1800,'tank_fraction':.015},'fuel_exhausted')]:
             r=analyze(p)
             self.assertEqual(r['status'],'unsupported')
-            self.assertEqual(r['failure'],reason)
+            self.assertEqual(r['failure'],'fuel_bracket_not_found')
+            self.assertGreater(r['fuel_solver_diagnostics']['failure_counts'].get(reason,0),0)
             self.assertIsNone(r['demo_constraints_satisfied'])
             self.assertEqual(r['checks'],[])
             self.assertNotIn('fuel_loaded_kg',r)

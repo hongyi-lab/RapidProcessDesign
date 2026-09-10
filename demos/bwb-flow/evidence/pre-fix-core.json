@@ -1,0 +1,39 @@
+{
+  "source_sha256": "c693b1e7462f081518b937ae9fa426803c70c1cd2167cb84eed0c6a6415ac751",
+  "snapshot": "dd6244af96214545a698470c18a148107c5017fc",
+  "evidence_kind": "reexecuted_preserved_v1_source; historical model, not current v2 output",
+  "baseline": {
+    "status": "demo_converged",
+    "fuel_loaded_kg": 26.258881522794276,
+    "design_hash": "136a834e7dfa"
+  },
+  "leak": {
+    "status": "unsupported",
+    "failure": "static_stability_not_supported",
+    "iterations": [
+      {
+        "iteration": 0,
+        "fuel_guess_kg": 124.30150107044979,
+        "status": "static_stability_not_supported",
+        "residual_kg": null
+      }
+    ]
+  },
+  "independent_same_model_root_kg": 26.270214692232987,
+  "residual_kg": 1.7763568394002505e-14,
+  "config_bug": {
+    "exported_cd0": 0.044,
+    "fuel_before": 26.258881522794276,
+    "fuel_after": 26.258881522794276
+  },
+  "hardware_bug": {
+    "design_hashes": [
+      "136a834e7dfa",
+      "136a834e7dfa"
+    ],
+    "hardware_masses": [
+      210.12292352,
+      216.12292351999994
+    ]
+  }
+}

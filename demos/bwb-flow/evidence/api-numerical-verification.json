@@ -1,0 +1,2423 @@
+{
+  "schema": "bwb-http-numerical-review-v2",
+  "executed_at_utc": "2026-09-10T07:57:49.917676+00:00",
+  "api": "http://127.0.0.1:8842",
+  "scope": "Real loopback HTTP API checks and selected-candidate numerical refinement with the same physical model.",
+  "independent_physical_validation": {
+    "status": "not_performed",
+    "reason": "No independent CFD, FEA, wind-tunnel, flight or material reference is used."
+  },
+  "browser_testing": {
+    "status": "not_performed_by_this_script"
+  },
+  "script_sha256": "787b77acc8cebd3efc01775486c538aaa699e1adf3b642444b6299644ff4efd1",
+  "checks": [
+    {
+      "name": "defaults_controlled_schema",
+      "status": "passed",
+      "evidence": {
+        "http_status": 200,
+        "elapsed_s": 0.0329,
+        "schema_version": "bwb-schema-v2",
+        "input_keys": [
+          "root_chord_m",
+          "span_m",
+          "thickness_mm",
+          "rated_payload_kg",
+          "payload_kg",
+          "cruise_km",
+          "cruise_speed_ms",
+          "altitude_m",
+          "power_kw",
+          "tank_offset_mac",
+          "tank_fraction",
+          "load_factor"
+        ],
+        "cd0_schema": {
+          "label": "零升阻力系数",
+          "unit": "1",
+          "min": 0.005,
+          "max": 0.1,
+          "step": 0.001,
+          "group": "aero"
+        },
+        "cd0_default": 0.022,
+        "solver_config": {
+          "mission_steps": 36,
+          "load_strips": 100,
+          "fuel_scan_points": 101,
+          "fuel_tolerance_kg": 1e-05,
+          "fuel_max_iterations": 60,
+          "fuel_seed_fraction": 1.0
+        }
+      }
+    },
+    {
+      "name": "models_real_capability_catalog",
+      "status": "passed",
+      "evidence": {
+        "http_status": 200,
+        "elapsed_s": 0.0045,
+        "models": [
+          {
+            "id": "illustrative-bwb-v2",
+            "version": "2.0.0",
+            "source_commit": null,
+            "implementation_hash": "2f39826201abe7e5666c991412ea9d248134e9aef8b4111ca9a7ba7b2acc2f64",
+            "geometry_decoder_id": "three-trapezoid-bwb-v2",
+            "units": {
+              "length": "m",
+              "mass": "kg",
+              "force": "N",
+              "stress": "MPa",
+              "angle": "rad"
+            },
+            "axes": "x aft, y right, z up; pitch coefficient nose-up",
+            "S_ref": 12.115200000000002,
+            "length_ref": 1.9713442507483714,
+            "moment_reference": {
+              "x_m": 1.4644100842152536,
+              "kind": "geometric quarter-chord reference"
+            },
+            "supported_inputs": [
+              "geometry",
+              "TAS",
+              "altitude",
+              "fuel",
+              "payload",
+              "load_factor",
+              "control_deflection"
+            ],
+            "supported_quantities": [
+              "CL",
+              "CD",
+              "Cm",
+              "fixed_control_cm_alpha",
+              "trim",
+              "elliptic_lift",
+              "outer_wing_bending"
+            ],
+            "supported_load_cases": [
+              "demo_symmetric_pull_up"
+            ],
+            "validity_domain": "controlled demo schema; assumed linear aero domain, not independently established physics domain",
+            "domain_check_status": "assumed_bounded_domain; input_bounds_and_trim_checks_only",
+            "evidence_ids": [
+              "analytic_and_regression_tests"
+            ],
+            "uncertainty_metadata_or_null": null,
+            "uncertainty_reason": "No independent calibration/test data; deterministic residual is not model uncertainty",
+            "unavailable_quantities": [
+              "CFD_pressure",
+              "torsion",
+              "buckling",
+              "stall",
+              "central_body_stress",
+              "independent_physical_validity"
+            ]
+          },
+          {
+            "id": "mit_ld_full",
+            "version": "mit-coefficients-v1",
+            "source_commit": "b516d4b3e2e5e34fbd5233eacdf15317a96dc2d9",
+            "expected_source_commit": "b516d4b3e2e5e34fbd5233eacdf15317a96dc2d9",
+            "source_artifact_sha256": {
+              "predict_ld.py": "149252ffee028823c7a1b610643d72a5ee36966d5e62f3a220d7ffc69e74488e",
+              "flight_conversion.py": "f2a33c85a884b3b1b4e5c74e4f1a25f5150b74ecc2eaa0d87f3dc0627656dc2d",
+              "regressor.py": "a2e1f504a9dbf31f8e1dcffabf67887611f4260ab6528abf4bb91e027d24bebf",
+              "aero_design_space.json": "5b9db166b15c439ceeaf2e49d6f0c14140706d23ddfdf624c919c019d80cd1a8",
+              "reg_full.json": "3eac7742b4cedc3fd0d0d0e7912d8986ad19ee3281d56c2b3010a9223ae69206"
+            },
+            "geometry_decoder_id": "mit_ntop_ratio_v1",
+            "units": {
+              "B1/C1": "dimensionless",
+              "B2/C1": "dimensionless",
+              "B3/C1": "dimensionless",
+              "C2/C1": "dimensionless",
+              "C3/C1": "dimensionless",
+              "C4/C1": "dimensionless",
+              "S1": "deg",
+              "S3": "deg",
+              "X3/C1": "dimensionless",
+              "C1": "mm",
+              "alt_kft": "kft",
+              "kcas": "knots CAS",
+              "aoa": "deg",
+              "CL": "dimensionless",
+              "CD": "dimensionless",
+              "LD": "dimensionless",
+              "Re_L": "dimensionless",
+              "M_inf": "dimensionless"
+            },
+            "axes": {
+              "CL_CD": "native integrated lift/drag coefficients",
+              "body_axis_transform": null,
+              "reason": "wrapper exports no force vector or axis transform"
+            },
+            "S_ref": null,
+            "length_ref": null,
+            "moment_reference": null,
+            "reference_status": "paper_canonical_reference_known_but_wrapper_label_provenance_unresolved",
+            "paper_reference_only": {
+              "S_ref_m2": 1.0,
+              "length_ref_m": 1.0,
+              "moment_reference": "nose",
+              "usable_for_force_conversion": false,
+              "evidence_id": "MIT-PAPER-REF"
+            },
+            "supported_inputs": [
+              "geometry_decoder_id",
+              "geometry",
+              "condition"
+            ],
+            "supported_quantities": [
+              "CL",
+              "CD",
+              "LD",
+              "Re_L",
+              "M_inf"
+            ],
+            "supported_load_cases": [
+              "single_steady_aerodynamic_coefficient_condition"
+            ],
+            "unsupported_quantities": {
+              "L_N": "coefficient_reference_provenance_unresolved",
+              "D_N": "coefficient_reference_provenance_unresolved",
+              "Cm": "not_provided_by_wrapper",
+              "control_response": "not_provided_by_wrapper",
+              "distributed_loads": "not_provided_by_wrapper",
+              "stress": "no_structural_response_model_connected"
+            },
+            "validity_domain": {
+              "geometry_box": {
+                "B1/C1": [
+                  0.1000261,
+                  0.1999978
+                ],
+                "B2/C1": [
+                  0.0500143,
+                  0.1999828
+                ],
+                "B3/C1": [
+                  0.3500802,
+                  0.6999412
+                ],
+                "C2/C1": [
+                  0.5500737,
+                  0.8499953
+                ],
+                "C3/C1": [
+                  0.1800016,
+                  0.2799979
+                ],
+                "C4/C1": [
+                  0.0600129,
+                  0.0899936
+                ],
+                "S1": [
+                  40.003,
+                  59.9993
+                ],
+                "S3": [
+                  20.0015,
+                  44.9884
+                ],
+                "X3/C1": [
+                  0.5,
+                  0.6499
+                ],
+                "C1": [
+                  2500.0,
+                  4000.0
+                ]
+              },
+              "geometry_box_source": "aero_design_space.json feasible-subset SEARCH box; C1 from README",
+              "raw_flight_box": {
+                "alt_kft": [
+                  0.0015,
+                  18.0
+                ],
+                "kcas": [
+                  33.02,
+                  249.95
+                ],
+                "aoa": [
+                  -8.0,
+                  16.0
+                ]
+              },
+              "converted_flight_box": {
+                "Re_L": [
+                  50700.0,
+                  100000000.0
+                ],
+                "M_inf": [
+                  0.05,
+                  0.5
+                ]
+              },
+              "joint_coverage": "unknown; axis-aligned box does not establish joint training support"
+            },
+            "domain_check_status": "per_prediction_required",
+            "evidence_ids": [
+              "MIT-WRAPPER",
+              "MIT-DOMAIN",
+              "MIT-PAPER-REF",
+              "MIT-LABEL-GAP"
+            ],
+            "resource_available": true,
+            "failure_reason": null,
+            "resource_diagnostics": {
+              "missing": [],
+              "changed_since_audit": []
+            },
+            "analysis_modes": {
+              "coefficient_analysis": true,
+              "aircraft_trim_mission": false
+            },
+            "uncertainty_metadata": null,
+            "uncertainty_reason": "no_independent_calibration_or_test_data_and_pretraining_membership_unknown",
+            "sample_request": {
+              "geometry_decoder_id": "mit_ntop_ratio_v1",
+              "geometry": {
+                "B1/C1": 0.15,
+                "B2/C1": 0.12,
+                "B3/C1": 0.52,
+                "C2/C1": 0.7,
+                "C3/C1": 0.23,
+                "C4/C1": 0.075,
+                "S1": 50.0,
+                "S3": 30.0,
+                "X3/C1": 0.575,
+                "C1": 3000.0
+              },
+              "condition": {
+                "alt_kft": 15.0,
+                "kcas": 180.0,
+                "aoa": 6.0
+              }
+            }
+          }
+        ],
+        "mit_input_schema": {
+          "geometry": {
+            "B1/C1": {
+              "label": "B1/C1",
+              "unit": "dimensionless",
+              "min": 0.1000261,
+              "max": 0.1999978,
+              "step": 0.001
+            },
+            "B2/C1": {
+              "label": "B2/C1",
+              "unit": "dimensionless",
+              "min": 0.0500143,
+              "max": 0.1999828,
+              "step": 0.001
+            },
+            "B3/C1": {
+              "label": "B3/C1",
+              "unit": "dimensionless",
+              "min": 0.3500802,
+              "max": 0.6999412,
+              "step": 0.001
+            },
+            "C2/C1": {
+              "label": "C2/C1",
+              "unit": "dimensionless",
+              "min": 0.5500737,
+              "max": 0.8499953,
+              "step": 0.001
+            },
+            "C3/C1": {
+              "label": "C3/C1",
+              "unit": "dimensionless",
+              "min": 0.1800016,
+              "max": 0.2799979,
+              "step": 0.001
+            },
+            "C4/C1": {
+              "label": "C4/C1",
+              "unit": "dimensionless",
+              "min": 0.0600129,
+              "max": 0.0899936,
+              "step": 0.001
+            },
+            "S1": {
+              "label": "S1",
+              "unit": "deg",
+              "min": 40.003,
+              "max": 59.9993,
+              "step": 0.1
+            },
+            "S3": {
+              "label": "S3",
+              "unit": "deg",
+              "min": 20.0015,
+              "max": 44.9884,
+              "step": 0.1
+            },
+            "X3/C1": {
+              "label": "X3/C1",
+              "unit": "dimensionless",
+              "min": 0.5,
+              "max": 0.6499,
+              "step": 0.001
+            },
+            "C1": {
+              "label": "C1",
+              "unit": "mm",
+              "min": 2500.0,
+              "max": 4000.0,
+              "step": 10
+            }
+          },
+          "condition": {
+            "alt_kft": {
+              "label": "高度",
+              "unit": "kft",
+              "min": 0.0015,
+              "max": 18.0,
+              "step": 0.1
+            },
+            "kcas": {
+              "label": "校准空速",
+              "unit": "knots CAS",
+              "min": 33.02,
+              "max": 249.95,
+              "step": 1.0
+            },
+            "aoa": {
+              "label": "攻角",
+              "unit": "deg",
+              "min": -8.0,
+              "max": 16.0,
+              "step": 0.1
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "analyze_default",
+      "status": "passed",
+      "evidence": {
+        "http_status": 200,
+        "elapsed_s": 0.4836,
+        "result": {
+          "analysis_id": "31d76d6d-234c-448f-a663-750d4d4a98fb",
+          "analysis_hash": "40039fb5ff22ecf316bcffb74f34a6d7b5d5ff6197cbd477b3ed0af95c308629",
+          "design_hash": "efb168d84087e572",
+          "config_hash": "ca5c8cfafed8cf61c3cd9410e589759dd7f64c9c29221b6113fd3829b1eafb6c",
+          "mission_hash": "781be9a3879fe319862dcde7f6b5ca9e6c2823d29b2958ab1605aeb1cdf9a636",
+          "load_case_hash": "95fdf37d88d12ba751102a634c37ebf0e09d1f470815544b84a10b643a346541",
+          "status": "demo_converged",
+          "numeric_convergence": "converged",
+          "evaluation_status": "feasible",
+          "failure": null,
+          "fuel_loaded_kg": 26.21837043221415,
+          "fuel_residual_kg": -7.410698184884268e-06,
+          "failure_details": null,
+          "mass_kg": 304.67907207709663,
+          "max_stress_MPa": 11.268114102900958,
+          "tip_deflection_m": 0.006596285766096027,
+          "fuel_attempts": 118,
+          "model_id": "illustrative-bwb-v2",
+          "model_implementation_hash": "2f39826201abe7e5666c991412ea9d248134e9aef8b4111ca9a7ba7b2acc2f64",
+          "configuration": {
+            "model": {
+              "cl0": 0.2,
+              "cl_delta_per_rad": 0.35,
+              "cm0": 0.015,
+              "cm_alpha_per_rad": -0.35,
+              "cm_delta_per_rad": -0.75,
+              "cd0": 0.022,
+              "elevon_drag_factor": 0.025,
+              "oswald_e": 0.8,
+              "aerodynamic_sweep_deg": 32.0,
+              "propeller_efficiency": 0.78,
+              "bsfc_kg_kwh": 0.3,
+              "installed_power_fraction": 0.85,
+              "material_E_Pa": 70000000000.0,
+              "material_density_kg_m3": 2700.0,
+              "fuel_density_kg_m3": 800.0,
+              "demo_stress_limit_MPa": 120.0,
+              "demo_deflection_limit_fraction": 0.03,
+              "usable_volume_fraction": 0.7,
+              "usable_tank_fraction": 0.95,
+              "payload_space_fraction": 0.35,
+              "required_payload_volume_m3": 0.12,
+              "reserve_fraction_of_burn": 0.15,
+              "unusable_fuel_kg": 1.5,
+              "climb_rate_ms": 2.0,
+              "descent_rate_ms": -1.0,
+              "climb_speed_cap_ms": 42.0,
+              "descent_speed_cap_ms": 45.0,
+              "design_load_speed_ms": 60.0,
+              "design_load_altitude_m": 0.0,
+              "maneuver_type": "sustained",
+              "alpha_min_deg": -6.0,
+              "alpha_max_deg": 12.0,
+              "elevon_min_deg": -20.0,
+              "elevon_max_deg": 20.0,
+              "thickness_ratio": 0.14,
+              "connection_mass_kg": 8.0,
+              "propulsion_base_mass_kg": 18.0,
+              "propulsion_specific_power_kw_kg": 2.5,
+              "systems_base_mass_kg": 25.0,
+              "systems_rated_payload_fraction": 0.12,
+              "landing_gear_mass_kg": 15.0
+            },
+            "solver": {
+              "mission_steps": 36,
+              "load_strips": 100,
+              "fuel_scan_points": 101,
+              "fuel_tolerance_kg": 1e-05,
+              "fuel_max_iterations": 60,
+              "fuel_seed_fraction": 1.0
+            },
+            "hash": "ca5c8cfafed8cf61c3cd9410e589759dd7f64c9c29221b6113fd3829b1eafb6c",
+            "model_hash": "f8d93d923291e9b3d8fb5d6ddef7c5c4181232f5f444b1689fd55cfdc62b014e",
+            "solver_hash": "3d964d94f3c37300b67dc48431b653b9904a8693eec3459d58413dffb50e8e13"
+          }
+        }
+      }
+    },
+    {
+      "name": "analysis_exact_http_retrieval",
+      "status": "passed",
+      "evidence": {
+        "http_status": 200,
+        "elapsed_s": 0.0267,
+        "analysis_id": "31d76d6d-234c-448f-a663-750d4d4a98fb",
+        "full_json_equality": true
+      }
+    },
+    {
+      "name": "aft_tank_valid_branch_not_missed",
+      "status": "passed",
+      "evidence": {
+        "http_status": 200,
+        "elapsed_s": 0.1818,
+        "result": {
+          "analysis_id": "fc4b0f49-f3e9-4671-9fbd-68dfd5eaeb2e",
+          "analysis_hash": "8d7a6e519bc3d59a0fe001f257cb3dcb14014c8a25626bfe2d887f80d4c0c5e8",
+          "design_hash": "c3f35277ebc0a50a",
+          "config_hash": "ca5c8cfafed8cf61c3cd9410e589759dd7f64c9c29221b6113fd3829b1eafb6c",
+          "mission_hash": "781be9a3879fe319862dcde7f6b5ca9e6c2823d29b2958ab1605aeb1cdf9a636",
+          "load_case_hash": "65d5e9f5826c0e58d4b3f8ef8eb6bf0ffb604cfa980b5fe437c7c6099d187d0b",
+          "status": "demo_converged",
+          "numeric_convergence": "converged",
+          "evaluation_status": "feasible",
+          "failure": null,
+          "fuel_loaded_kg": 26.229831616742942,
+          "fuel_residual_kg": 8.060687747502016e-06,
+          "failure_details": null,
+          "mass_kg": 304.69053326162543,
+          "max_stress_MPa": 11.268684502461932,
+          "tip_deflection_m": 0.006596623209771209,
+          "fuel_attempts": 118,
+          "model_id": "illustrative-bwb-v2",
+          "model_implementation_hash": "2f39826201abe7e5666c991412ea9d248134e9aef8b4111ca9a7ba7b2acc2f64",
+          "configuration": {
+            "model": {
+              "cl0": 0.2,
+              "cl_delta_per_rad": 0.35,
+              "cm0": 0.015,
+              "cm_alpha_per_rad": -0.35,
+              "cm_delta_per_rad": -0.75,
+              "cd0": 0.022,
+              "elevon_drag_factor": 0.025,
+              "oswald_e": 0.8,
+              "aerodynamic_sweep_deg": 32.0,
+              "propeller_efficiency": 0.78,
+              "bsfc_kg_kwh": 0.3,
+              "installed_power_fraction": 0.85,
+              "material_E_Pa": 70000000000.0,
+              "material_density_kg_m3": 2700.0,
+              "fuel_density_kg_m3": 800.0,
+              "demo_stress_limit_MPa": 120.0,
+              "demo_deflection_limit_fraction": 0.03,
+              "usable_volume_fraction": 0.7,
+              "usable_tank_fraction": 0.95,
+              "payload_space_fraction": 0.35,
+              "required_payload_volume_m3": 0.12,
+              "reserve_fraction_of_burn": 0.15,
+              "unusable_fuel_kg": 1.5,
+              "climb_rate_ms": 2.0,
+              "descent_rate_ms": -1.0,
+              "climb_speed_cap_ms": 42.0,
+              "descent_speed_cap_ms": 45.0,
+              "design_load_speed_ms": 60.0,
+              "design_load_altitude_m": 0.0,
+              "maneuver_type": "sustained",
+              "alpha_min_deg": -6.0,
+              "alpha_max_deg": 12.0,
+              "elevon_min_deg": -20.0,
+              "elevon_max_deg": 20.0,
+              "thickness_ratio": 0.14,
+              "connection_mass_kg": 8.0,
+              "propulsion_base_mass_kg": 18.0,
+              "propulsion_specific_power_kw_kg": 2.5,
+              "systems_base_mass_kg": 25.0,
+              "systems_rated_payload_fraction": 0.12,
+              "landing_gear_mass_kg": 15.0
+            },
+            "solver": {
+              "mission_steps": 36,
+              "load_strips": 100,
+              "fuel_scan_points": 101,
+              "fuel_tolerance_kg": 1e-05,
+              "fuel_max_iterations": 60,
+              "fuel_seed_fraction": 1.0
+            },
+            "hash": "ca5c8cfafed8cf61c3cd9410e589759dd7f64c9c29221b6113fd3829b1eafb6c",
+            "model_hash": "f8d93d923291e9b3d8fb5d6ddef7c5c4181232f5f444b1689fd55cfdc62b014e",
+            "solver_hash": "3d964d94f3c37300b67dc48431b653b9904a8693eec3459d58413dffb50e8e13"
+          }
+        },
+        "invalid_attempts_retained": 92,
+        "fuel_solver_diagnostics": {
+          "capacity_kg": 124.35764723156485,
+          "scan_points": 101,
+          "valid_evaluations": 10,
+          "failure_counts": {
+            "fuel_exhausted": 18,
+            "static_stability_not_supported": 73
+          },
+          "observed_brackets_kg": [
+            [
+              26.11510591862862,
+              27.358682390944267
+            ]
+          ],
+          "claim": "Finite scan only: missing bracket does not prove no feasible fuel root; no signs assigned to failed evaluations."
+        }
+      }
+    },
+    {
+      "name": "cd0_changes_actual_result",
+      "status": "passed",
+      "evidence": {
+        "http_status": 200,
+        "elapsed_s": 0.4288,
+        "cd0_before": 0.022,
+        "cd0_after": 0.044,
+        "fuel_change_kg": 21.464085130056368,
+        "result": {
+          "analysis_id": "07cfe9cc-dd6d-4080-aabc-6ba285c17f77",
+          "analysis_hash": "1984a3892774b8618f1c5b7199dd06e6c43958465d9880994032bcf310414e15",
+          "design_hash": "efb168d84087e572",
+          "config_hash": "9b38360c483c5f787cec31634c43a51d3fdd5f406dd934a3b69f010a3fe31965",
+          "mission_hash": "781be9a3879fe319862dcde7f6b5ca9e6c2823d29b2958ab1605aeb1cdf9a636",
+          "load_case_hash": null,
+          "status": "unsupported",
+          "numeric_convergence": "converged",
+          "evaluation_status": "unknown",
+          "failure": "insufficient_power",
+          "fuel_loaded_kg": 47.68245556227052,
+          "fuel_residual_kg": 7.177300702210232e-06,
+          "failure_details": {
+            "alpha_deg": 1.3513970057112377,
+            "elevon_deg": 1.576674389012505,
+            "CL": 0.29931588583541113,
+            "CD": 0.05076685687280731,
+            "Cm_CG": 3.469446951953614e-18,
+            "lift_N": 7995.929481563818,
+            "drag_N": 1356.186646835123,
+            "thrust_N": 1356.186646835123,
+            "ld": 5.895891616558524,
+            "power_required_kw": 104.32204975654793,
+            "power_available_kw": 68.00000100608291,
+            "fuel_flow_kg_s": 0.008693504146378993,
+            "lift_residual_N": 0.0,
+            "moment_residual_Nm": 1.827098286387433e-13,
+            "cm_alpha_per_rad": -0.1734980302484779,
+            "mass_kg": 326.143157207153,
+            "cg_mac": 0.29641863223952764,
+            "cg_x_m": 1.5559171880082494,
+            "q_Pa": 2205.000032623718,
+            "Re": 8097803.432223287,
+            "Mach": 0.1763181311196131,
+            "fixed_control": true,
+            "moment_reference_x_m": 1.4644100842152536,
+            "power_enforced": true,
+            "module": "M07",
+            "condition_id": "demo_symmetric_pull_up",
+            "state_id": "4ca360d6a07d7817"
+          },
+          "mass_kg": 326.143157207153,
+          "max_stress_MPa": null,
+          "tip_deflection_m": null,
+          "fuel_attempts": 119,
+          "model_id": "illustrative-bwb-v2",
+          "model_implementation_hash": "2f39826201abe7e5666c991412ea9d248134e9aef8b4111ca9a7ba7b2acc2f64",
+          "configuration": {
+            "model": {
+              "cl0": 0.2,
+              "cl_delta_per_rad": 0.35,
+              "cm0": 0.015,
+              "cm_alpha_per_rad": -0.35,
+              "cm_delta_per_rad": -0.75,
+              "cd0": 0.044,
+              "elevon_drag_factor": 0.025,
+              "oswald_e": 0.8,
+              "aerodynamic_sweep_deg": 32.0,
+              "propeller_efficiency": 0.78,
+              "bsfc_kg_kwh": 0.3,
+              "installed_power_fraction": 0.85,
+              "material_E_Pa": 70000000000.0,
+              "material_density_kg_m3": 2700.0,
+              "fuel_density_kg_m3": 800.0,
+              "demo_stress_limit_MPa": 120.0,
+              "demo_deflection_limit_fraction": 0.03,
+              "usable_volume_fraction": 0.7,
+              "usable_tank_fraction": 0.95,
+              "payload_space_fraction": 0.35,
+              "required_payload_volume_m3": 0.12,
+              "reserve_fraction_of_burn": 0.15,
+              "unusable_fuel_kg": 1.5,
+              "climb_rate_ms": 2.0,
+              "descent_rate_ms": -1.0,
+              "climb_speed_cap_ms": 42.0,
+              "descent_speed_cap_ms": 45.0,
+              "design_load_speed_ms": 60.0,
+              "design_load_altitude_m": 0.0,
+              "maneuver_type": "sustained",
+              "alpha_min_deg": -6.0,
+              "alpha_max_deg": 12.0,
+              "elevon_min_deg": -20.0,
+              "elevon_max_deg": 20.0,
+              "thickness_ratio": 0.14,
+              "connection_mass_kg": 8.0,
+              "propulsion_base_mass_kg": 18.0,
+              "propulsion_specific_power_kw_kg": 2.5,
+              "systems_base_mass_kg": 25.0,
+              "systems_rated_payload_fraction": 0.12,
+              "landing_gear_mass_kg": 15.0
+            },
+            "solver": {
+              "mission_steps": 36,
+              "load_strips": 100,
+              "fuel_scan_points": 101,
+              "fuel_tolerance_kg": 1e-05,
+              "fuel_max_iterations": 60,
+              "fuel_seed_fraction": 1.0
+            },
+            "hash": "9b38360c483c5f787cec31634c43a51d3fdd5f406dd934a3b69f010a3fe31965",
+            "model_hash": "45b969443704eb2e490cf1c56432951145c71d351c3d1a1f7f81b2ebd94988bf",
+            "solver_hash": "3d964d94f3c37300b67dc48431b653b9904a8693eec3459d58413dffb50e8e13"
+          }
+        }
+      }
+    },
+    {
+      "name": "falsey_invalid_inputs_rejected",
+      "status": "passed",
+      "evidence": [
+        {
+          "request": false,
+          "http_status": 400,
+          "response": {
+            "error": "Request must be an object"
+          },
+          "elapsed_s": 0.0216
+        },
+        {
+          "request": 0,
+          "http_status": 400,
+          "response": {
+            "error": "Request must be an object"
+          },
+          "elapsed_s": 0.0159
+        },
+        {
+          "request": [],
+          "http_status": 400,
+          "response": {
+            "error": "Request must be an object"
+          },
+          "elapsed_s": 0.0165
+        },
+        {
+          "request": {
+            "inputs": false
+          },
+          "http_status": 400,
+          "response": {
+            "error": "Inputs must be an object containing known fields"
+          },
+          "elapsed_s": 0.003
+        },
+        {
+          "request": {
+            "inputs": 0
+          },
+          "http_status": 400,
+          "response": {
+            "error": "Inputs must be an object containing known fields"
+          },
+          "elapsed_s": 0.028
+        },
+        {
+          "request": {
+            "inputs": []
+          },
+          "http_status": 400,
+          "response": {
+            "error": "Inputs must be an object containing known fields"
+          },
+          "elapsed_s": 0.0166
+        },
+        {
+          "request": {
+            "inputs": {},
+            "model_config": false
+          },
+          "http_status": 400,
+          "response": {
+            "error": "ModelConfig must be an object"
+          },
+          "elapsed_s": 0.0153
+        },
+        {
+          "request": {
+            "inputs": {},
+            "solver_config": 0
+          },
+          "http_status": 400,
+          "response": {
+            "error": "SolverConfig must be an object"
+          },
+          "elapsed_s": 0.0155
+        },
+        {
+          "request": {
+            "inputs": {
+              "span_m": false
+            }
+          },
+          "http_status": 400,
+          "response": {
+            "error": "span_m outside demo input bounds (6.0, 14.0)"
+          },
+          "elapsed_s": 0.0159
+        }
+      ]
+    },
+    {
+      "name": "real_mit_coefficient_boundary",
+      "status": "passed",
+      "evidence": {
+        "http_status": 200,
+        "elapsed_s": 0.1586,
+        "response": {
+          "model": {
+            "id": "mit_ld_full",
+            "version": "mit-coefficients-v1",
+            "source_commit": "b516d4b3e2e5e34fbd5233eacdf15317a96dc2d9",
+            "expected_source_commit": "b516d4b3e2e5e34fbd5233eacdf15317a96dc2d9",
+            "source_artifact_sha256": {
+              "predict_ld.py": "149252ffee028823c7a1b610643d72a5ee36966d5e62f3a220d7ffc69e74488e",
+              "flight_conversion.py": "f2a33c85a884b3b1b4e5c74e4f1a25f5150b74ecc2eaa0d87f3dc0627656dc2d",
+              "regressor.py": "a2e1f504a9dbf31f8e1dcffabf67887611f4260ab6528abf4bb91e027d24bebf",
+              "aero_design_space.json": "5b9db166b15c439ceeaf2e49d6f0c14140706d23ddfdf624c919c019d80cd1a8",
+              "reg_full.json": "3eac7742b4cedc3fd0d0d0e7912d8986ad19ee3281d56c2b3010a9223ae69206"
+            },
+            "geometry_decoder_id": "mit_ntop_ratio_v1",
+            "units": {
+              "B1/C1": "dimensionless",
+              "B2/C1": "dimensionless",
+              "B3/C1": "dimensionless",
+              "C2/C1": "dimensionless",
+              "C3/C1": "dimensionless",
+              "C4/C1": "dimensionless",
+              "S1": "deg",
+              "S3": "deg",
+              "X3/C1": "dimensionless",
+              "C1": "mm",
+              "alt_kft": "kft",
+              "kcas": "knots CAS",
+              "aoa": "deg",
+              "CL": "dimensionless",
+              "CD": "dimensionless",
+              "LD": "dimensionless",
+              "Re_L": "dimensionless",
+              "M_inf": "dimensionless"
+            },
+            "axes": {
+              "CL_CD": "native integrated lift/drag coefficients",
+              "body_axis_transform": null,
+              "reason": "wrapper exports no force vector or axis transform"
+            },
+            "S_ref": null,
+            "length_ref": null,
+            "moment_reference": null,
+            "reference_status": "paper_canonical_reference_known_but_wrapper_label_provenance_unresolved",
+            "paper_reference_only": {
+              "S_ref_m2": 1.0,
+              "length_ref_m": 1.0,
+              "moment_reference": "nose",
+              "usable_for_force_conversion": false,
+              "evidence_id": "MIT-PAPER-REF"
+            },
+            "supported_inputs": [
+              "geometry_decoder_id",
+              "geometry",
+              "condition"
+            ],
+            "supported_quantities": [
+              "CL",
+              "CD",
+              "LD",
+              "Re_L",
+              "M_inf"
+            ],
+            "supported_load_cases": [
+              "single_steady_aerodynamic_coefficient_condition"
+            ],
+            "unsupported_quantities": {
+              "L_N": "coefficient_reference_provenance_unresolved",
+              "D_N": "coefficient_reference_provenance_unresolved",
+              "Cm": "not_provided_by_wrapper",
+              "control_response": "not_provided_by_wrapper",
+              "distributed_loads": "not_provided_by_wrapper",
+              "stress": "no_structural_response_model_connected"
+            },
+            "validity_domain": {
+              "geometry_box": {
+                "B1/C1": [
+                  0.1000261,
+                  0.1999978
+                ],
+                "B2/C1": [
+                  0.0500143,
+                  0.1999828
+                ],
+                "B3/C1": [
+                  0.3500802,
+                  0.6999412
+                ],
+                "C2/C1": [
+                  0.5500737,
+                  0.8499953
+                ],
+                "C3/C1": [
+                  0.1800016,
+                  0.2799979
+                ],
+                "C4/C1": [
+                  0.0600129,
+                  0.0899936
+                ],
+                "S1": [
+                  40.003,
+                  59.9993
+                ],
+                "S3": [
+                  20.0015,
+                  44.9884
+                ],
+                "X3/C1": [
+                  0.5,
+                  0.6499
+                ],
+                "C1": [
+                  2500.0,
+                  4000.0
+                ]
+              },
+              "geometry_box_source": "aero_design_space.json feasible-subset SEARCH box; C1 from README",
+              "raw_flight_box": {
+                "alt_kft": [
+                  0.0015,
+                  18.0
+                ],
+                "kcas": [
+                  33.02,
+                  249.95
+                ],
+                "aoa": [
+                  -8.0,
+                  16.0
+                ]
+              },
+              "converted_flight_box": {
+                "Re_L": [
+                  50700.0,
+                  100000000.0
+                ],
+                "M_inf": [
+                  0.05,
+                  0.5
+                ]
+              },
+              "joint_coverage": "unknown; axis-aligned box does not establish joint training support"
+            },
+            "domain_check_status": "per_prediction_required",
+            "evidence_ids": [
+              "MIT-WRAPPER",
+              "MIT-DOMAIN",
+              "MIT-PAPER-REF",
+              "MIT-LABEL-GAP"
+            ],
+            "resource_available": true,
+            "failure_reason": null,
+            "resource_diagnostics": {
+              "missing": [],
+              "changed_since_audit": []
+            },
+            "analysis_modes": {
+              "coefficient_analysis": true,
+              "aircraft_trim_mission": false
+            },
+            "uncertainty_metadata": null,
+            "uncertainty_reason": "no_independent_calibration_or_test_data_and_pretraining_membership_unknown",
+            "sample_request": {
+              "geometry_decoder_id": "mit_ntop_ratio_v1",
+              "geometry": {
+                "B1/C1": 0.15,
+                "B2/C1": 0.12,
+                "B3/C1": 0.52,
+                "C2/C1": 0.7,
+                "C3/C1": 0.23,
+                "C4/C1": 0.075,
+                "S1": 50.0,
+                "S3": 30.0,
+                "X3/C1": 0.575,
+                "C1": 3000.0
+              },
+              "condition": {
+                "alt_kft": 15.0,
+                "kcas": 180.0,
+                "aoa": 6.0
+              }
+            }
+          },
+          "prediction": {
+            "condition_id": "0b4e9946d5fb3419196ae1fce7533a91d4143f05e516dc055c4d207f67ecb126",
+            "state_id": "e0a1331269e5b87ddfe0ede2bc2fe88df2d533749fd8d81b918494df1af2b27e",
+            "quantities": {
+              "CL": 0.2031782846781992,
+              "CD": 0.016652316320171917,
+              "LD": 12.201202569763677,
+              "Re_L": 16325142.539704924,
+              "M_inf": 0.3597453619862515
+            },
+            "availability_per_quantity": {
+              "CL": {
+                "available": true,
+                "reason": null
+              },
+              "CD": {
+                "available": true,
+                "reason": null
+              },
+              "LD": {
+                "available": true,
+                "reason": null
+              },
+              "Re_L": {
+                "available": true,
+                "reason": null
+              },
+              "M_inf": {
+                "available": true,
+                "reason": null
+              },
+              "L_N": {
+                "available": false,
+                "reason": "coefficient_reference_provenance_unresolved"
+              },
+              "D_N": {
+                "available": false,
+                "reason": "coefficient_reference_provenance_unresolved"
+              },
+              "Cm": {
+                "available": false,
+                "reason": "not_provided_by_wrapper"
+              },
+              "control_response": {
+                "available": false,
+                "reason": "not_provided_by_wrapper"
+              },
+              "distributed_loads": {
+                "available": false,
+                "reason": "not_provided_by_wrapper"
+              },
+              "stress": {
+                "available": false,
+                "reason": "no_structural_response_model_connected"
+              }
+            },
+            "failure_reason": null,
+            "status": "coefficient_prediction",
+            "domain_check_status": "inside_declared_boxes_joint_support_unknown",
+            "uncertainty_metadata": null,
+            "uncertainty_reason": "no_independent_calibration_or_test_data_and_pretraining_membership_unknown",
+            "evidence_ids": [
+              "MIT-WRAPPER",
+              "MIT-DOMAIN",
+              "MIT-PAPER-REF",
+              "MIT-LABEL-GAP"
+            ],
+            "input_hash": "aeeef522148ffaeebd8f8be9f7bb1a3bc4e90ebdfdbda0ffb0fd8777d3000ad1",
+            "condition": {
+              "alt_kft": 15.0,
+              "kcas": 180.0,
+              "aoa": 6.0
+            },
+            "geometry": {
+              "B1/C1": 0.15,
+              "B2/C1": 0.12,
+              "B3/C1": 0.52,
+              "C2/C1": 0.7,
+              "C3/C1": 0.23,
+              "C4/C1": 0.075,
+              "S1": 50.0,
+              "S3": 30.0,
+              "X3/C1": 0.575,
+              "C1": 3000.0
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "no_data_uq_not_evaluated",
+      "status": "passed",
+      "evidence": {
+        "http_status": 200,
+        "elapsed_s": 0.0016,
+        "response": {
+          "schema_version": "bwb-uq-offline-v1",
+          "status": "not_evaluated",
+          "reason": "independent_reference_predictions_and_split_manifest_not_supplied",
+          "metrics": null,
+          "uncertainty_metadata": null,
+          "limitations": [
+            "Metrics compare the surrogate with the declared reference fidelity, not with a real aircraft.",
+            "Empirical marginal coverage is not a per-candidate, multi-output, multi-condition or aircraft-feasibility guarantee.",
+            "Optimization-selected rows are reported separately; exchangeability is not asserted after optimization.",
+            "Split and protection declarations are checked for consistency; their real-world truth requires independent evidence review."
+          ]
+        }
+      }
+    },
+    {
+      "name": "small_http_optimizer_shared_evaluator",
+      "status": "passed",
+      "evidence": {
+        "http_status": 200,
+        "elapsed_s": 3.2332,
+        "request_search": {
+          "variables": {
+            "span_m": [
+              7.8,
+              8.2
+            ],
+            "thickness_mm": [
+              1.0,
+              1.4
+            ]
+          },
+          "grid_levels": 2,
+          "search_budget": 3,
+          "max_rounds": 1,
+          "seed": 0
+        },
+        "run_id": "a2242d9bf76a3cd2",
+        "status": "candidate_selected",
+        "candidates": [
+          {
+            "index": 1,
+            "origin": "baseline",
+            "design": {
+              "root_chord_m": 3.2,
+              "span_m": 8.0,
+              "thickness_mm": 1.2,
+              "rated_payload_kg": 70.0,
+              "power_kw": 80.0,
+              "tank_offset_mac": 0.04,
+              "tank_fraction": 0.12
+            },
+            "analysis_id": "615f201f-d108-4ccb-abe7-07d6da72462c",
+            "analysis_hash": "40039fb5ff22ecf316bcffb74f34a6d7b5d5ff6197cbd477b3ed0af95c308629",
+            "evaluation_status": "feasible",
+            "objective": 304.67907207709663,
+            "tightest_constraint": {
+              "id": "rated_payload",
+              "name": "额定装载",
+              "value": 70.0,
+              "limit": 70.0,
+              "unit": "kg",
+              "sense": "<=",
+              "g": 0.0,
+              "margin": -0.0,
+              "normalized_margin": -0.0,
+              "normalization_scale": 70.0,
+              "pass_": true,
+              "source": {
+                "analysis_hash": "40039fb5ff22ecf316bcffb74f34a6d7b5d5ff6197cbd477b3ed0af95c308629",
+                "module": "M01",
+                "condition_id": "mission_loading",
+                "state_id": "3ad23fc8ade61601",
+                "state": {
+                  "phase": "climb",
+                  "time_s": 0.0,
+                  "altitude_m": 0.0,
+                  "fuel_kg": 26.21837043221415,
+                  "condition_id": "climb:0.000000000",
+                  "state_id": "3ad23fc8ade61601",
+                  "alpha_deg": 0.252120194335425,
+                  "elevon_deg": 1.844651860755612,
+                  "CL": 0.2280001197645161,
+                  "CD": 0.02594135633743393,
+                  "Cm_CG": 0.0,
+                  "lift_N": 2984.491479378245,
+                  "drag_N": 339.5689310713934,
+                  "thrust_N": 481.84897974686294,
+                  "ld": 8.789059322835293,
+                  "power_required_kw": 25.945714294061847,
+                  "power_available_kw": 68.00000100608291,
+                  "fuel_flow_kg_s": 0.002162142857838487,
+                  "lift_residual_N": 0.0,
+                  "moment_residual_Nm": 0.0,
+                  "cm_alpha_per_rad": -0.1717786597605851,
+                  "mass_kg": 304.67907207709663,
+                  "cg_mac": 0.29687081317820696,
+                  "cg_x_m": 1.556808592302013,
+                  "q_Pa": 1080.450015985622,
+                  "Re": 5668462.402556301,
+                  "Mach": 0.12342269178372915,
+                  "fixed_control": true,
+                  "moment_reference_x_m": 1.4644100842152536,
+                  "power_enforced": true
+                }
+              }
+            },
+            "failure": null
+          },
+          {
+            "index": 2,
+            "origin": "grid",
+            "design": {
+              "root_chord_m": 3.2,
+              "span_m": 7.8,
+              "thickness_mm": 1.0,
+              "rated_payload_kg": 70.0,
+              "power_kw": 80.0,
+              "tank_offset_mac": 0.04,
+              "tank_fraction": 0.12
+            },
+            "analysis_id": "ef42b247-38e1-4aa0-83c9-1779a891e477",
+            "analysis_hash": "20a29fea738e9b84686850b28c37f71407e05344daeed5020fcfc197479064a3",
+            "evaluation_status": "feasible",
+            "objective": 284.71916517679296,
+            "tightest_constraint": {
+              "id": "rated_payload",
+              "name": "额定装载",
+              "value": 70.0,
+              "limit": 70.0,
+              "unit": "kg",
+              "sense": "<=",
+              "g": 0.0,
+              "margin": -0.0,
+              "normalized_margin": -0.0,
+              "normalization_scale": 70.0,
+              "pass_": true,
+              "source": {
+                "analysis_hash": "20a29fea738e9b84686850b28c37f71407e05344daeed5020fcfc197479064a3",
+                "module": "M01",
+                "condition_id": "mission_loading",
+                "state_id": "995d4f54238f6547",
+                "state": {
+                  "phase": "climb",
+                  "time_s": 0.0,
+                  "altitude_m": 0.0,
+                  "fuel_kg": 25.394845090325934,
+                  "condition_id": "climb:0.000000000",
+                  "state_id": "995d4f54238f6547",
+                  "alpha_deg": 0.10517575228491784,
+                  "elevon_deg": 1.898566355995167,
+                  "CL": 0.2185267147578355,
+                  "CD": 0.025716505946578427,
+                  "Cm_CG": -6.938893903907228e-18,
+                  "lift_N": 2788.9737115610137,
+                  "drag_N": 328.2100273995815,
+                  "thrust_N": 461.1691322177242,
+                  "ld": 8.497527432839702,
+                  "power_required_kw": 24.832184042492845,
+                  "power_available_kw": 68.00000100608291,
+                  "fuel_flow_kg_s": 0.002069348670207737,
+                  "lift_residual_N": 0.0,
+                  "moment_residual_Nm": -1.7457924126431922e-13,
+                  "cm_alpha_per_rad": -0.16872272532745713,
+                  "mass_kg": 284.71916517679296,
+                  "cg_mac": 0.298024597844394,
+                  "cg_x_m": 1.5347937485320988,
+                  "q_Pa": 1080.450015985622,
+                  "Re": 5668462.402556302,
+                  "Mach": 0.12342269178372915,
+                  "fixed_control": true,
+                  "moment_reference_x_m": 1.44012073367705,
+                  "power_enforced": true
+                }
+              }
+            },
+            "failure": null
+          },
+          {
+            "index": 3,
+            "origin": "grid",
+            "design": {
+              "root_chord_m": 3.2,
+              "span_m": 7.8,
+              "thickness_mm": 1.4,
+              "rated_payload_kg": 70.0,
+              "power_kw": 80.0,
+              "tank_offset_mac": 0.04,
+              "tank_fraction": 0.12
+            },
+            "analysis_id": "29146d78-146b-4c25-9be5-350cb4bb80c0",
+            "analysis_hash": "091b9689769f47078e32527633eec32749400b42a9431c3992cfc8b1fcd947d7",
+            "evaluation_status": "feasible",
+            "objective": 318.7272657647752,
+            "tightest_constraint": {
+              "id": "rated_payload",
+              "name": "额定装载",
+              "value": 70.0,
+              "limit": 70.0,
+              "unit": "kg",
+              "sense": "<=",
+              "g": 0.0,
+              "margin": -0.0,
+              "normalized_margin": -0.0,
+              "normalization_scale": 70.0,
+              "pass_": true,
+              "source": {
+                "analysis_hash": "091b9689769f47078e32527633eec32749400b42a9431c3992cfc8b1fcd947d7",
+                "module": "M01",
+                "condition_id": "mission_loading",
+                "state_id": "2d6f020455ebafd3",
+                "state": {
+                  "phase": "climb",
+                  "time_s": 0.0,
+                  "altitude_m": 0.0,
+                  "fuel_kg": 26.23321764372137,
+                  "condition_id": "climb:0.000000000",
+                  "state_id": "2d6f020455ebafd3",
+                  "alpha_deg": 0.5134485460935656,
+                  "elevon_deg": 1.7683515084482153,
+                  "CL": 0.24462849997496747,
+                  "CD": 0.02664677512105518,
+                  "Cm_CG": -3.469446951953614e-18,
+                  "lift_N": 3122.100912398058,
+                  "drag_N": 340.08270061103013,
+                  "thrust_N": 488.9230216020841,
+                  "ld": 9.180416724486564,
+                  "power_required_kw": 26.32662424011222,
+                  "power_available_kw": 68.00000100608291,
+                  "fuel_flow_kg_s": 0.002193885353342685,
+                  "lift_residual_N": 0.0,
+                  "moment_residual_Nm": -8.728962063215961e-14,
+                  "cm_alpha_per_rad": -0.17588296491794325,
+                  "mass_kg": 318.7272657647752,
+                  "cg_mac": 0.296127682594406,
+                  "cg_x_m": 1.5310542755598782,
+                  "q_Pa": 1080.450015985622,
+                  "Re": 5668462.402556302,
+                  "Mach": 0.12342269178372915,
+                  "fixed_control": true,
+                  "moment_reference_x_m": 1.44012073367705,
+                  "power_enforced": true
+                }
+              }
+            },
+            "failure": null
+          },
+          {
+            "index": 4,
+            "origin": "grid",
+            "design": {
+              "root_chord_m": 3.2,
+              "span_m": 8.2,
+              "thickness_mm": 1.0,
+              "rated_payload_kg": 70.0,
+              "power_kw": 80.0,
+              "tank_offset_mac": 0.04,
+              "tank_fraction": 0.12
+            },
+            "analysis_id": "1369b8f4-650f-4258-bd54-db0616fd7dd0",
+            "analysis_hash": "3d19b6c653f1ff3c42459d817c0d6829ba3bd1011a5f14d13e091944743f2091",
+            "evaluation_status": "feasible",
+            "objective": 289.82568739394276,
+            "tightest_constraint": {
+              "id": "rated_payload",
+              "name": "额定装载",
+              "value": 70.0,
+              "limit": 70.0,
+              "unit": "kg",
+              "sense": "<=",
+              "g": 0.0,
+              "margin": -0.0,
+              "normalized_margin": -0.0,
+              "normalization_scale": 70.0,
+              "pass_": true,
+              "source": {
+                "analysis_hash": "3d19b6c653f1ff3c42459d817c0d6829ba3bd1011a5f14d13e091944743f2091",
+                "module": "M01",
+                "condition_id": "mission_loading",
+                "state_id": "38a6d2c0c32eadf6",
+                "state": {
+                  "phase": "climb",
+                  "time_s": 0.0,
+                  "altitude_m": 0.0,
+                  "fuel_kg": 26.2488380722723,
+                  "condition_id": "climb:0.000000000",
+                  "state_id": "38a6d2c0c32eadf6",
+                  "alpha_deg": -0.0018549277612928974,
+                  "elevon_deg": 1.9184256933934456,
+                  "CL": 0.2115950287358585,
+                  "CD": 0.025318041999722592,
+                  "Cm_CG": 0.0,
+                  "lift_N": 2838.994777801109,
+                  "drag_N": 339.6950743634396,
+                  "thrust_N": 475.0388399482876,
+                  "ld": 8.357479963820936,
+                  "power_required_kw": 25.57901445875395,
+                  "power_available_kw": 68.00000100608291,
+                  "fuel_flow_kg_s": 0.002131584538229496,
+                  "lift_residual_N": 0.0,
+                  "moment_residual_Nm": 0.0,
+                  "cm_alpha_per_rad": -0.16721020243022347,
+                  "mass_kg": 289.82568739394276,
+                  "cg_mac": 0.297736483011375,
+                  "cg_x_m": 1.5828044760888789,
+                  "q_Pa": 1080.450015985622,
+                  "Re": 5668462.402556302,
+                  "Mach": 0.12342269178372915,
+                  "fixed_control": true,
+                  "moment_reference_x_m": 1.4886994347534575,
+                  "power_enforced": true
+                }
+              }
+            },
+            "failure": null
+          },
+          {
+            "index": 5,
+            "origin": "grid",
+            "design": {
+              "root_chord_m": 3.2,
+              "span_m": 8.2,
+              "thickness_mm": 1.4,
+              "rated_payload_kg": 70.0,
+              "power_kw": 80.0,
+              "tank_offset_mac": 0.04,
+              "tank_fraction": 0.12
+            },
+            "analysis_id": "ab5bb08f-6baf-44ee-8940-4a9114b5ad3b",
+            "analysis_hash": "f7725c813e3b62b480c9c7e2e2c281d4872312546367be2eacc074221f431ed1",
+            "evaluation_status": "feasible",
+            "objective": 325.5080682790157,
+            "tightest_constraint": {
+              "id": "rated_payload",
+              "name": "额定装载",
+              "value": 70.0,
+              "limit": 70.0,
+              "unit": "kg",
+              "sense": "<=",
+              "g": 0.0,
+              "margin": -0.0,
+              "normalized_margin": -0.0,
+              "normalization_scale": 70.0,
+              "pass_": true,
+              "source": {
+                "analysis_hash": "f7725c813e3b62b480c9c7e2e2c281d4872312546367be2eacc074221f431ed1",
+                "module": "M01",
+                "condition_id": "mission_loading",
+                "state_id": "085815536661160e",
+                "state": {
+                  "phase": "climb",
+                  "time_s": 0.0,
+                  "altitude_m": 0.0,
+                  "fuel_kg": 27.06047922867705,
+                  "condition_id": "climb:0.000000000",
+                  "state_id": "085815536661160e",
+                  "alpha_deg": 0.3995709294100995,
+                  "elevon_deg": 1.7912505302256552,
+                  "CL": 0.2376459094449873,
+                  "CD": 0.026174429740939323,
+                  "Cm_CG": 0.0,
+                  "lift_N": 3188.5224332105427,
+                  "drag_N": 351.1853269445729,
+                  "thrust_N": 503.19216969640195,
+                  "ld": 9.079315644966519,
+                  "power_required_kw": 27.09496298365241,
+                  "power_available_kw": 68.00000100608291,
+                  "fuel_flow_kg_s": 0.002257913581971034,
+                  "lift_residual_N": 0.0,
+                  "moment_residual_Nm": 0.0,
+                  "cm_alpha_per_rad": -0.17455966268410458,
+                  "mass_kg": 325.5080682790157,
+                  "cg_mac": 0.2958171341789094,
+                  "cg_x_m": 1.5790207788028172,
+                  "q_Pa": 1080.450015985622,
+                  "Re": 5668462.402556302,
+                  "Mach": 0.12342269178372915,
+                  "fixed_control": true,
+                  "moment_reference_x_m": 1.4886994347534575,
+                  "power_enforced": true
+                }
+              }
+            },
+            "failure": null
+          },
+          {
+            "index": 6,
+            "origin": "pattern",
+            "design": {
+              "root_chord_m": 3.2,
+              "span_m": 7.88,
+              "thickness_mm": 1.0,
+              "rated_payload_kg": 70.0,
+              "power_kw": 80.0,
+              "tank_offset_mac": 0.04,
+              "tank_fraction": 0.12
+            },
+            "analysis_id": "ae19ca4e-b36c-4dfd-95ff-40f5196b8f21",
+            "analysis_hash": "f7f18b3f310a7ba67e47c7c38904fe11719e88ea1f9616d49396789285cb7ed9",
+            "evaluation_status": "feasible",
+            "objective": 285.7382153947128,
+            "tightest_constraint": {
+              "id": "rated_payload",
+              "name": "额定装载",
+              "value": 70.0,
+              "limit": 70.0,
+              "unit": "kg",
+              "sense": "<=",
+              "g": 0.0,
+              "margin": -0.0,
+              "normalized_margin": -0.0,
+              "normalization_scale": 70.0,
+              "pass_": true,
+              "source": {
+                "analysis_hash": "f7f18b3f310a7ba67e47c7c38904fe11719e88ea1f9616d49396789285cb7ed9",
+                "module": "M01",
+                "condition_id": "mission_loading",
+                "state_id": "0c39de51dbb6bc80",
+                "state": {
+                  "phase": "climb",
+                  "time_s": 0.0,
+                  "altitude_m": 0.0,
+                  "fuel_kg": 25.56338946120506,
+                  "condition_id": "climb:0.000000000",
+                  "state_id": "0c39de51dbb6bc80",
+                  "alpha_deg": 0.08261146261393355,
+                  "elevon_deg": 1.9028290898043196,
+                  "CL": 0.217082367005204,
+                  "CD": 0.025631066136577767,
+                  "Cm_CG": 0.0,
+                  "lift_N": 2798.955843486605,
+                  "drag_N": 330.4746641906949,
+                  "thrust_N": 463.9096484764359,
+                  "ld": 8.469502042890387,
+                  "power_required_kw": 24.97975030257732,
+                  "power_available_kw": 68.00000100608291,
+                  "fuel_flow_kg_s": 0.00208164585854811,
+                  "lift_residual_N": 0.0,
+                  "moment_residual_Nm": 0.0,
+                  "cm_alpha_per_rad": -0.16840551455906191,
+                  "mass_kg": 285.7382153947128,
+                  "cg_mac": 0.297966213890993,
+                  "cg_x_m": 1.5443943938765068,
+                  "q_Pa": 1080.450015985622,
+                  "Re": 5668462.402556301,
+                  "Mach": 0.12342269178372915,
+                  "fixed_control": true,
+                  "moment_reference_x_m": 1.449836473892331,
+                  "power_enforced": true
+                }
+              }
+            },
+            "failure": null
+          },
+          {
+            "index": 7,
+            "origin": "pattern",
+            "design": {
+              "root_chord_m": 3.2,
+              "span_m": 7.8,
+              "thickness_mm": 1.08,
+              "rated_payload_kg": 70.0,
+              "power_kw": 80.0,
+              "tank_offset_mac": 0.04,
+              "tank_fraction": 0.12
+            },
+            "analysis_id": "8c0e4934-2f43-4918-ae36-793d6bef7adb",
+            "analysis_hash": "302b4bdee939f3d3c23f9b2ee2b0b8485376d5a075b9f525e11976531f13de12",
+            "evaluation_status": "feasible",
+            "objective": 291.51288675795774,
+            "tightest_constraint": {
+              "id": "rated_payload",
+              "name": "额定装载",
+              "value": 70.0,
+              "limit": 70.0,
+              "unit": "kg",
+              "sense": "<=",
+              "g": 0.0,
+              "margin": -0.0,
+              "normalized_margin": -0.0,
+              "normalization_scale": 70.0,
+              "pass_": true,
+              "source": {
+                "analysis_hash": "302b4bdee939f3d3c23f9b2ee2b0b8485376d5a075b9f525e11976531f13de12",
+                "module": "M01",
+                "condition_id": "mission_loading",
+                "state_id": "77976c54c8b44b39",
+                "state": {
+                  "phase": "climb",
+                  "time_s": 0.0,
+                  "altitude_m": 0.0,
+                  "fuel_kg": 25.554621064573347,
+                  "condition_id": "climb:0.000000000",
+                  "state_id": "77976c54c8b44b39",
+                  "alpha_deg": 0.18673592560748206,
+                  "elevon_deg": 1.8725489081262325,
+                  "CL": 0.2237410095426263,
+                  "CD": 0.025893909226709654,
+                  "Cm_CG": 0.0,
+                  "lift_N": 2855.521781417035,
+                  "drag_N": 330.47415828709785,
+                  "thrust_N": 466.60581785495145,
+                  "ld": 8.64068100276789,
+                  "power_required_kw": 25.124928653728155,
+                  "power_available_kw": 68.00000100608291,
+                  "fuel_flow_kg_s": 0.002093744054477346,
+                  "lift_residual_N": 0.0,
+                  "moment_residual_Nm": 0.0,
+                  "cm_alpha_per_rad": -0.17028764231546603,
+                  "mass_kg": 291.51288675795774,
+                  "cg_mac": 0.29761001466431947,
+                  "cg_x_m": 1.5339764623636019,
+                  "q_Pa": 1080.450015985622,
+                  "Re": 5668462.402556302,
+                  "Mach": 0.12342269178372915,
+                  "fixed_control": true,
+                  "moment_reference_x_m": 1.44012073367705,
+                  "power_enforced": true
+                }
+              }
+            },
+            "failure": null
+          }
+        ],
+        "search": {
+          "method": "coordinate_pattern_search",
+          "evaluations": 2,
+          "budget": 3,
+          "total_evaluations": 7,
+          "stop_reason": "round_budget_exhausted",
+          "rounds": [
+            {
+              "round": 1,
+              "step_fraction": 0.2,
+              "improved": false,
+              "center_analysis_id": "ef42b247-38e1-4aa0-83c9-1779a891e477",
+              "objective": 284.71916517679296,
+              "pattern_evaluations": 2
+            }
+          ],
+          "elapsed_s": 3.1742053999914788,
+          "selection_rule": "feasible objective first; among valid infeasible points reduce normalized violation; unknown has no fake objective"
+        },
+        "best": {
+          "analysis_id": "ef42b247-38e1-4aa0-83c9-1779a891e477",
+          "analysis_hash": "20a29fea738e9b84686850b28c37f71407e05344daeed5020fcfc197479064a3",
+          "design_hash": "2903782c506ba6fd",
+          "config_hash": "ca5c8cfafed8cf61c3cd9410e589759dd7f64c9c29221b6113fd3829b1eafb6c",
+          "mission_hash": "781be9a3879fe319862dcde7f6b5ca9e6c2823d29b2958ab1605aeb1cdf9a636",
+          "load_case_hash": "ec5da4576891a437c669952d2f4b532cb36fd9bd502e0f53ee7d453b0fd607dd",
+          "status": "demo_converged",
+          "numeric_convergence": "converged",
+          "evaluation_status": "feasible",
+          "failure": null,
+          "fuel_loaded_kg": 25.394845090325934,
+          "fuel_residual_kg": -4.861852460180671e-06,
+          "failure_details": null,
+          "mass_kg": 284.71916517679296,
+          "max_stress_MPa": 12.875953718412639,
+          "tip_deflection_m": 0.0071780920425284726,
+          "fuel_attempts": 119,
+          "model_id": "illustrative-bwb-v2",
+          "model_implementation_hash": "2f39826201abe7e5666c991412ea9d248134e9aef8b4111ca9a7ba7b2acc2f64",
+          "configuration": {
+            "model": {
+              "cl0": 0.2,
+              "cl_delta_per_rad": 0.35,
+              "cm0": 0.015,
+              "cm_alpha_per_rad": -0.35,
+              "cm_delta_per_rad": -0.75,
+              "cd0": 0.022,
+              "elevon_drag_factor": 0.025,
+              "oswald_e": 0.8,
+              "aerodynamic_sweep_deg": 32.0,
+              "propeller_efficiency": 0.78,
+              "bsfc_kg_kwh": 0.3,
+              "installed_power_fraction": 0.85,
+              "material_E_Pa": 70000000000.0,
+              "material_density_kg_m3": 2700.0,
+              "fuel_density_kg_m3": 800.0,
+              "demo_stress_limit_MPa": 120.0,
+              "demo_deflection_limit_fraction": 0.03,
+              "usable_volume_fraction": 0.7,
+              "usable_tank_fraction": 0.95,
+              "payload_space_fraction": 0.35,
+              "required_payload_volume_m3": 0.12,
+              "reserve_fraction_of_burn": 0.15,
+              "unusable_fuel_kg": 1.5,
+              "climb_rate_ms": 2.0,
+              "descent_rate_ms": -1.0,
+              "climb_speed_cap_ms": 42.0,
+              "descent_speed_cap_ms": 45.0,
+              "design_load_speed_ms": 60.0,
+              "design_load_altitude_m": 0.0,
+              "maneuver_type": "sustained",
+              "alpha_min_deg": -6.0,
+              "alpha_max_deg": 12.0,
+              "elevon_min_deg": -20.0,
+              "elevon_max_deg": 20.0,
+              "thickness_ratio": 0.14,
+              "connection_mass_kg": 8.0,
+              "propulsion_base_mass_kg": 18.0,
+              "propulsion_specific_power_kw_kg": 2.5,
+              "systems_base_mass_kg": 25.0,
+              "systems_rated_payload_fraction": 0.12,
+              "landing_gear_mass_kg": 15.0
+            },
+            "solver": {
+              "mission_steps": 36,
+              "load_strips": 100,
+              "fuel_scan_points": 101,
+              "fuel_tolerance_kg": 1e-05,
+              "fuel_max_iterations": 60,
+              "fuel_seed_fraction": 1.0
+            },
+            "hash": "ca5c8cfafed8cf61c3cd9410e589759dd7f64c9c29221b6113fd3829b1eafb6c",
+            "model_hash": "f8d93d923291e9b3d8fb5d6ddef7c5c4181232f5f444b1689fd55cfdc62b014e",
+            "solver_hash": "3d964d94f3c37300b67dc48431b653b9904a8693eec3459d58413dffb50e8e13"
+          }
+        },
+        "scope": "HTTP smoke search only; not the full default optimization experiment."
+      }
+    },
+    {
+      "name": "integer_browser_json_matches_cli_optimization",
+      "status": "passed",
+      "evidence": {
+        "http_run_id": "a2242d9bf76a3cd2",
+        "cli_run_id": "a2242d9bf76a3cd2",
+        "http_candidates": [
+          {
+            "index": 1,
+            "origin": "baseline",
+            "analysis_hash": "40039fb5ff22ecf316bcffb74f34a6d7b5d5ff6197cbd477b3ed0af95c308629",
+            "evaluation_status": "feasible",
+            "objective": 304.67907207709663
+          },
+          {
+            "index": 2,
+            "origin": "grid",
+            "analysis_hash": "20a29fea738e9b84686850b28c37f71407e05344daeed5020fcfc197479064a3",
+            "evaluation_status": "feasible",
+            "objective": 284.71916517679296
+          },
+          {
+            "index": 3,
+            "origin": "grid",
+            "analysis_hash": "091b9689769f47078e32527633eec32749400b42a9431c3992cfc8b1fcd947d7",
+            "evaluation_status": "feasible",
+            "objective": 318.7272657647752
+          },
+          {
+            "index": 4,
+            "origin": "grid",
+            "analysis_hash": "3d19b6c653f1ff3c42459d817c0d6829ba3bd1011a5f14d13e091944743f2091",
+            "evaluation_status": "feasible",
+            "objective": 289.82568739394276
+          },
+          {
+            "index": 5,
+            "origin": "grid",
+            "analysis_hash": "f7725c813e3b62b480c9c7e2e2c281d4872312546367be2eacc074221f431ed1",
+            "evaluation_status": "feasible",
+            "objective": 325.5080682790157
+          },
+          {
+            "index": 6,
+            "origin": "pattern",
+            "analysis_hash": "f7f18b3f310a7ba67e47c7c38904fe11719e88ea1f9616d49396789285cb7ed9",
+            "evaluation_status": "feasible",
+            "objective": 285.7382153947128
+          },
+          {
+            "index": 7,
+            "origin": "pattern",
+            "analysis_hash": "302b4bdee939f3d3c23f9b2ee2b0b8485376d5a075b9f525e11976531f13de12",
+            "evaluation_status": "feasible",
+            "objective": 291.51288675795774
+          }
+        ],
+        "cli_candidates": [
+          {
+            "index": 1,
+            "origin": "baseline",
+            "analysis_hash": "40039fb5ff22ecf316bcffb74f34a6d7b5d5ff6197cbd477b3ed0af95c308629",
+            "evaluation_status": "feasible",
+            "objective": 304.67907207709663
+          },
+          {
+            "index": 2,
+            "origin": "grid",
+            "analysis_hash": "20a29fea738e9b84686850b28c37f71407e05344daeed5020fcfc197479064a3",
+            "evaluation_status": "feasible",
+            "objective": 284.71916517679296
+          },
+          {
+            "index": 3,
+            "origin": "grid",
+            "analysis_hash": "091b9689769f47078e32527633eec32749400b42a9431c3992cfc8b1fcd947d7",
+            "evaluation_status": "feasible",
+            "objective": 318.7272657647752
+          },
+          {
+            "index": 4,
+            "origin": "grid",
+            "analysis_hash": "3d19b6c653f1ff3c42459d817c0d6829ba3bd1011a5f14d13e091944743f2091",
+            "evaluation_status": "feasible",
+            "objective": 289.82568739394276
+          },
+          {
+            "index": 5,
+            "origin": "grid",
+            "analysis_hash": "f7725c813e3b62b480c9c7e2e2c281d4872312546367be2eacc074221f431ed1",
+            "evaluation_status": "feasible",
+            "objective": 325.5080682790157
+          },
+          {
+            "index": 6,
+            "origin": "pattern",
+            "analysis_hash": "f7f18b3f310a7ba67e47c7c38904fe11719e88ea1f9616d49396789285cb7ed9",
+            "evaluation_status": "feasible",
+            "objective": 285.7382153947128
+          },
+          {
+            "index": 7,
+            "origin": "pattern",
+            "analysis_hash": "302b4bdee939f3d3c23f9b2ee2b0b8485376d5a075b9f525e11976531f13de12",
+            "evaluation_status": "feasible",
+            "objective": 291.51288675795774
+          }
+        ],
+        "http_search": {
+          "method": "coordinate_pattern_search",
+          "evaluations": 2,
+          "budget": 3,
+          "total_evaluations": 7,
+          "stop_reason": "round_budget_exhausted",
+          "rounds": [
+            {
+              "round": 1,
+              "step_fraction": 0.2,
+              "improved": false,
+              "center_analysis_id": "ef42b247-38e1-4aa0-83c9-1779a891e477",
+              "objective": 284.71916517679296,
+              "pattern_evaluations": 2
+            }
+          ],
+          "elapsed_s": 3.1742053999914788,
+          "selection_rule": "feasible objective first; among valid infeasible points reduce normalized violation; unknown has no fake objective"
+        },
+        "cli_search": {
+          "method": "coordinate_pattern_search",
+          "evaluations": 2,
+          "budget": 3,
+          "total_evaluations": 7,
+          "stop_reason": "round_budget_exhausted",
+          "rounds": [
+            {
+              "round": 1,
+              "step_fraction": 0.2,
+              "improved": false,
+              "center_analysis_id": "98cc83ee-59aa-42b3-a482-363296547aae",
+              "objective": 284.71916517679296,
+              "pattern_evaluations": 2
+            }
+          ],
+          "elapsed_s": 3.186185500002466,
+          "selection_rule": "feasible objective first; among valid infeasible points reduce normalized violation; unknown has no fake objective"
+        },
+        "input_example": {
+          "browser_span_m_type": "int",
+          "cli_span_m_type": "float"
+        },
+        "scope": "Same local evaluator, settings and physical values; compares browser-style integer-valued JSON with native defaults. UUID analysis_id is deliberately excluded."
+      }
+    },
+    {
+      "name": "selected_candidate_same_model_numerical_refinement",
+      "status": "passed",
+      "evidence": {
+        "http_status": 200,
+        "elapsed_s": 0.9934,
+        "source_optimization": "evidence\\optimization-example.json",
+        "source_sha256": "89f331885f6afebe0eb67fa3d02ba258ed0301a5a08036e61689548843010650",
+        "source_run_id": "d50feb01ebee86f4",
+        "expected_review_run_match": true,
+        "original": {
+          "analysis_id": "b748308c-a793-41bc-b79c-926a54da3369",
+          "analysis_hash": "b77186da9603a36a12784d30858f53c5941a9553592e1bf56d27da3f56bb761b",
+          "design_hash": "50f31f89b07a0a50",
+          "config_hash": "ca5c8cfafed8cf61c3cd9410e589759dd7f64c9c29221b6113fd3829b1eafb6c",
+          "mission_hash": "781be9a3879fe319862dcde7f6b5ca9e6c2823d29b2958ab1605aeb1cdf9a636",
+          "load_case_hash": "436b983d53b97bc0582353ba64fd736aeb5c7c6a271a6fd354f9600bc6b6ab1e",
+          "status": "demo_converged",
+          "numeric_convergence": "converged",
+          "evaluation_status": "feasible",
+          "failure": null,
+          "fuel_loaded_kg": 23.150931976372682,
+          "fuel_residual_kg": -9.529779820383055e-06,
+          "failure_details": null,
+          "mass_kg": 250.9363412692208,
+          "max_stress_MPa": 13.40905440974603,
+          "tip_deflection_m": 0.006032525191379366,
+          "fuel_attempts": 117,
+          "model_id": "illustrative-bwb-v2",
+          "model_implementation_hash": "2f39826201abe7e5666c991412ea9d248134e9aef8b4111ca9a7ba7b2acc2f64",
+          "configuration": {
+            "model": {
+              "cl0": 0.2,
+              "cl_delta_per_rad": 0.35,
+              "cm0": 0.015,
+              "cm_alpha_per_rad": -0.35,
+              "cm_delta_per_rad": -0.75,
+              "cd0": 0.022,
+              "elevon_drag_factor": 0.025,
+              "oswald_e": 0.8,
+              "aerodynamic_sweep_deg": 32.0,
+              "propeller_efficiency": 0.78,
+              "bsfc_kg_kwh": 0.3,
+              "installed_power_fraction": 0.85,
+              "material_E_Pa": 70000000000.0,
+              "material_density_kg_m3": 2700.0,
+              "fuel_density_kg_m3": 800.0,
+              "demo_stress_limit_MPa": 120.0,
+              "demo_deflection_limit_fraction": 0.03,
+              "usable_volume_fraction": 0.7,
+              "usable_tank_fraction": 0.95,
+              "payload_space_fraction": 0.35,
+              "required_payload_volume_m3": 0.12,
+              "reserve_fraction_of_burn": 0.15,
+              "unusable_fuel_kg": 1.5,
+              "climb_rate_ms": 2.0,
+              "descent_rate_ms": -1.0,
+              "climb_speed_cap_ms": 42.0,
+              "descent_speed_cap_ms": 45.0,
+              "design_load_speed_ms": 60.0,
+              "design_load_altitude_m": 0.0,
+              "maneuver_type": "sustained",
+              "alpha_min_deg": -6.0,
+              "alpha_max_deg": 12.0,
+              "elevon_min_deg": -20.0,
+              "elevon_max_deg": 20.0,
+              "thickness_ratio": 0.14,
+              "connection_mass_kg": 8.0,
+              "propulsion_base_mass_kg": 18.0,
+              "propulsion_specific_power_kw_kg": 2.5,
+              "systems_base_mass_kg": 25.0,
+              "systems_rated_payload_fraction": 0.12,
+              "landing_gear_mass_kg": 15.0
+            },
+            "solver": {
+              "mission_steps": 36,
+              "load_strips": 100,
+              "fuel_scan_points": 101,
+              "fuel_tolerance_kg": 1e-05,
+              "fuel_max_iterations": 60,
+              "fuel_seed_fraction": 1.0
+            },
+            "hash": "ca5c8cfafed8cf61c3cd9410e589759dd7f64c9c29221b6113fd3829b1eafb6c",
+            "model_hash": "f8d93d923291e9b3d8fb5d6ddef7c5c4181232f5f444b1689fd55cfdc62b014e",
+            "solver_hash": "3d964d94f3c37300b67dc48431b653b9904a8693eec3459d58413dffb50e8e13"
+          }
+        },
+        "refined": {
+          "analysis_id": "dfb4ae68-69e0-47df-8dc0-8d8883590710",
+          "analysis_hash": "1abc7e2dceccb583bd8266bd069a2e315231c157a4bf3e4d2e66c7c5e08be7b2",
+          "design_hash": "50f31f89b07a0a50",
+          "config_hash": "58ea9781b4e885999413920e8ae7cbd0bcaba5f82f3452dc90a152f3ce19cd05",
+          "mission_hash": "781be9a3879fe319862dcde7f6b5ca9e6c2823d29b2958ab1605aeb1cdf9a636",
+          "load_case_hash": "eb12c8d633b7671a8cf1e18cc6080c948a38c14eeed3dfa58cb958b65e83d9c1",
+          "status": "demo_converged",
+          "numeric_convergence": "converged",
+          "evaluation_status": "feasible",
+          "failure": null,
+          "fuel_loaded_kg": 23.15094872818092,
+          "fuel_residual_kg": 4.083483613470662e-06,
+          "failure_details": null,
+          "mass_kg": 250.93635802102904,
+          "max_stress_MPa": 13.401196585655597,
+          "tip_deflection_m": 0.006028206168786928,
+          "fuel_attempts": 119,
+          "model_id": "illustrative-bwb-v2",
+          "model_implementation_hash": "2f39826201abe7e5666c991412ea9d248134e9aef8b4111ca9a7ba7b2acc2f64",
+          "configuration": {
+            "model": {
+              "cl0": 0.2,
+              "cl_delta_per_rad": 0.35,
+              "cm0": 0.015,
+              "cm_alpha_per_rad": -0.35,
+              "cm_delta_per_rad": -0.75,
+              "cd0": 0.022,
+              "elevon_drag_factor": 0.025,
+              "oswald_e": 0.8,
+              "aerodynamic_sweep_deg": 32.0,
+              "propeller_efficiency": 0.78,
+              "bsfc_kg_kwh": 0.3,
+              "installed_power_fraction": 0.85,
+              "material_E_Pa": 70000000000.0,
+              "material_density_kg_m3": 2700.0,
+              "fuel_density_kg_m3": 800.0,
+              "demo_stress_limit_MPa": 120.0,
+              "demo_deflection_limit_fraction": 0.03,
+              "usable_volume_fraction": 0.7,
+              "usable_tank_fraction": 0.95,
+              "payload_space_fraction": 0.35,
+              "required_payload_volume_m3": 0.12,
+              "reserve_fraction_of_burn": 0.15,
+              "unusable_fuel_kg": 1.5,
+              "climb_rate_ms": 2.0,
+              "descent_rate_ms": -1.0,
+              "climb_speed_cap_ms": 42.0,
+              "descent_speed_cap_ms": 45.0,
+              "design_load_speed_ms": 60.0,
+              "design_load_altitude_m": 0.0,
+              "maneuver_type": "sustained",
+              "alpha_min_deg": -6.0,
+              "alpha_max_deg": 12.0,
+              "elevon_min_deg": -20.0,
+              "elevon_max_deg": 20.0,
+              "thickness_ratio": 0.14,
+              "connection_mass_kg": 8.0,
+              "propulsion_base_mass_kg": 18.0,
+              "propulsion_specific_power_kw_kg": 2.5,
+              "systems_base_mass_kg": 25.0,
+              "systems_rated_payload_fraction": 0.12,
+              "landing_gear_mass_kg": 15.0
+            },
+            "solver": {
+              "mission_steps": 72,
+              "load_strips": 200,
+              "fuel_scan_points": 101,
+              "fuel_tolerance_kg": 1e-05,
+              "fuel_max_iterations": 60,
+              "fuel_seed_fraction": 1.0
+            },
+            "hash": "58ea9781b4e885999413920e8ae7cbd0bcaba5f82f3452dc90a152f3ce19cd05",
+            "model_hash": "f8d93d923291e9b3d8fb5d6ddef7c5c4181232f5f444b1689fd55cfdc62b014e",
+            "solver_hash": "6f7bd58663a01ad26e07c58e653eb0e5f48410c5cc2d7fc43bdd6334831cda7a"
+          }
+        },
+        "metrics": {
+          "fuel_loaded_kg": {
+            "original": 23.150931976372682,
+            "refined": 23.15094872818092,
+            "delta": 1.6751808239234833e-05,
+            "relative_delta": 7.235910958717062e-07
+          },
+          "takeoff_mass_kg": {
+            "original": 250.9363412692208,
+            "refined": 250.93635802102904,
+            "delta": 1.6751808232129406e-05,
+            "relative_delta": 6.675720283239874e-08
+          },
+          "max_stress_MPa": {
+            "original": 13.40905440974603,
+            "refined": 13.401196585655597,
+            "delta": -0.007857824090432786,
+            "relative_delta": -0.0005860088154106919
+          },
+          "tip_deflection_m": {
+            "original": 0.006032525191379366,
+            "refined": 0.006028206168786928,
+            "delta": -4.319022592437494e-06,
+            "relative_delta": -0.0007159559977651628
+          }
+        },
+        "constraint_deltas": [
+          {
+            "id": "fuel_capacity",
+            "name": "油箱容量",
+            "unit": "kg",
+            "sense": "<=",
+            "original_value": 23.150931976372682,
+            "refined_value": 23.15094872818092,
+            "value_delta": 1.6751808239234833e-05,
+            "limit": 109.78465046234291,
+            "original_g": -86.63371848597023,
+            "refined_g": -86.63370173416199,
+            "g_delta": 1.675180824634026e-05,
+            "original_normalized_margin": 0.7891241455078126,
+            "refined_normalized_margin": 0.789123992919922,
+            "normalized_margin_delta": -1.5258789065608624e-07,
+            "original_pass": true,
+            "refined_pass": true,
+            "original_condition_id": "mission_initial",
+            "refined_condition_id": "mission_initial",
+            "refined_load_case_hash": null
+          },
+          {
+            "id": "payload_volume",
+            "name": "载荷空间代理",
+            "unit": "m³",
+            "sense": ">=",
+            "original_value": 0.42132267173048277,
+            "refined_value": 0.42132267173048277,
+            "value_delta": 0.0,
+            "limit": 0.12,
+            "original_g": -0.30132267173048277,
+            "refined_g": -0.30132267173048277,
+            "g_delta": 0.0,
+            "original_normalized_margin": 2.51102226442069,
+            "refined_normalized_margin": 2.51102226442069,
+            "normalized_margin_delta": 0.0,
+            "original_pass": true,
+            "refined_pass": true,
+            "original_condition_id": "fixed_geometry",
+            "refined_condition_id": "fixed_geometry",
+            "refined_load_case_hash": null
+          },
+          {
+            "id": "rated_payload",
+            "name": "额定装载",
+            "unit": "kg",
+            "sense": "<=",
+            "original_value": 70.0,
+            "refined_value": 70.0,
+            "value_delta": 0.0,
+            "limit": 70.0,
+            "original_g": 0.0,
+            "refined_g": 0.0,
+            "g_delta": 0.0,
+            "original_normalized_margin": -0.0,
+            "refined_normalized_margin": -0.0,
+            "normalized_margin_delta": 0.0,
+            "original_pass": true,
+            "refined_pass": true,
+            "original_condition_id": "mission_loading",
+            "refined_condition_id": "mission_loading",
+            "refined_load_case_hash": null
+          },
+          {
+            "id": "mission_power",
+            "name": "任务最小功率余量",
+            "unit": "kW",
+            "sense": ">=",
+            "original_value": 22.968748573221813,
+            "refined_value": 22.968747799816704,
+            "value_delta": -7.734051088448268e-07,
+            "limit": 0.0,
+            "original_g": -22.968748573221813,
+            "refined_g": -22.968747799816704,
+            "g_delta": 7.734051088448268e-07,
+            "original_normalized_margin": 0.3852201018569696,
+            "refined_normalized_margin": 0.3852200888858147,
+            "normalized_margin_delta": -1.2971154872420954e-08,
+            "original_pass": true,
+            "refined_pass": true,
+            "original_condition_id": "climb:750.000000000",
+            "refined_condition_id": "climb:750.000000000",
+            "refined_load_case_hash": null
+          },
+          {
+            "id": "alpha_min",
+            "name": "任务最小迎角",
+            "unit": "°",
+            "sense": ">=",
+            "original_value": -0.6076727514111008,
+            "refined_value": -0.6076725829358165,
+            "value_delta": 1.684752842789905e-07,
+            "limit": -6.0,
+            "original_g": -5.3923272485889,
+            "refined_g": -5.392327417064184,
+            "g_delta": -1.684752843900128e-07,
+            "original_normalized_margin": 0.29957373603271664,
+            "refined_normalized_margin": 0.2995737453924547,
+            "normalized_margin_delta": 9.359738040171095e-09,
+            "original_pass": true,
+            "refined_pass": true,
+            "original_condition_id": "descent:13361.111111111",
+            "refined_condition_id": "descent:13361.111111111",
+            "refined_load_case_hash": null
+          },
+          {
+            "id": "alpha_max",
+            "name": "任务最大迎角",
+            "unit": "°",
+            "sense": "<=",
+            "original_value": 0.5863771034306842,
+            "refined_value": 0.5863773630368853,
+            "value_delta": 2.596062010917777e-07,
+            "limit": 12.0,
+            "original_g": -11.413622896569315,
+            "refined_g": -11.413622636963115,
+            "g_delta": 2.5960619964848775e-07,
+            "original_normalized_margin": 0.6340901609205175,
+            "refined_normalized_margin": 0.6340901464979508,
+            "normalized_margin_delta": -1.4422566696481454e-08,
+            "original_pass": true,
+            "refined_pass": true,
+            "original_condition_id": "climb:750.000000000",
+            "refined_condition_id": "climb:750.000000000",
+            "refined_load_case_hash": null
+          },
+          {
+            "id": "elevon_min",
+            "name": "任务最小舵偏",
+            "unit": "°",
+            "sense": ">=",
+            "original_value": 1.596042086540243,
+            "refined_value": 1.5960420146256473,
+            "value_delta": -7.191459561184388e-08,
+            "limit": -20.0,
+            "original_g": -21.596042086540244,
+            "refined_g": -21.59604201462565,
+            "g_delta": 7.191459516775467e-08,
+            "original_normalized_margin": 0.5399010521635061,
+            "refined_normalized_margin": 0.5399010503656412,
+            "normalized_margin_delta": -1.7978649680117087e-09,
+            "original_pass": true,
+            "refined_pass": true,
+            "original_condition_id": "climb:750.000000000",
+            "refined_condition_id": "climb:750.000000000",
+            "refined_load_case_hash": null
+          },
+          {
+            "id": "elevon_max",
+            "name": "任务最大舵偏",
+            "unit": "°",
+            "sense": "<=",
+            "original_value": 1.9347165330735345,
+            "refined_value": 1.9347164864034925,
+            "value_delta": -4.667004205316516e-08,
+            "limit": 20.0,
+            "original_g": -18.065283466926466,
+            "refined_g": -18.06528351359651,
+            "g_delta": -4.667004205316516e-08,
+            "original_normalized_margin": 0.4516320866731617,
+            "refined_normalized_margin": 0.4516320878399127,
+            "normalized_margin_delta": 1.1667510291246685e-09,
+            "original_pass": true,
+            "refined_pass": true,
+            "original_condition_id": "descent:13361.111111111",
+            "refined_condition_id": "descent:13361.111111111",
+            "refined_load_case_hash": null
+          },
+          {
+            "id": "fixed_control_stability",
+            "name": "任务固定舵静稳定导数",
+            "unit": "rad⁻¹",
+            "sense": "<=",
+            "original_value": -0.20992883820987565,
+            "refined_value": -0.2099288378062342,
+            "value_delta": 4.0364145359461645e-10,
+            "limit": 0.0,
+            "original_g": -0.20992883820987565,
+            "refined_g": -0.2099288378062342,
+            "g_delta": 4.0364145359461645e-10,
+            "original_normalized_margin": 0.5997966805996447,
+            "refined_normalized_margin": 0.5997966794463835,
+            "normalized_margin_delta": -1.1532612642639606e-09,
+            "original_pass": true,
+            "refined_pass": true,
+            "original_condition_id": "climb:0.000000000",
+            "refined_condition_id": "climb:0.000000000",
+            "refined_load_case_hash": null
+          },
+          {
+            "id": "stress",
+            "name": "外翼弯曲应力",
+            "unit": "MPa",
+            "sense": "<=",
+            "original_value": 13.40905440974603,
+            "refined_value": 13.401196585655597,
+            "value_delta": -0.007857824090432786,
+            "limit": 120.0,
+            "original_g": -106.59094559025397,
+            "refined_g": -106.5988034143444,
+            "g_delta": -0.007857824090436338,
+            "original_normalized_margin": 0.888257879918783,
+            "refined_normalized_margin": 0.8883233617862033,
+            "normalized_margin_delta": 6.548186742028062e-05,
+            "original_pass": true,
+            "refined_pass": true,
+            "original_condition_id": "load-436b983d53b97bc0",
+            "refined_condition_id": "load-eb12c8d633b7671a",
+            "refined_load_case_hash": "eb12c8d633b7671a8cf1e18cc6080c948a38c14eeed3dfa58cb958b65e83d9c1"
+          },
+          {
+            "id": "deflection",
+            "name": "外翼端挠度",
+            "unit": "m",
+            "sense": "<=",
+            "original_value": 0.006032525191379366,
+            "refined_value": 0.006028206168786928,
+            "value_delta": -4.319022592437494e-06,
+            "limit": 0.08399999999999999,
+            "original_g": -0.07796747480862062,
+            "refined_g": -0.07797179383121307,
+            "g_delta": -4.3190225924444325e-06,
+            "original_normalized_margin": 0.9281842239121504,
+            "refined_normalized_margin": 0.9282356408477748,
+            "normalized_margin_delta": 5.14169356243821e-05,
+            "original_pass": true,
+            "refined_pass": true,
+            "original_condition_id": "load-436b983d53b97bc0",
+            "refined_condition_id": "load-eb12c8d633b7671a",
+            "refined_load_case_hash": "eb12c8d633b7671a8cf1e18cc6080c948a38c14eeed3dfa58cb958b65e83d9c1"
+          },
+          {
+            "id": "maneuver_power",
+            "name": "持续机动功率余量",
+            "unit": "kW",
+            "sense": ">=",
+            "original_value": 0.3705958448426756,
+            "refined_value": 0.37059441662093207,
+            "value_delta": -1.4282217435379607e-06,
+            "limit": 0.0,
+            "original_g": -0.3705958448426756,
+            "refined_g": -0.37059441662093207,
+            "g_delta": 1.4282217435379607e-06,
+            "original_normalized_margin": 0.006215443938661226,
+            "refined_normalized_margin": 0.006215419985256722,
+            "normalized_margin_delta": -2.3953404503819498e-08,
+            "original_pass": true,
+            "refined_pass": true,
+            "original_condition_id": "load-436b983d53b97bc0",
+            "refined_condition_id": "load-eb12c8d633b7671a",
+            "refined_load_case_hash": "eb12c8d633b7671a8cf1e18cc6080c948a38c14eeed3dfa58cb958b65e83d9c1"
+          },
+          {
+            "id": "maneuver_alpha_min",
+            "name": "机动最小迎角",
+            "unit": "°",
+            "sense": ">=",
+            "original_value": 0.8453305587264617,
+            "refined_value": 0.8453308418252027,
+            "value_delta": 2.830987410051833e-07,
+            "limit": -6.0,
+            "original_g": -6.845330558726461,
+            "refined_g": -6.845330841825203,
+            "g_delta": -2.830987417823394e-07,
+            "original_normalized_margin": 0.38029614215147006,
+            "refined_normalized_margin": 0.3802961578791779,
+            "normalized_margin_delta": 1.5727707858292916e-08,
+            "original_pass": true,
+            "refined_pass": true,
+            "original_condition_id": "load-436b983d53b97bc0",
+            "refined_condition_id": "load-eb12c8d633b7671a",
+            "refined_load_case_hash": "eb12c8d633b7671a8cf1e18cc6080c948a38c14eeed3dfa58cb958b65e83d9c1"
+          },
+          {
+            "id": "maneuver_alpha_max",
+            "name": "机动最大迎角",
+            "unit": "°",
+            "sense": "<=",
+            "original_value": 0.8453305587264617,
+            "refined_value": 0.8453308418252027,
+            "value_delta": 2.830987410051833e-07,
+            "limit": 12.0,
+            "original_g": -11.154669441273539,
+            "refined_g": -11.154669158174798,
+            "g_delta": 2.83098740894161e-07,
+            "original_normalized_margin": 0.6197038578485299,
+            "refined_normalized_margin": 0.6197038421208221,
+            "normalized_margin_delta": -1.5727707802781765e-08,
+            "original_pass": true,
+            "refined_pass": true,
+            "original_condition_id": "load-436b983d53b97bc0",
+            "refined_condition_id": "load-eb12c8d633b7671a",
+            "refined_load_case_hash": "eb12c8d633b7671a8cf1e18cc6080c948a38c14eeed3dfa58cb958b65e83d9c1"
+          },
+          {
+            "id": "maneuver_elevon_min",
+            "name": "机动最小舵偏",
+            "unit": "°",
+            "sense": ">=",
+            "original_value": 1.5224107408172423,
+            "refined_value": 1.5224106623948803,
+            "value_delta": -7.842236193766894e-08,
+            "limit": -20.0,
+            "original_g": -21.522410740817243,
+            "refined_g": -21.52241066239488,
+            "g_delta": 7.842236371402578e-08,
+            "original_normalized_margin": 0.5380602685204311,
+            "refined_normalized_margin": 0.5380602665598719,
+            "normalized_margin_delta": -1.960559159464026e-09,
+            "original_pass": true,
+            "refined_pass": true,
+            "original_condition_id": "load-436b983d53b97bc0",
+            "refined_condition_id": "load-eb12c8d633b7671a",
+            "refined_load_case_hash": "eb12c8d633b7671a8cf1e18cc6080c948a38c14eeed3dfa58cb958b65e83d9c1"
+          },
+          {
+            "id": "maneuver_elevon_max",
+            "name": "机动最大舵偏",
+            "unit": "°",
+            "sense": "<=",
+            "original_value": 1.5224107408172423,
+            "refined_value": 1.5224106623948803,
+            "value_delta": -7.842236193766894e-08,
+            "limit": 20.0,
+            "original_g": -18.477589259182757,
+            "refined_g": -18.47758933760512,
+            "g_delta": -7.842236371402578e-08,
+            "original_normalized_margin": 0.4619397314795689,
+            "refined_normalized_margin": 0.461939733440128,
+            "normalized_margin_delta": 1.9605591039528747e-09,
+            "original_pass": true,
+            "refined_pass": true,
+            "original_condition_id": "load-436b983d53b97bc0",
+            "refined_condition_id": "load-eb12c8d633b7671a",
+            "refined_load_case_hash": "eb12c8d633b7671a8cf1e18cc6080c948a38c14eeed3dfa58cb958b65e83d9c1"
+          },
+          {
+            "id": "maneuver_stability",
+            "name": "机动固定舵静稳定导数",
+            "unit": "rad⁻¹",
+            "sense": "<=",
+            "original_value": -0.20992883820987565,
+            "refined_value": -0.2099288378062342,
+            "value_delta": 4.0364145359461645e-10,
+            "limit": 0.0,
+            "original_g": -0.20992883820987565,
+            "refined_g": -0.2099288378062342,
+            "g_delta": 4.0364145359461645e-10,
+            "original_normalized_margin": 0.5997966805996447,
+            "refined_normalized_margin": 0.5997966794463835,
+            "normalized_margin_delta": -1.1532612642639606e-09,
+            "original_pass": true,
+            "refined_pass": true,
+            "original_condition_id": "load-436b983d53b97bc0",
+            "refined_condition_id": "load-eb12c8d633b7671a",
+            "refined_load_case_hash": "eb12c8d633b7671a8cf1e18cc6080c948a38c14eeed3dfa58cb958b65e83d9c1"
+          }
+        ],
+        "conclusion_scope": "Same-model numerical sensitivity check with mission steps 36→72 and load strips 100→200. One refinement is not an asymptotic convergence proof and not independent physical validation."
+      }
+    }
+  ],
+  "status": "passed",
+  "executed_check_count": 12
+}

@@ -1,3 +1,13 @@
+## This branch: independent BWB review-v2 workbench
+
+**Start here for this round: [BWB local demo and reproducible workflow](demos/bwb-flow/README_CN.md).** After installing the UI dependencies in `demos/bwb-flow/ui` with `npm ci`, Windows users can run [`demos/bwb-flow/Start-Demo.cmd`](demos/bwb-flow/Start-Demo.cmd) and open [the local BWB workbench](http://127.0.0.1:3981/). The calculation service uses port 8842; Python 3.11+ and Node 22.13+ are required.
+
+The isolated workbench provides traceable low-order aircraft analysis, a fixed-mission bounded search, editable 3D geometry, and a separate real MIT native-coefficient mode when the external resources and NumPy are available. MIT's callable wrapper does not supply complete trim or distributed loads. The selected aircraft remains a candidate under simplified models; independent aircraft validation and empirical UQ have not been completed. See the [engineering specification](docs/bwb-engineering-pipeline.md) and [model evidence](demos/bwb-flow/docs/models-evidence.md).
+
+The original platform and its documentation below are preserved. Its online demo and port-3900 application are separate entry points and do not show this round's BWB workbench.
+
+---
+
 <div align="center">
 
 # Rapid Process Design

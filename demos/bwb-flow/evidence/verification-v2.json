@@ -1,0 +1,243 @@
+{
+  "schema": "bwb-review-verification-v2",
+  "recorded_at_utc": "2026-09-10T08:04:14.056732+00:00",
+  "scope": "Independent local BWB demo on codex/bwb-engineering-demo; original application unchanged",
+  "automated_tests": {
+    "status": "passed",
+    "count": 45,
+    "core": 21,
+    "model_uq": 15,
+    "optimization": 9,
+    "command": "python -B -m unittest discover -v -p test_*.py",
+    "elapsed_s": 10.567
+  },
+  "frontend": {
+    "typescript": "passed",
+    "production_build": "passed",
+    "geometry_cases": 3,
+    "ui_contract_cases": 5,
+    "notes": [
+      "Build reports large bundled chunks and uncertain static route classification; build succeeds.",
+      "Geometry/contract tests use backend results, not independent aircraft references."
+    ]
+  },
+  "api_and_numerical": {
+    "status": "passed",
+    "count": 12,
+    "evidence": "api-numerical-verification.json"
+  },
+  "core_evidence": "core-v2-evidence.json",
+  "original_counterexamples": "pre-fix-core.json",
+  "optimization": {
+    "status": "candidate_selected",
+    "run_id": "d50feb01ebee86f4",
+    "evaluations": 41,
+    "baseline_mass_kg": 304.67907207709663,
+    "selected_mass_kg": 250.9363412692208,
+    "selected_fuel_kg": 23.150931976372682,
+    "selected_inputs": {
+      "root_chord_m": 3.2,
+      "span_m": 7.0,
+      "thickness_mm": 0.8,
+      "rated_payload_kg": 70.0,
+      "payload_kg": 70.0,
+      "cruise_km": 500.0,
+      "cruise_speed_ms": 45.0,
+      "altitude_m": 1500.0,
+      "power_kw": 59.625,
+      "tank_offset_mac": 0.04,
+      "tank_fraction": 0.12,
+      "load_factor": 2.5
+    },
+    "search_limiting_constraint": {
+      "id": "maneuver_power",
+      "name": "持续机动功率余量",
+      "value": 0.3705958448426756,
+      "limit": 0.0,
+      "unit": "kW",
+      "sense": ">=",
+      "g": -0.3705958448426756,
+      "margin": 0.3705958448426756,
+      "normalized_margin": 0.006215443938661226,
+      "normalization_scale": 59.625,
+      "pass_": true,
+      "source": {
+        "analysis_hash": "b77186da9603a36a12784d30858f53c5941a9553592e1bf56d27da3f56bb761b",
+        "module": "M07",
+        "condition_id": "load-436b983d53b97bc0",
+        "state_id": "31bf3ab2e27b2cb2",
+        "state": {
+          "alpha_deg": 0.8453305587264617,
+          "elevon_deg": 1.5224107408172423,
+          "CL": 0.2631946182107738,
+          "CD": 0.027980539358101124,
+          "Cm_CG": 0.0,
+          "lift_N": 6152.11217776951,
+          "drag_N": 654.0385137650454,
+          "thrust_N": 654.0385137650454,
+          "ld": 9.406345418948181,
+          "power_required_kw": 50.310654905003496,
+          "power_available_kw": 50.68125074984617,
+          "fuel_flow_kg_s": 0.004192554575416958,
+          "lift_residual_N": 1.8189894035458565e-12,
+          "moment_residual_Nm": 0.0,
+          "cm_alpha_per_rad": -0.20992883820987565,
+          "mass_kg": 250.9363412692208,
+          "cg_mac": 0.28834478302015704,
+          "cg_x_m": 1.4185540990772139,
+          "q_Pa": 2205.000032623718,
+          "Re": 8097803.432223287,
+          "Mach": 0.1763181311196131,
+          "fixed_control": true,
+          "moment_reference_x_m": 1.3429633315242335,
+          "power_enforced": true
+        },
+        "load_case_hash": "436b983d53b97bc0582353ba64fd736aeb5c7c6a271a6fd354f9600bc6b6ab1e"
+      }
+    },
+    "boundary_hits": [
+      "span_m",
+      "thickness_mm"
+    ],
+    "record": "optimization-example.json",
+    "global_optimality": "not_proven"
+  },
+  "browser": {
+    "status": "key_paths_executed_with_wide_capture_limitation",
+    "evidence": "../../../docs/evidence/bwb-round2/README.md",
+    "executed": [
+      "analysis",
+      "full_default_optimization_41",
+      "three_dimensional_sections_and_view_presets",
+      "constraint_source_trace",
+      "true_time_mission_curves",
+      "different_mission_comparison_disabled",
+      "converged_but_infeasible_red_state",
+      "actual_mit_inference",
+      "mit_geometry_out_of_domain_rejection"
+    ],
+    "viewport_1366": {
+      "viewport": [
+        1366,
+        768
+      ],
+      "sidebar_px": 305,
+      "document_width_px": 1351,
+      "figure_px": [
+        952,
+        535.5
+      ],
+      "manual_view": "both_figures_readable"
+    },
+    "viewport_1920": {
+      "viewport": [
+        1920,
+        1080
+      ],
+      "sidebar_px": 305,
+      "document_width_px": 1905,
+      "figure_px": [
+        1490,
+        838.125
+      ],
+      "manual_view": "partial_capture_only",
+      "limitation": "Native IAB screenshot clips right edge; full-page/clip captures distorted. Not a full wide-screen screenshot pass."
+    },
+    "screenshots": {
+      "after-detail-1366x768.png": {
+        "pixels": [
+          1351,
+          760
+        ],
+        "sha256": "1f5b70ad40c5c3ad3e2f802df9bc2e03eb8052d15975507597da59291afc44d3"
+      },
+      "after-detail-1920x1080.png": {
+        "pixels": [
+          1824,
+          1072
+        ],
+        "sha256": "fae08a4f4b864dc67aceddb8546af7021a17751f785b9d525578e0daadf42de8"
+      },
+      "after-main-1366x768.png": {
+        "pixels": [
+          1351,
+          760
+        ],
+        "sha256": "b128ad5ee4e45d3996165b95aeb40db9d9701e7f183fa7ba9b960b6172e571c1"
+      },
+      "after-main-1920x1080.png": {
+        "pixels": [
+          1824,
+          1072
+        ],
+        "sha256": "c0c72831197de36d118652fe8a9fbcd3762dd995b13e570577b51183c60440d5"
+      },
+      "after-mit-1366.png": {
+        "pixels": [
+          1351,
+          760
+        ],
+        "sha256": "f723035138ba0ece7310d6709acace8a1f324e2b8a63aba9bd5719c2056e3afc"
+      },
+      "after-optimization-1366.png": {
+        "pixels": [
+          1351,
+          760
+        ],
+        "sha256": "db1c9abc105a278ec3fa87c793b87708e5ac43da8483a5be5ed9b77b9977a382"
+      },
+      "after-selected-3d-1366.png": {
+        "pixels": [
+          1351,
+          760
+        ],
+        "sha256": "64523dea97adf615b4e184e0ff861ac3e26a3a0c1c773558bde00e8acfd9c6e3"
+      },
+      "after-time-curves-1366.png": {
+        "pixels": [
+          1351,
+          760
+        ],
+        "sha256": "df9e221a707a65b2d411ee2628364537c6ac88e85d8691574ec642882fc8129f"
+      },
+      "before-1366x768.png": {
+        "pixels": [
+          1351,
+          760
+        ],
+        "sha256": "32dda2d9cd54326e0d59ff88e5ecb86aac1a7835704d26f88b71b22291760eaa"
+      },
+      "before-1920x1080.png": {
+        "pixels": [
+          1824,
+          1072
+        ],
+        "sha256": "ac8f99fa7375bb92d30d08d2b5d25755daad23dd5fd4cea721d2dd5cf8605462"
+      },
+      "before-native-1920x1080.png": {
+        "pixels": [
+          1824,
+          1072
+        ],
+        "sha256": "ac8f99fa7375bb92d30d08d2b5d25755daad23dd5fd4cea721d2dd5cf8605462"
+      }
+    }
+  },
+  "figures": {
+    "count": 2,
+    "regular_body_text": true,
+    "primary_and_fallback_rendered_and_opened": true,
+    "default_font": "Times New Roman",
+    "fallback_font": "DejaVu Serif",
+    "layout_checks": "docs/figures/*-layout.json and docs/evidence/bwb-round2/font-fallback/*-layout.json"
+  },
+  "independent_physical_validation": {
+    "status": "not_performed"
+  },
+  "uq_empirical_validation": {
+    "status": "not_evaluated",
+    "reason": "No eligible independent dataset/calibration evidence"
+  },
+  "formal_design_settings": "pending_teacher_decision",
+  "agent_product_integration": "not_implemented"
+}

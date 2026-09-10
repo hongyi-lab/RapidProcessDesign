@@ -1,0 +1,130 @@
+{
+  "model": "illustrative-bwb-v2",
+  "implementation_hash": "2f39826201abe7e5666c991412ea9d248134e9aef8b4111ca9a7ba7b2acc2f64",
+  "source_sha256": {
+    "engine.py": "830774ff4a11d37a7ca13c46f28077652345164e58fe304947d4494a61b6cd83",
+    "configuration.py": "a19b08cef8da5f147b246f0f2d719808dffb7475c42fee9ba8b33ea2422d323d",
+    "test_engine.py": "c87e64bf79daa1ddb05e906736e5de0adfccbf435f480bcfb3b44dd255eca4a7",
+    "test_core_v2.py": "f248b5657da4f86d08c4e228eab7b08952fc6fb618d0bbe782c7c972493051d0",
+    "verify_core_evidence.py": "799767993ff60009ec8a59c6c09fa44dec509c3f4184d7d5158539a5a82b2f02"
+  },
+  "baseline": {
+    "fuel_kg": 26.21837043221415,
+    "mass_kg": 304.67907207709663,
+    "stress_MPa": 11.268114102900958,
+    "residual_kg": -7.410698184884268e-06,
+    "status": "demo_converged"
+  },
+  "repaired_aft_tank": {
+    "fuel_kg": 26.229831616742942,
+    "status": "demo_converged",
+    "diagnostics": {
+      "capacity_kg": 124.35764723156485,
+      "scan_points": 101,
+      "valid_evaluations": 10,
+      "failure_counts": {
+        "fuel_exhausted": 18,
+        "static_stability_not_supported": 73
+      },
+      "observed_brackets_kg": [
+        [
+          26.11510591862862,
+          27.358682390944267
+        ]
+      ],
+      "claim": "Finite scan only: missing bracket does not prove no feasible fuel root; no signs assigned to failed evaluations."
+    }
+  },
+  "configuration_effect": {
+    "cd0_default": 0.022,
+    "cd0_changed": 0.044,
+    "default_fuel_kg": 26.21837043221415,
+    "changed_fuel_kg": 47.68245556227052
+  },
+  "fixed_hardware": {
+    "design_hashes": [
+      "efb168d84087e572",
+      "efb168d84087e572"
+    ],
+    "hardware_masses_kg": [
+      208.46070164488248,
+      208.46070164488253
+    ],
+    "rated_sizing_mass_change_kg": 6.0
+  },
+  "load_interface": {
+    "produced_hash": "95fdf37d88d12ba751102a634c37ebf0e09d1f470815544b84a10b643a346541",
+    "consumed_hash": "95fdf37d88d12ba751102a634c37ebf0e09d1f470815544b84a10b643a346541",
+    "mass_error_kg": 1.4210854715202004e-14,
+    "root_force_error_N": 0.0,
+    "root_moment_error_Nm": 0.0
+  },
+  "partial_state": {
+    "status": "unsupported",
+    "numeric_convergence": "converged",
+    "mission_retained": true,
+    "failure": "insufficient_power",
+    "module": "M07"
+  },
+  "selected_example_inputs": {
+    "span_m": 7,
+    "thickness_mm": 0.8,
+    "power_kw": 59.625
+  },
+  "selected_maneuver_constraint": {
+    "id": "maneuver_power",
+    "name": "持续机动功率余量",
+    "value": 0.3705958448426756,
+    "limit": 0.0,
+    "unit": "kW",
+    "sense": ">=",
+    "g": -0.3705958448426756,
+    "margin": 0.3705958448426756,
+    "normalized_margin": 0.006215443938661226,
+    "normalization_scale": 59.625,
+    "pass_": true,
+    "source": {
+      "analysis_hash": "b77186da9603a36a12784d30858f53c5941a9553592e1bf56d27da3f56bb761b",
+      "module": "M07",
+      "condition_id": "load-436b983d53b97bc0",
+      "state_id": "31bf3ab2e27b2cb2",
+      "state": {
+        "alpha_deg": 0.8453305587264617,
+        "elevon_deg": 1.5224107408172423,
+        "CL": 0.2631946182107738,
+        "CD": 0.027980539358101124,
+        "Cm_CG": 0.0,
+        "lift_N": 6152.11217776951,
+        "drag_N": 654.0385137650454,
+        "thrust_N": 654.0385137650454,
+        "ld": 9.406345418948181,
+        "power_required_kw": 50.310654905003496,
+        "power_available_kw": 50.68125074984617,
+        "fuel_flow_kg_s": 0.004192554575416958,
+        "lift_residual_N": 1.8189894035458565e-12,
+        "moment_residual_Nm": 0.0,
+        "cm_alpha_per_rad": -0.20992883820987565,
+        "mass_kg": 250.9363412692208,
+        "cg_mac": 0.28834478302015704,
+        "cg_x_m": 1.4185540990772139,
+        "q_Pa": 2205.000032623718,
+        "Re": 8097803.432223287,
+        "Mach": 0.1763181311196131,
+        "fixed_control": true,
+        "moment_reference_x_m": 1.3429633315242335,
+        "power_enforced": true
+      },
+      "load_case_hash": "436b983d53b97bc0582353ba64fd736aeb5c7c6a271a6fd354f9600bc6b6ab1e"
+    }
+  },
+  "tests": {
+    "scope": "core only; full-suite aggregate is verification-v2.json",
+    "count": 21,
+    "failures": 0,
+    "errors": 0,
+    "status": "passed",
+    "log": ".....................\n----------------------------------------------------------------------\nRan 21 tests in 7.956s\n\nOK\n"
+  },
+  "verification_scope": "Numerical regression and analytic implementation checks; no independent aircraft CFD/FEA validation",
+  "engineering_validation": "not_performed"
+}
